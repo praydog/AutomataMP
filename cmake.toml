@@ -1,0 +1,113 @@
+# Reference: https://build-cpp.github.io/cmkr/cmake-toml
+# to build:
+# > cmake -B build
+# > cmake --build build --config Release
+[project]
+name = "automatamp"
+cmake-after = """
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+
+if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+
+    # Statically compile runtime
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    message(NOTICE "Building in Release mode")
+endif()
+"""
+
+[target.spdlog]
+type = "static"
+sources = ["dependencies/submodules/spdlog/src/*.cpp"]
+include-directories = ["dependencies/submodules/spdlog/include"]
+compile-definitions = ["SPDLOG_COMPILED_LIB"]
+
+[target.glm_static]
+type = "static"
+sources = ["dependencies/submodules/glm/glm/**.cpp"]
+include-directories = ["dependencies/submodules/glm"]
+
+[target.enet]
+type = "static"
+sources = ["dependencies/submodules/enet/**.c"]
+include-directories = ["dependencies/submodules/enet/include"]
+link-libraries = [
+    "ws2_32",
+    "winmm"
+]
+
+[target.imgui]
+type = "static"
+sources = ["dependencies/submodules/imgui/*.cpp"]
+include-directories = ["dependencies/submodules/imgui", "src/automata-imgui"]
+compile-definitions = [
+    "IMGUI_USER_CONFIG=\"${CMAKE_SOURCE_DIR}/src/automata-imgui/automata_imconfig.hpp\"",
+]
+
+[target.utility]
+type = "static"
+sources = ["shared/utility/**.cpp", "shared/utility/**.c"]
+headers = ["shared/utility/**.hpp", "shared/utility/**.h"]
+compile-options = ["/EHa"]
+compile-features = ["cxx_std_20"]
+link-libraries = [
+    "spdlog",
+    "minhook"
+]
+
+[target.minhook]
+type = "static"
+sources = ["dependencies/submodules/minhook/src/**.c"]
+include-directories = [
+    "dependencies/submodules/minhook/include",
+    "dependencies/submodules/minhook/src/hde",
+]
+
+[target.sdk]
+type = "static"
+sources = ["shared/sdk/**.cpp", "shared/sdk/**.c"]
+headers = ["shared/sdk/**.hpp", "shared/sdk/**.h"]
+include-directories = ["shared/", "include/"]
+compile-options = ["/EHa"]
+compile-features = ["cxx_std_20"]
+link-libraries = [
+    "glm_static",
+    "spdlog"
+]
+private-link-libraries = [
+    "utility"
+]
+
+[target.automatamp]
+type = "shared"
+sources = ["src/**.cpp", "src/**.c"]
+headers = ["src/**.hpp", "src/**.h"]
+include-directories = ["shared/", "src/", "include/", "dependencies/enetpp/include"]
+compile-options = ["/GS-", "/bigobj", "/EHa"]
+compile-features = ["cxx_std_20"]
+compile-definitions = ["_WINSOCKAPI_"]
+link-libraries = [
+    "imgui",
+    "sdk",
+    "utility",
+    "enet",
+    "shlwapi",
+    "d3d11"
+]
+
+[target.automatamp.properties]
+OUTPUT_NAME = "dinput8"
+RUNTIME_OUTPUT_DIRECTORY_RELEASE = "${CMAKE_BINARY_DIR}/bin/${CMKR_TARGET}"
+RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO = "${CMAKE_BINARY_DIR}/bin/${CMKR_TARGET}"
+LIBRARY_OUTPUT_DIRECTORY_RELEASE = "${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
+LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO = "${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
+ARCHIVE_OUTPUT_DIRECTORY_RELEASE = "${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
+ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO = "${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
+
