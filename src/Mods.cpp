@@ -12,6 +12,8 @@ Mods::Mods() {
     /*m_mods.emplace_back(AutomataMPMod::get());
     m_mods.emplace_back(new AnimTester());
     m_mods.emplace_back(new BuddyFeatures());*/
+
+    m_mods.emplace_back(new AnimTester());
 }
 
 std::optional<std::string> Mods::on_initialize() const {
