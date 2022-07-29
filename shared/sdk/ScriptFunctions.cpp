@@ -41,7 +41,7 @@ ScriptFunctions::ScriptFunctions()
             return nullptr;
         }
 
-        const auto ref = utility::scan_disasm(*str_ref, 10, "48 8B 05");
+        const auto ref = utility::scan_disasm(*str_ref + 4, 10, "48 8B 05");
 
         if (!ref) {
             spdlog::error("Failed to find script functions.");

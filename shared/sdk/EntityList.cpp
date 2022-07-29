@@ -72,7 +72,55 @@ EntityContainer* EntityList::getByHandle(uint32_t handle) {
 }
 
 EntityContainer* EntityList::getPossessedEntity() {
-    static uint32_t* currentHandle = Address(0x14158A6EC).as<uint32_t*>();
+    //static uint32_t* currentHandle = Address(0x14158A6EC).as<uint32_t*>(); // old 2017
+    
+    /*
+    7FF710F48FBA - 0x57 Taura_TestRoom
+    7FF710FA104F + 0x54 se_hacking_in
+    7FF710F9A864 + 0x52 PauseMap:PL
+    7FF710F4EF35 + 0x49 item_recSt_Drk
+    7FF710F36207 + 0x3C EmShootingItem
+    7FF710F94F43 + 0x28 00_80_A_RobotM_Pro_1stArea
+    7FF710FA1830 + 0x26 M1080S0080b_SYSTEMHACK_1
+    7FF710F60402 + 0xE core_keyitem_get
+    7FF710F923BE + 0x9 core_AccelTime_Out
+    */
+    static uint32_t* currentHandle = []() -> uint32_t* {
+        spdlog::info("[EntityList] Finding currentHandle...");
+
+        const auto str = utility::scan_string(utility::get_executable(), "core_AccelTime_Out");
+
+        if (!str) {
+            spdlog::error("[EntityList] Failed to find currentHandle.");
+            return nullptr;
+        }
+
+        spdlog::info("[EntityList] str: {:x}", (uintptr_t)*str);
+
+        const auto str_ref = utility::scan_reference(utility::get_executable(), *str);
+
+        if (!str_ref) {
+            spdlog::error("[EntityList] Failed to find currentHandle.");
+            return nullptr;
+        }
+
+        spdlog::info("[EntityList] str_ref: {:x}", (uintptr_t)*str_ref);
+
+        const auto ref = utility::scan_disasm(*str_ref + 4, 10, "48 8D 15");
+
+        if (!ref) {
+            spdlog::error("[EntityList] Failed to find currentHandle.");
+            return nullptr;
+        }
+
+        spdlog::info("[EntityList] ref: {:x}", (uintptr_t)*ref);
+
+        uint32_t* result = (uint32_t*)utility::calculate_absolute(*ref + 3);
+
+        spdlog::info("[EntityList] currentHandle: {:x}", (uintptr_t)result);
+
+        return result;
+    }();
     
     if (!*currentHandle) {
         return nullptr;
@@ -135,7 +183,7 @@ EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
 
         spdlog::info("[EntityList] Ref: {:x}", (uintptr_t)*ref);
 
-        const auto ref2 = utility::scan_disasm(*ref, 30, "48 8D 0D");
+        const auto ref2 = utility::scan_disasm(*ref + 4, 30, "48 8D 0D");
 
         if (!ref2) {
             spdlog::error("[EntityList] Failed to find spawn.");
