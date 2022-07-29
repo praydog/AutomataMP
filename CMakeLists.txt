@@ -27,7 +27,7 @@ if(CMKR_ROOT_PROJECT)
 	configure_file(cmake.toml cmake.toml COPYONLY)
 endif()
 
-project(automatamp)
+project(automatamp-proj)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
@@ -246,6 +246,7 @@ target_compile_features(utility PUBLIC
 
 target_compile_options(utility PUBLIC
 	"/EHa"
+	"/MP"
 )
 
 target_link_libraries(utility PUBLIC
@@ -324,6 +325,7 @@ target_compile_features(sdk PUBLIC
 
 target_compile_options(sdk PUBLIC
 	"/EHa"
+	"/MP"
 )
 
 target_include_directories(sdk PUBLIC
@@ -421,6 +423,7 @@ target_compile_options(automatamp PUBLIC
 	"/GS-"
 	"/bigobj"
 	"/EHa"
+	"/MP"
 )
 
 target_include_directories(automatamp PUBLIC
