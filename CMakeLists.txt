@@ -351,7 +351,6 @@ set(automatamp_SOURCES "")
 
 list(APPEND automatamp_SOURCES
 	"src/AutomataMP.cpp"
-	"src/Crc32.cpp"
 	"src/DllMain.cpp"
 	"src/EntitySync.cpp"
 	"src/ExceptionHandler.cpp"
@@ -372,7 +371,6 @@ list(APPEND automatamp_SOURCES
 	"src/mods/AutomataMPMod.cpp"
 	"src/mods/BuddyFeatures.cpp"
 	"src/AutomataMP.hpp"
-	"src/Crc32.hpp"
 	"src/EntitySync.hpp"
 	"src/ExceptionHandler.hpp"
 	"src/LicenseStrings.hpp"
