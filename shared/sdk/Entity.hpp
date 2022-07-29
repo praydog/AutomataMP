@@ -10,16 +10,7 @@
 class Entity;
 
 struct EntityContainer {
-    void assignAIRoutine(const std::string& name) {
-        //auto realName = findExactString(GetModuleHandle(0), name);
-
-        //if (realName) {
-            static void(*assignRoutine)(const char* name, EntityContainer*) = (decltype(assignRoutine))0x1400EFD70;
-            assignRoutine(name.c_str(), this);
-
-            *Address(this->entity).get(0x16478).as<uint32_t*>() = 1;
-        //}
-    }
+    void assignAIRoutine(const std::string& name);
 
     void* unknown;
     char name[0x20];
