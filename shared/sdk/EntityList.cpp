@@ -82,8 +82,78 @@ EntityContainer* EntityList::getPossessedEntity() {
 }
 
 EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
-    static EntityContainer* (*spawn)(void*, const EntitySpawnParams&) = (decltype(spawn))0x1404F9AA0;
-    return spawn((void*)0x14160DFE0, params);
+    // 2017 version
+    /*static EntityContainer* (*spawn)(void*, const EntitySpawnParams&) = (decltype(spawn))0x1404F9AA0;
+    return spawn((void*)0x14160DFE0, params);*/
+
+
+    /*
+        String refs
+        7FF710F9614D + 0x56 ObjectParam.bxm
+        7FF710F9616B + 0x38 MapInstance
+    */
+
+    /*
+        String refs to easy func
+        7FF710BE242C + 0xB PlFaceMask
+        7FF710BE51B0 + 0xB Tower Elevator
+        7FF710F8AE91 + 0xB FreeEnemy
+        7FF710DBA636 + 0xB ba2100
+        7FF710BE53C8 + 0xB Wp3000_Supplie
+        7FF710BE554E + 0xB NPCWeapon
+        7FF710D0312B + 0xB EmSHootingLaser
+        7FF710F9F46F + 0xB Layout
+        7FF710D019D5 + 0xA Em9010
+        7FF710CFF99B + 0x4 Em0120
+        7FF710CFFCDB + 0x4 Em1010
+        7FF710CFF65B + 0x4 em0110
+    */
+
+    using spawn_t = EntityContainer* (*)(void*, const EntitySpawnParams&);
+    static auto [spawn_fn, spawn_thisptr] = []() -> std::tuple<spawn_t, void*> {
+        spdlog::info("[EntityList] Finding spawn...");
+
+        spawn_t result{nullptr};
+        void* thisptr{nullptr};
+
+        const auto game = utility::get_executable();
+        const auto str = utility::scan_string(game, "MapInstance");
+
+        if (!str) {
+            spdlog::error("[EntityList] Failed to find MapInstance.");
+            return {nullptr, nullptr};
+        }
+
+        spdlog::info("[EntityList] MapInstance: {:x}", (uintptr_t)*str);
+
+        const auto ref = utility::scan_reference(game, *str);
+        
+        if (!ref) {
+            spdlog::error("[EntityList] Failed to find spawn.");
+            return {nullptr, nullptr};
+        }
+
+        spdlog::info("[EntityList] Ref: {:x}", (uintptr_t)*ref);
+
+        const auto ref2 = utility::scan_disasm(*ref, 30, "48 8D 0D");
+
+        if (!ref2) {
+            spdlog::error("[EntityList] Failed to find spawn.");
+            return {nullptr, nullptr};
+        }
+
+        spdlog::info("[EntityList] Ref2: {:x}", (uintptr_t)*ref2);
+
+        thisptr = (void*)utility::calculate_absolute(*ref2 + 3);
+        result = (spawn_t)utility::calculate_absolute(*ref2 + 8);
+
+        spdlog::info("[EntityList] spawn: {:x}", (uintptr_t)result);
+        spdlog::info("[EntityList] thisptr: {:x}", (uintptr_t)thisptr);
+
+        return {result, thisptr};
+    }();
+
+    return spawn_fn(spawn_thisptr, params);
 }
 
 EntityContainer* EntityList::spawnEntity(const std::string& name, uint32_t model, const Vector3f& position) {

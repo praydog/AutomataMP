@@ -296,6 +296,7 @@ set(sdk_SOURCES "")
 list(APPEND sdk_SOURCES
 	"shared/sdk/Entity.cpp"
 	"shared/sdk/EntityList.cpp"
+	"shared/sdk/Game.cpp"
 	"shared/sdk/ScriptFunctions.cpp"
 	"shared/sdk/Entity.hpp"
 	"shared/sdk/EntityList.hpp"

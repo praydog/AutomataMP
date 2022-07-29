@@ -30,7 +30,8 @@ AutomataMPMod::~AutomataMPMod() {
 std::optional<std::string> AutomataMPMod::on_initialize() try {
     spdlog::info("Entering AutomataMPMod.");
 
-    enetpp::global_state::get().initialize();
+    // Do it later.
+    /*enetpp::global_state::get().initialize();
     if (!clientConnect()) {
         spdlog::info("Connection failed");
         serverStart();
@@ -39,7 +40,7 @@ std::optional<std::string> AutomataMPMod::on_initialize() try {
         spdlog::info("Connection success");
     }
 
-    spdlog::info("Leaving AutomataMPMod.");
+    spdlog::info("Leaving AutomataMPMod.");*/
 
     return Mod::on_initialize();
 } catch(std::exception& e) {

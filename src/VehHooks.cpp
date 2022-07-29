@@ -1,7 +1,12 @@
 #include <string>
 
+#include <spdlog/spdlog.h>
+
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
+
+#include <utility/Scan.hpp>
+#include <utility/Module.hpp>
 
 #include "Mods.hpp"
 #include "mods/AutomataMPMod.hpp"
@@ -11,9 +16,35 @@
 
 using namespace std;
 
+uintptr_t get_on_update_function() {
+    static uintptr_t on_update_function = []() -> uintptr_t {
+        spdlog::info("[VehHooks] Finding on_update_function...");
+
+        const auto middle = utility::scan(utility::get_executable(), "? 89 ? e8 00 00 00 ? 89 ? f0 00 00 00 ? ? ? e8 ? ? ? ? ? ? ? ? ? 00 00");
+
+        if (!middle) {
+            spdlog::error("[VehHooks] Failed to find on_update_function.");
+            return 0;
+        }
+
+        const auto int3s = utility::scan_reverse(*middle, 0x100, "CC CC CC");
+
+        if (!int3s) {
+            spdlog::error("[VehHooks] Failed to find int3s.");
+            return 0;
+        }
+
+        return *int3s + 3;
+    }();
+
+    return on_update_function;
+}
+
 VehHooks::VehHooks() {
+    spdlog::info("[VehHooks] Initializing...");
+
     // required to allow button to be held down without resetting
-    m_hook.hook(0x140262B22, [=](const VehHook::RuntimeInfo& info) {
+    /*m_hook.hook(0x140262B22, [=](const VehHook::RuntimeInfo& info) {
         auto entity = Address(info.context->Rcx).get(-0xCA0).as<Entity*>();
 
         auto& player = AutomataMPMod::get()->getPlayers()[1];
@@ -21,7 +52,7 @@ VehHooks::VehHooks() {
         if (entity == player.getEntity()) {
             entity->getCharacterController()->heldFlags = player.getPlayerData().heldButtonFlags;
         }
-    });
+    });*/
 
     // Early version hooks
     /*addHook(0x140263006, &VehHooks::onProcessedButtons);
@@ -30,11 +61,13 @@ VehHooks::VehHooks() {
     addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);
     addHook(0x140519460, &VehHooks::onUpdate);*/
 
-    addHook(0x140263006, &VehHooks::onProcessedButtons);
+    /*addHook(0x140263006, &VehHooks::onProcessedButtons);
     addHook(0x1404F9AA0, &VehHooks::onPreEntitySpawn);
     addHook(0x1404F9BE9, &VehHooks::onPostEntitySpawn);
-    addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);
-    addHook(0x140519460, &VehHooks::onUpdate);
+    addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);*/
+    addHook(get_on_update_function(), &VehHooks::onUpdate);
+
+    spdlog::info("[VehHooks] Initialized.");
 }
 
 void VehHooks::onLightAttack(const VehHook::RuntimeInfo& info) {
