@@ -34,10 +34,68 @@ uintptr_t get_on_update_function() {
             return 0;
         }
 
-        return *int3s + 3;
+        const auto result = *int3s + 3;
+
+        spdlog::info("[VehHooks] on_update_function: {:x}", result);
+
+        return result;
     }();
 
     return on_update_function;
+}
+
+// gets an instruction near the end of the function that has an easy-ish to scan for pattern
+uintptr_t get_on_processed_buttons() {
+    static uintptr_t on_processed_buttons = []() -> uintptr_t {
+        spdlog::info("[VehHooks] Finding on_processed_buttons...");
+
+        const auto middle = utility::scan(utility::get_executable(), "C7 ? 90 07 00 00 14 00 00 00 48");
+
+        if (!middle) {
+            spdlog::error("[VehHooks] Failed to find on_processed_buttons.");
+            return 0;
+        }
+
+        const auto result = *middle + 10;
+
+        spdlog::info("[VehHooks] on_processed_buttons: {:x}", result);
+
+        return result;
+    }();
+
+    return on_processed_buttons;
+}
+
+// near the top of ProcessButtons
+uintptr_t get_on_set_held_flags() {
+    static uintptr_t pre_process_buttons = []() -> uintptr_t {
+        spdlog::info("[VehHooks] Finding on_set_held_flags...");
+
+        const auto middle = get_on_processed_buttons();
+        const auto ref = utility::scan_reverse(middle, 0x1000, "CC CC CC");
+
+        if (!ref) {
+            spdlog::error("[VehHooks] Failed to find pre_process_buttons.");
+            return 0;
+        }
+
+        const auto func = *ref + 3;
+
+        spdlog::info("[VehHooks] pre_process_buttons: {:x}", func);
+
+        const auto result = utility::scan_disasm(func, 0x100, "48 89 81 40 07 00 00");
+
+        if (!result) {
+            spdlog::error("[VehHooks] Failed to find on_set_held_Flags.");
+            return 0;
+        }
+
+        spdlog::info("[VehHooks] on_set_held_flags: {:x}", *result);
+
+        return *result;
+    }();
+
+    return pre_process_buttons;
 }
 
 VehHooks::VehHooks() {
@@ -65,7 +123,19 @@ VehHooks::VehHooks() {
     addHook(0x1404F9AA0, &VehHooks::onPreEntitySpawn);
     addHook(0x1404F9BE9, &VehHooks::onPostEntitySpawn);
     addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);*/
+
     addHook(get_on_update_function(), &VehHooks::onUpdate);
+    addHook(get_on_processed_buttons(), &VehHooks::onProcessedButtons);
+
+    m_hook.hook(get_on_set_held_flags(), [=](const VehHook::RuntimeInfo& info) {
+        auto entity = Address(info.context->Rcx).get(-0xCA0).as<Entity*>();
+
+        auto& player = AutomataMPMod::get()->getPlayers()[1];
+
+        if (entity == player.getEntity()) {
+            entity->getCharacterController()->heldFlags = player.getPlayerData().heldButtonFlags;
+        }
+    });
 
     spdlog::info("[VehHooks] Initialized.");
 }
@@ -93,8 +163,10 @@ void VehHooks::onHeavyAttack(const VehHook::RuntimeInfo & info) {
 }
 
 void VehHooks::onProcessedButtons(const VehHook::RuntimeInfo& info)
-{
-    auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
+{   
+    // OLD VERSION USES R8. THE REGISTER IS THE CHARACTER CONTROLLER OF THE ENTITY.
+    //auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
+    auto entity = Address(info.context->Rbx).get(-0xCA0).as<Entity*>();
 
     if (m_overridenEntities.count(entity) != 0) {
         for (auto button : entity->getCharacterController()->buttons) {
