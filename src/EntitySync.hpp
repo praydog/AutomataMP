@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <mutex>
 
 #include "Packets.hpp"
 #include <sdk/Entity.hpp>
@@ -44,5 +45,5 @@ private:
     uint32_t m_maxGuid{ 0 };
     std::unordered_map<uint32_t, NetworkEntity> m_networkEntities;
     std::unordered_map<uint32_t, NetworkEntity*> m_handleMap;
-    std::mutex m_mapMutex;
+    std::recursive_mutex m_mapMutex;
 };

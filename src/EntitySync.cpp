@@ -29,7 +29,7 @@ void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
 }
 
 void EntitySync::onEntityDeleted(EntityContainer* entity) {
-    lock_guard<mutex> _(m_mapMutex);
+    scoped_lock _(m_mapMutex);
 
     if (m_handleMap.find(entity->handle) == m_handleMap.end()) {
         return;
@@ -44,7 +44,7 @@ void EntitySync::onEntityDeleted(EntityContainer* entity) {
 NetworkEntity& EntitySync::addEntity(EntityContainer* entity, uint32_t guid) {
     spdlog::info("Adding entity {:x} with guid {}", (uintptr_t)entity, guid);
 
-    lock_guard<mutex> _(m_mapMutex);
+    scoped_lock _(m_mapMutex);
     auto& networkEntity = m_networkEntities[guid];
     m_handleMap[entity->handle] = &networkEntity;
     networkEntity.getEntityData().guid = guid;
@@ -61,12 +61,21 @@ void EntitySync::removeEntity(uint32_t identifier) {
 }
 
 void EntitySync::think() {
-    lock_guard<mutex> _(m_mapMutex);
+    scoped_lock _(m_mapMutex);
 
     for (auto& networkedEnt : m_networkEntities) {
         auto ent = networkedEnt.second.getEntity();
+
+        if (ent == nullptr) {
+            continue;
+        }
+
         auto& packet = networkedEnt.second.getEntityData();
         auto npc = ent->entity;
+
+        if (npc == nullptr) {
+            continue;
+        }
 
         if (AutomataMPMod::get()->isServer()) {
             packet.position = *npc->getPosition();
@@ -90,10 +99,21 @@ void EntitySync::think() {
 void EntitySync::processEntityData(nier_server::EntityData* data) {
     spdlog::info("Processing {} entity data", data->guid);
 
-    lock_guard<mutex> _(m_mapMutex);
+    scoped_lock _(m_mapMutex);
     if (m_networkEntities.find(data->guid) != m_networkEntities.end()) {
         auto ent = m_networkEntities[data->guid];
-        auto npc = ent.getEntity()->entity;
+
+        const auto cont = ent.getEntity();
+
+        if (cont == nullptr) {
+            return;
+        }
+
+        auto npc = cont->entity;
+
+        if (npc == nullptr) {
+            return;
+        }
 
         *npc->getPosition() = data->position;
         *npc->getFacing() = data->facing;
