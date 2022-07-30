@@ -168,16 +168,19 @@ void AutomataMPMod::on_think() {
             ent->entity->setBuddyHandle(player->handle);
             player->entity->setBuddyHandle(ent->handle);
 
+            ent->entity->setSuspend(false);
+
+            ent->assignAIRoutine("PLAYER");
+            ent->assignAIRoutine("player");
+
             // alternate way of assigning AI/control to the entity easily.
             player->entity->changePlayer();
             player->entity->changePlayer();
 
-            ent->assignAIRoutine("player");
-
+            const auto old_flags = ent->entity->getBuddyFlags();
             ent->entity->setBuddyFlags(8);
             ent->entity->setBuddyFromNpc();
-            ent->entity->setBuddyFlags(0);
-            ent->entity->setSuspend(false);
+            ent->entity->setBuddyFlags(old_flags);
 
             m_players[1].setStartTick(*ent->entity->getTickCount());
         }
@@ -295,6 +298,9 @@ void AutomataMPMod::on_think() {
         auto ent = entityList->spawnEntity("partner", EModel::MODEL_2B, *player->entity->getPosition());
 
         if (ent) {
+            ent->assignAIRoutine("buddy_2B");
+            ent->assignAIRoutine("buddy");
+
             ent->entity->setBuddyHandle(player->handle);
             player->entity->setBuddyHandle(ent->handle);
 
@@ -307,6 +313,8 @@ void AutomataMPMod::on_think() {
             ent->entity->setBuddyFlags(-1);
             ent->entity->setBuddyFromNpc();
             ent->entity->setBuddyFlags(1);
+
+            //ent->entity->setPosRotResetHap(Vector4f{*player->entity->getPosition(), 1.0f}, glm::identity<glm::quat>());
         }
 
         spdlog::info("{:x}", (uintptr_t)ent);

@@ -170,6 +170,10 @@ public:
         return *(uint32_t*)((uintptr_t)this + 0x1646c + 0x10);
     }
 
+    uint32_t getBuddyFlags() const {
+        return *(uint32_t*)((uintptr_t)this + 0x598);
+    }
+
     void setBuddyFlags(uint32_t flags) {
         *(uint32_t*)((uintptr_t)this + 0x598) = flags;
     }
@@ -241,6 +245,7 @@ public:
 
     OBJECT_SCRIPT_FUNCTION(Pl0000, setBuddyFromNpc, void);
     OBJECT_SCRIPT_FUNCTION(Pl0000, changePlayer, void);
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setPosRotResetHap, void, const Vector4f&, const glm::quat&);
 
 private:
 };

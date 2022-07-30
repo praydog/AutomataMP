@@ -27,6 +27,8 @@ struct EntitySpawnParams {
         uint32_t unk4{ 0 }; // 7c - 80
         uint32_t unk5{ 0 }; // 80 - 84
         uint32_t unk6{ 0 }; // 84 - 88
+        uint32_t unk7{ 1 }; // 88 - 8c
+        uint32_t unk8{ 0 }; // 8c - 90
     };
 
     const char* name; // 0-8
@@ -34,7 +36,7 @@ struct EntitySpawnParams {
     uint32_t model2; // c - 10
     PositionalData* matrix{ nullptr }; // 10 - 18
     uint64_t unk1{ 0 }; // 18 - 20
-    uint32_t unk2{ 1 }; // 20 - 24
+    uint32_t unk2{ 1 }; // 20 - 24 // copied from positionaldata + 0x88?
     uint64_t unk3{ 0 }; // 28 - 30
     Vector4f unk4{ 0.0f, 0.0f, 0.0f, 0.0f }; // 30 - 38
     Vector4f unk5{ 0.0f, 0.0f, 0.0f, 0.0f }; // 38 - 40
