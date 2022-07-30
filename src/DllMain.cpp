@@ -1,11 +1,13 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <string_view>
 #include <windows.h>
 #include <winternl.h>
 
 #include <utility/Module.hpp>
 #include <utility/Thread.hpp>
+#include <utility/FunctionHook.hpp>
 
 #include "ExceptionHandler.hpp"
 #include "AutomataMP.hpp"
@@ -53,6 +55,32 @@ __declspec(dllexport) HRESULT WINAPI
 }
 }
 
+std::unique_ptr<FunctionHook> g_create_event_a_hook{};
+
+// Allows us to launch the game more than once to test multiplayer.
+HANDLE WINAPI create_event_a_hook(
+  LPSECURITY_ATTRIBUTES lpEventAttributes,
+  BOOL                  bManualReset,
+  BOOL                  bInitialState,
+  LPCSTR                lpName
+)
+{
+    const auto result = g_create_event_a_hook->get_original<decltype(CreateEventA)>()(lpEventAttributes, bManualReset, bInitialState, lpName);
+
+    if (lpName != nullptr) {
+        spdlog::info("{}", lpName);
+
+        if (std::string_view{lpName} == "NieR:AutomataEvent") {
+            if (GetLastError() == ERROR_ALREADY_EXISTS) {
+                spdlog::info("AutomataMP: AutomataEvent already exists...");
+                return g_create_event_a_hook->get_original<decltype(CreateEventA)>()(lpEventAttributes, bManualReset, bInitialState, "AutomataMPEvent");
+            }
+        }
+    }
+
+    return result;
+}
+
 void startup_thread(HMODULE automatamp_module) {
     // We will set it once here, then do it continuously
     // every now and then because it gets replaced
@@ -66,9 +94,14 @@ void startup_thread(HMODULE automatamp_module) {
 #endif
 
     if (load_dinput8()) {
-        g_framework = std::make_unique<AutomataMP>(automatamp_module);
+        const auto cva = (decltype(create_event_a_hook)*)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "CreateEventA");
+        g_create_event_a_hook = std::make_unique<FunctionHook>(
+            cva,
+            &create_event_a_hook
+        );
+        g_create_event_a_hook->create();
 
-        const auto our_dll = utility::get_module_within(&load_dinput8);
+        g_framework = std::make_unique<AutomataMP>(automatamp_module);
     }
 }
 
