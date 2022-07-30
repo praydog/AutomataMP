@@ -5,14 +5,14 @@
 
 #include "../Mod.hpp"
 
-#include "../VehHooks.hpp"
-#include "../PlayerHook.hpp"
+#include "multiplayer/VehHooks.hpp"
+#include "multiplayer/PlayerHook.hpp"
 
-#include "../NierServer.hpp"
-#include "../NierClient.hpp"
-#include "../Packets.hpp"
-#include "../Player.hpp"
-#include "../EntitySync.hpp"
+#include "multiplayer/NierServer.hpp"
+#include "multiplayer/NierClient.hpp"
+#include "multiplayer/Packets.hpp"
+#include "multiplayer/Player.hpp"
+#include "multiplayer/EntitySync.hpp"
 
 class AutomataMPMod : public Mod {
 public:
