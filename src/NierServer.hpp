@@ -14,6 +14,7 @@ public:
     NierServer();
     ~NierServer();
 
+    void on_draw_ui();
     void think();
 
 private:

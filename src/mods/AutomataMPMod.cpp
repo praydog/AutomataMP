@@ -4,6 +4,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <utility/Input.hpp>
+
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
 
@@ -31,16 +33,9 @@ std::optional<std::string> AutomataMPMod::on_initialize() try {
     spdlog::info("Entering AutomataMPMod.");
 
     // Do it later.
-    /*enetpp::global_state::get().initialize();
-    if (!clientConnect()) {
-        spdlog::info("Connection failed");
-        serverStart();
-    }
-    else {
-        spdlog::info("Connection success");
-    }
+    enetpp::global_state::get().initialize();
 
-    spdlog::info("Leaving AutomataMPMod.");*/
+    spdlog::info("Leaving AutomataMPMod.");
 
     return Mod::on_initialize();
 } catch(std::exception& e) {
@@ -77,6 +72,39 @@ void AutomataMPMod::sendPacket(const enet_uint8* data, size_t size) {
     }
 }
 
+void AutomataMPMod::on_draw_ui() {
+    if (!ImGui::CollapsingHeader("AutomataMPMod")) {
+        return;
+    }
+
+    if (m_server) {
+        ImGui::Text("State: Server");
+    } else if (m_client) {
+        ImGui::Text("State: Client");
+    } else {
+        ImGui::Text("State: Disconnected");
+    }
+
+    if (ImGui::Button("Start Server")) {
+        serverStart();
+    }
+    
+    if (ImGui::InputText("Connect IP", m_ip_connect_input.data(), m_ip_connect_input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+        m_server = {};
+        m_client.reset();
+
+        m_client = make_unique<NierClient>(m_ip_connect_input.data());
+
+        if (!m_client->isConnected()) {
+            m_client.reset();
+        }
+    }
+
+    if (m_server) {
+        m_server->on_draw_ui();
+    }
+}
+
 void AutomataMPMod::on_frame() {
     if (m_server) {
         // Draw "Server" at 0, 0 with red text.
@@ -86,6 +114,11 @@ void AutomataMPMod::on_frame() {
     if (m_client) {
         // Draw "Client" at 0, 0 with green text.
         ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "Client");
+    }
+
+    if (!m_server && !m_client) {
+        // Draw "Disconnected" at 0, 0 with red text.
+        ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "Disconnected");
     }
 }
 
@@ -113,7 +146,7 @@ void AutomataMPMod::on_think() {
     auto partner = entityList->getByName("partner");
 
     if (partner) {
-        if (GetAsyncKeyState(VK_F4) & 1) {
+        if (utility::was_key_down(VK_F4)) {
             Vector3f* myPos = Address(player->entity).get(0x50).as<Vector3f*>();
 
             for (auto i : partners) {
@@ -157,7 +190,7 @@ void AutomataMPMod::on_think() {
     static uint32_t(*possessEntity)(Entity* player, uint32_t* handle, bool a3) = (decltype(possessEntity))0x1402118D0;
     static uint32_t(*unpossessEntity)(Entity* player, bool a2) = (decltype(unpossessEntity))0x140211AE0;
 
-    /*if (GetAsyncKeyState(VK_F5) & 1) {
+    /*if (utility::was_key_down(VK_F5)) {
         auto curHandle = Address(0x1416053E0).as<uint32_t*>();
         auto curEnt = entityList->getByHandle(*curHandle);
 
@@ -199,13 +232,13 @@ void AutomataMPMod::on_think() {
         }
     }*/
 
-    if (GetAsyncKeyState(VK_F6) & 1) {
+    if (utility::was_key_down(VK_F6)) {
         player->entity->changePlayer();
         //nier_client_and_server::ChangePlayer change;
         //sendPacket(change.data(), sizeof(change));
     }
 
-    if (GetAsyncKeyState(VK_F7) & 1) {
+    if (utility::was_key_down(VK_F7)) {
         for (auto& i : *entityList) {
             if (!i.ent || !i.handle)
                 continue;
@@ -253,7 +286,7 @@ void AutomataMPMod::on_think() {
 
     sharedThink();
 
-    if (GetAsyncKeyState(VK_F9) & 1) {
+    if (utility::was_key_down(VK_F9)) {
         /*auto old = player->entity->getBuddyHandle();
         player->entity->setBuddyHandle(0);
         spawnBuddy(player->entity);
@@ -279,19 +312,19 @@ void AutomataMPMod::on_think() {
         spdlog::info("{:x}", (uintptr_t)ent);
     }
 
-    if ((GetAsyncKeyState(VK_F10) & 1) && partner) {
+    if (utility::was_key_down(VK_F10) && partner) {
         for (auto p : partners) {
             p->entity->terminate();
         }
     }
 
-    /*if (GetAsyncKeyState(VK_F2) & 1) {
+    /*if (utility::was_key_down(VK_F2)) {
         Entity::Signal signal;
         signal.signal = 0xEB1B2287;
         player->entity->signal(signal);
     }*/
 
-    if (GetAsyncKeyState(VK_F3) & 1) {
+    if (utility::was_key_down(VK_F3)) {
         player->entity->setSuspend(!player->entity->isSuspend());
     }
 }
@@ -300,7 +333,7 @@ void AutomataMPMod::sharedThink()
 {
     spdlog::info("Shared think");
 
-    static uint32_t(*changePlayer)(Entity* player) = (decltype(changePlayer))0x1401ED500;
+    //static uint32_t(*changePlayer)(Entity* player) = (decltype(changePlayer))0x1401ED500;
 
     auto entityList = EntityList::get();
 
@@ -329,7 +362,8 @@ void AutomataMPMod::sharedThink()
         if (realBuddy && realBuddy->entity) {
             //realBuddy->entity->setBuddyFlags(0);
             realBuddy->entity->setSuspend(false);
-            changePlayer(player->entity);
+            //changePlayer(player->entity);
+            player->entity->changePlayer();
         }
 
         return;
@@ -343,6 +377,10 @@ void AutomataMPMod::sharedThink()
     
     if (realBuddy && realBuddy->entity) {
         realBuddy->entity->setBuddyFlags(0);
+
+        if (m_players[1].getHandle() != realBuddy->handle) {
+            spdlog::info("Setting buddy handle {:x}->{:x}", controlledEntity->entity->getBuddyHandle(), realBuddy->handle);
+        }
         
         m_players[1].setHandle(realBuddy->handle);
         synchronize();
@@ -376,7 +414,18 @@ void AutomataMPMod::sharedThink()
 }
 
 void AutomataMPMod::synchronize() {
-    auto npc = EntityList::get()->getByHandle(m_players[1].getHandle())->entity;
+    auto container = EntityList::get()->getByHandle(m_players[1].getHandle());
+    if (container == nullptr) {
+        spdlog::error("Container for player 1 not found");
+        return;
+    }
+
+    auto npc = container->entity;
+
+    if (npc == nullptr) {
+        spdlog::error("NPC for player 1 not found");
+        return;
+    }
 
     auto& data = m_players[1].getPlayerData();
     *npc->getRunSpeedType() = SPEED_PLAYER;
@@ -391,7 +440,7 @@ void AutomataMPMod::synchronize() {
 }
 
 void AutomataMPMod::serverPacketProcess(const Packet* data, size_t size) {
-    spdlog::info("Server packet %i received", data->id);
+    spdlog::info("Server packet {} received", data->id);
 
     switch (data->id) {
     case ID_SPAWN_ENTITY:
@@ -406,7 +455,7 @@ void AutomataMPMod::serverPacketProcess(const Packet* data, size_t size) {
 }
 
 void AutomataMPMod::sharedPacketProcess(const Packet* data, size_t size) {
-    spdlog::info("Shared packet %i received", data->id);
+    spdlog::info("Shared packet {} received", data->id);
 
     switch (data->id) {
         // Shared
@@ -448,6 +497,8 @@ void AutomataMPMod::processAnimationStart(const nier_client_and_server::Animatio
     default:
         if (npc) {
             npc->startAnimation(animation->anim, animation->variant, animation->a3, animation->a4);
+        } else {
+            spdlog::error("Cannot start animation, npc is null");
         }
     }
 }
@@ -480,7 +531,7 @@ void AutomataMPMod::processEntitySpawn(nier_server::EntitySpawn* spawn) {
         params.model2 = spawn->model2;
         params.name = spawn->name;
 
-        spdlog::info("Spawning %s", params.name);
+        spdlog::info("Spawning {}", params.name);
 
         auto ent = entityList->spawnEntity(params);
 

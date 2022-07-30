@@ -1,5 +1,6 @@
 #include <functional>
 
+#include <imgui.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -24,6 +25,12 @@ NierServer::NierServer() {
 
 NierServer::~NierServer() {
     stop_listening();
+}
+
+void NierServer::on_draw_ui() {
+    for (auto c : get_connected_clients()) {
+        ImGui::Text("Client: %d", c->get_id());
+    }
 }
 
 void NierServer::think() {

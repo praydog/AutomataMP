@@ -19,13 +19,13 @@ bool isLoading() {
             return nullptr;
         }
 
-        bool* result = (bool*)utility::calculate_absolute(*func + 11);
+        bool* result = (bool*)utility::calculate_absolute(*func + 11, 8);
 
         spdlog::info("isLoading: {:x}", (uintptr_t)result);
 
         return result;
     }();
 
-    return *is_loading_ptr;
+    return !*is_loading_ptr;
 }
 }

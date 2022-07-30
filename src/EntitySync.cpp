@@ -88,7 +88,7 @@ void EntitySync::think() {
 }
 
 void EntitySync::processEntityData(nier_server::EntityData* data) {
-    spdlog::info("Processing %i entity data", data->guid);
+    spdlog::info("Processing {} entity data", data->guid);
 
     lock_guard<mutex> _(m_mapMutex);
     if (m_networkEntities.find(data->guid) != m_networkEntities.end()) {

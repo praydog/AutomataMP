@@ -33,6 +33,7 @@ public:
         return m_server != nullptr;
     }
 
+    void on_draw_ui() override;
     void on_frame() override;
     void on_think() override;
     void sharedThink();
@@ -72,4 +73,8 @@ private:
 
     std::array<Player, 2> m_players;
     EntitySync m_networkEntities;
+
+private:
+    // imgui stuff
+    std::array<char, 256> m_ip_connect_input{};
 };

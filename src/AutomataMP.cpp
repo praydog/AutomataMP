@@ -389,21 +389,21 @@ void AutomataMP::on_frame_d3d11() {
         }
     }
 
-    if (!m_has_frame) {
-        if (!is_init_ok) {
+    //if (!m_has_frame) {
+        //if (!is_init_ok) {
             update_fonts();
             invalidate_device_objects();
 
             ImGui_ImplDX11_NewFrame();
             // hooks don't run until after initialization, so we just render the imgui window while initalizing.
-            run_imgui_frame(true);
-        } else {   
+            run_imgui_frame(false);
+   /*     } else {   
             return;
         }
     } else {
         invalidate_device_objects();
         ImGui_ImplDX11_NewFrame();
-    }
+    }*/
 
     if (is_init_ok) {
         m_mods->on_present();
@@ -615,6 +615,15 @@ bool AutomataMP::on_message(HWND wnd, UINT message, WPARAM w_param, LPARAM l_par
 
     bool is_mouse_moving{false};
     switch (message) {
+    //case WM_KILLFOCUS:
+    //case 0x14FD:
+        //return false; // do not allow this message to be handled by the game so we can alt tab without pausing
+
+    case WM_ACTIVATE:
+        if (LOWORD(w_param) == WA_INACTIVE) {
+            return false;
+        }
+        break;
     case WM_INPUT: {
         // RIM_INPUT means the window has focus
         if (GET_RAWINPUT_CODE_WPARAM(w_param) == RIM_INPUT) {

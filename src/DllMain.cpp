@@ -81,6 +81,13 @@ HANDLE WINAPI create_event_a_hook(
     return result;
 }
 
+// SetCursorPos hook to prevent the game from taking control of the cursor.
+std::unique_ptr<FunctionHook> g_set_cursor_pos_hook{};
+
+BOOL WINAPI set_cursor_pos_hook(int x, int y) {
+    return TRUE;
+}
+
 void startup_thread(HMODULE automatamp_module) {
     // We will set it once here, then do it continuously
     // every now and then because it gets replaced
@@ -100,6 +107,14 @@ void startup_thread(HMODULE automatamp_module) {
             &create_event_a_hook
         );
         g_create_event_a_hook->create();
+
+        const auto scp = (decltype(set_cursor_pos_hook)*)GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetCursorPos");
+
+        g_set_cursor_pos_hook = std::make_unique<FunctionHook>(
+            scp,
+            &set_cursor_pos_hook
+        );
+        g_set_cursor_pos_hook->create();
 
         g_framework = std::make_unique<AutomataMP>(automatamp_module);
     }

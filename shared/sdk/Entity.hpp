@@ -163,11 +163,11 @@ public:
     }
 
     void setBuddyHandle(uint32_t handle) {
-        *(uint32_t*)((uintptr_t)this + 0x1646c) = handle;
+        *(uint32_t*)((uintptr_t)this + 0x1646c + 0x10) = handle; // + 0x10 because of new version.
     }
 
     uint32_t getBuddyHandle() {
-        return *(uint32_t*)((uintptr_t)this + 0x1646c);
+        return *(uint32_t*)((uintptr_t)this + 0x1646c + 0x10);
     }
 
     void setBuddyFlags(uint32_t flags) {
@@ -203,7 +203,7 @@ public:
     }
 
     bool* getFlashlightEnabled() {
-        return Address(this).get(0x17480).as<bool*>();
+        return Address(this).get(0x17480 + 0x30).as<bool*>();
     }
 
     float* getTickCount() {
@@ -211,15 +211,15 @@ public:
     }
 
     bool* getShortsTorn() {
-        return Address(this).get(0x16ce4).as<bool*>();
+        return Address(this).get(0x16ce4 + 0x10).as<bool*>();
     }
 
     bool* getWearingMask() {
-        return Address(this).get(0x16cdc).as<bool*>();
+        return Address(this).get(0x16cdc + 0x10).as<bool*>();
     }
 
     uint32_t* getRunSpeedType() {
-        return (uint32_t*)((uintptr_t)this + 0x16478);
+        return (uint32_t*)((uintptr_t)this + 0x16478 + 0x10);
     }
 
     struct Signal {

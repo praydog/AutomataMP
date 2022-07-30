@@ -7,6 +7,7 @@
 
 #include <utility/Scan.hpp>
 #include <utility/Module.hpp>
+#include <utility/Input.hpp>
 
 #include "Mods.hpp"
 #include "mods/AutomataMPMod.hpp"
@@ -278,7 +279,7 @@ void VehHooks::onUpdate(const VehHook::RuntimeInfo& info) {
         mod->on_think();
     }
 
-    if ((GetAsyncKeyState(VK_F1) & 1) && AutomataMPMod::get()->isServer()) {
+    if (utility::was_key_down(VK_F1) && AutomataMPMod::get()->isServer()) {
         /*static std::unordered_map<uint32_t, uint32_t> models{ { EModel::MODEL_2B, EModel::MODEL_9S }, 
                                                               { EModel::MODEL_9S, EModel::MODEL_A2 }, 
                                                               { EModel::MODEL_A2, EModel::MODEL_2B }};
@@ -310,7 +311,7 @@ void VehHooks::onUpdate(const VehHook::RuntimeInfo& info) {
         return;
     }
 
-    if (GetAsyncKeyState(VK_F2) & 1) {
+    if (utility::was_key_down(VK_F2)) {
         auto enemies = entityList->getAllByName("FreeEnemy");
 
         for (auto i : enemies) {
