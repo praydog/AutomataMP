@@ -73,6 +73,7 @@ HANDLE WINAPI create_event_a_hook(
         if (std::string_view{lpName} == "NieR:AutomataEvent") {
             if (GetLastError() == ERROR_ALREADY_EXISTS) {
                 spdlog::info("AutomataMP: AutomataEvent already exists...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // so the game remembers the graphics settings, because it won't be able to access the config in use by the other instance
                 return g_create_event_a_hook->get_original<decltype(CreateEventA)>()(lpEventAttributes, bManualReset, bInitialState, "AutomataMPEvent");
             }
         }

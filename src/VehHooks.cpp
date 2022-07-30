@@ -255,7 +255,7 @@ void VehHooks::onUpdate(const VehHook::RuntimeInfo& info) {
         return;
     }
 
-    spdlog::info("In here");
+    //spdlog::info("In here");
 
     //static std::unordered_map<uintptr_t, std::unordered_set<uintptr_t>> functionCalls;
     //static std::mutex mut;
