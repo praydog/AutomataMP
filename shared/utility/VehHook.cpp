@@ -95,6 +95,8 @@ bool VehHook::hook(Address target, Address destination, CallbackFn cb) {
 }
 
 LONG VehHook::handler(PEXCEPTION_POINTERS info) {
+    std::scoped_lock _{VehHook::s_mutex};
+
     auto record = info->ExceptionRecord;
     auto code = record->ExceptionCode;
 

@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 #include <cstdint>
+#include <mutex>
 
 #include <Windows.h>
 
@@ -49,6 +50,7 @@ public:
     }
 
 private:
+    static inline std::recursive_mutex s_mutex{};
     std::vector<HookInfo> m_hooks;
     PVOID m_handler;
 
