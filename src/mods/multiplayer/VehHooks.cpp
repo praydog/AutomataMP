@@ -99,6 +99,38 @@ uintptr_t get_on_set_held_flags() {
     return pre_process_buttons;
 }
 
+uintptr_t get_entity_terminate_fn() {
+    static uintptr_t entity_terminate_fn = []() -> uintptr_t {
+        spdlog::info("[VehHooks] Finding entity_terminate_fn...");
+
+        const auto terminate = ScriptFunctions::get().find("Behavior.terminate");
+
+        if (!terminate) {
+            spdlog::error("[VehHooks] Failed to find entity_terminate_fn.");
+            return 0;
+        }
+
+        const auto terminate_script_fn = terminate->function;
+
+        spdlog::info("[VehHooks] entity_terminate_script_fn: {:x}", terminate_script_fn);
+
+        const auto ref = utility::scan_disasm(terminate_script_fn, 0x100, "0F 85");
+
+        if (!ref) {
+            spdlog::error("[VehHooks] Failed to find entity_terminate_fn.");
+            return 0;
+        }
+
+        const auto result = utility::calculate_absolute(*ref + 2);
+
+        spdlog::info("[VehHooks] entity_terminate_fn: {:x}", result);
+
+        return result;
+    }();
+
+    return entity_terminate_fn;
+}
+
 VehHooks::VehHooks() {
     spdlog::info("[VehHooks] Initializing...");
 
@@ -125,6 +157,11 @@ VehHooks::VehHooks() {
     addHook(0x1404F9BE9, &VehHooks::onPostEntitySpawn);
     addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);*/
 
+    const auto [spawn_fn, spawn_this] = EntityList::getSpawnEntityFn();
+    //addHook((uintptr_t)spawn_fn, &VehHooks::onPreEntitySpawn);
+    //addHook((uintptr_t)EntityList::getPostSpawnEntityFn(), &VehHooks::onPostEntitySpawn);
+    addHook(get_entity_terminate_fn(), &VehHooks::onEntityTerminate);
+    // todo: hook the other version of the terminate function (the script function)
     addHook(get_on_update_function(), &VehHooks::onUpdate);
     addHook(get_on_processed_buttons(), &VehHooks::onProcessedButtons);
 

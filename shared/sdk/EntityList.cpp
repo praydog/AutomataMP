@@ -129,7 +129,7 @@ EntityContainer* EntityList::getPossessedEntity() {
     return getByHandle(*currentHandle);
 }
 
-EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
+std::tuple<EntityList::SpawnFunction, EntityList::SpawnThis> EntityList::getSpawnEntityFn() {
     // 2017 version
     /*static EntityContainer* (*spawn)(void*, const EntitySpawnParams&) = (decltype(spawn))0x1404F9AA0;
     return spawn((void*)0x14160DFE0, params);*/
@@ -157,12 +157,11 @@ EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
         7FF710CFF65B + 0x4 em0110
     */
 
-    using spawn_t = EntityContainer* (*)(void*, const EntitySpawnParams&);
-    static auto [spawn_fn, spawn_thisptr] = []() -> std::tuple<spawn_t, void*> {
+    static auto out = []() -> std::tuple<EntityList::SpawnFunction, EntityList::SpawnThis> {
         spdlog::info("[EntityList] Finding spawn...");
 
-        spawn_t result{nullptr};
-        void* thisptr{nullptr};
+        EntityList::SpawnFunction result{nullptr};
+        EntityList::SpawnThis thisptr{nullptr};
 
         const auto game = utility::get_executable();
         const auto str = utility::scan_string(game, "MapInstance");
@@ -192,8 +191,8 @@ EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
 
         spdlog::info("[EntityList] Ref2: {:x}", (uintptr_t)*ref2);
 
-        thisptr = (void*)utility::calculate_absolute(*ref2 + 3);
-        result = (spawn_t)utility::calculate_absolute(*ref2 + 8);
+        thisptr = (EntityList::SpawnThis)utility::calculate_absolute(*ref2 + 3);
+        result = (EntityList::SpawnFunction)utility::calculate_absolute(*ref2 + 8);
 
         spdlog::info("[EntityList] spawn: {:x}", (uintptr_t)result);
         spdlog::info("[EntityList] thisptr: {:x}", (uintptr_t)thisptr);
@@ -201,7 +200,34 @@ EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
         return {result, thisptr};
     }();
 
-    return spawn_fn(spawn_thisptr, params);
+    return out;
+}
+
+void* EntityList::getPostSpawnEntityFn() {
+    static auto out = []() -> void* {
+        spdlog::info("[EntityList] Finding postSpawn...");
+        const auto [spawn, thisptr] = getSpawnEntityFn();
+
+        spdlog::info("[EntityList] Scanning spawn function for ret instruction...");
+
+        const auto ret = utility::scan_opcode((uintptr_t)spawn, 200, 0xC3);
+
+        if (!ret) {
+            spdlog::error("[EntityList] Failed to find postSpawn.");
+            return nullptr;
+        }
+
+        spdlog::info("[EntityList] posSpawn: {:x}", (uintptr_t)*ret);
+
+        return (void*)*ret;
+    }();
+
+    return out;
+}
+
+EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
+    static auto [spawn, thisptr] = getSpawnEntityFn();
+    return spawn(thisptr, params);
 }
 
 EntityContainer* EntityList::spawnEntity(const std::string& name, uint32_t model, const Vector3f& position) {

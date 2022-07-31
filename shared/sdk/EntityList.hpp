@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <tuple>
 #include <sdk/Math.hpp>
 
 struct EntityContainer;
@@ -53,6 +54,11 @@ public:
     EntityContainer* getByName(const std::string& name);
     EntityContainer* getByHandle(uint32_t handle);
     EntityContainer* getPossessedEntity();
+
+    using SpawnFunction = EntityContainer* (*)(void*, const EntitySpawnParams&);
+    using SpawnThis = void*;
+    static std::tuple<SpawnFunction, SpawnThis> getSpawnEntityFn();
+    static void* getPostSpawnEntityFn();
 
     EntityContainer* spawnEntity(const EntitySpawnParams& params);
     EntityContainer* spawnEntity(const std::string& name, uint32_t model, const Vector3f& position);
