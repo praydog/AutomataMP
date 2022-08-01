@@ -133,8 +133,6 @@ func main() {
 			case Nier.PacketTypeID_PLAYER_DATA:
 				log.Info("Player data received %d", flatbuffers.GetSizePrefix(data.DataBytes(), 0))
 				playerData := &Nier.PlayerData{}
-
-				//playerData.Init(data.DataBytes(), 4)
 				flatbuffers.GetRootAs(data.DataBytes(), 0, playerData)
 
 				log.Info("Flashlight: %d", playerData.Flashlight())
@@ -142,9 +140,20 @@ func main() {
 				log.Info("Facing: %f", playerData.Facing())
 				pos := playerData.Position(nil)
 				log.Info("Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
+
+				break
 			case Nier.PacketTypeID_ANIMATION_START:
 				log.Info("Animation start received")
 
+				animationData := &Nier.AnimationStart{}
+				flatbuffers.GetRootAs(data.DataBytes(), 0, animationData)
+
+				log.Info("Animation: %d", animationData.Anim())
+				log.Info("Variant: %d", animationData.Variant())
+				log.Info("a3: %d", animationData.A3())
+				log.Info("a4: %d", animationData.A4())
+
+				break
 			default:
 				log.Error("Unknown packet type: %d", data.Id())
 			}

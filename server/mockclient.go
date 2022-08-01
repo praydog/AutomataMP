@@ -78,6 +78,88 @@ func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8
 	return builder.FinishedBytes()
 }
 
+func sendPing(peer enet.Peer) {
+	peer.SendBytes(makeEmptyPacketBytes(Nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
+}
+
+func getNextPacket(ev enet.Event) *Nier.Packet {
+	if ev.GetType() == enet.EventReceive {
+		packet := ev.GetPacket()
+		defer packet.Destroy()
+
+		// Get the bytes in the packet
+		packetBytes := packet.GetData()
+
+		log.Info("Received %d bytes from server", len(packetBytes))
+
+		data := Nier.GetRootAsPacket(packetBytes, 0)
+
+		if !checkValidPacket(data) {
+			return nil
+		}
+
+		return data
+	}
+
+	return nil
+}
+
+func sendHello(client enet.Host, peer enet.Peer) bool {
+	sendPing(peer)
+
+	for i := 0; i < 20; i++ {
+		ev := client.Service(100)
+		data := getNextPacket(ev)
+
+		if data == nil {
+			return false
+		}
+
+		if data.Id() == Nier.PacketTypeID_PONG {
+			log.Info("Hello acknowledged")
+			return true
+		}
+	}
+
+	return false
+}
+
+func performStartupHandshake(client enet.Host, peer enet.Peer) bool {
+	log.Info("Performing startup handshake")
+
+	hasConnection := false
+
+	for i := 0; i < 10; i++ {
+		ev := client.Service(1000)
+
+		if ev.GetType() == enet.EventConnect {
+			log.Info("Intial connection established")
+			hasConnection = true
+			break
+		}
+
+		if ev.GetType() == enet.EventDisconnect {
+			log.Error("Initial connection failed")
+			return false
+		}
+	}
+
+	if !hasConnection {
+		log.Error("Initial connection failed")
+		return false
+	}
+
+	log.Info("Sending initial hello...")
+	if !sendHello(client, peer) {
+		log.Error("Failed to receive hello response from server")
+		return false
+	}
+
+	log.Info("Connected.")
+
+	return true
+}
+
 func main() {
 	// Initialize enet
 	enet.Initialize()
@@ -96,30 +178,45 @@ func main() {
 		return
 	}
 
-	log.Info("Connected.")
+	if !performStartupHandshake(client, peer) {
+		return
+	}
 
 	pingTime := time.Now()
 	sendUpdateTime := time.Now()
+	once_test := true
 
 	// The event loop
 	for true {
 		now := time.Now()
 
 		// Wait until the next event
-		ev := client.Service(0)
+		ev := client.Service(1000)
 
 		// Send a ping if we didn't get any event
 		if ev.GetType() == enet.EventNone {
+			if once_test {
+				log.Info("Sending animation start")
+				animationStartBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+					return Nier.CreateAnimationStart(builder, 1, 2, 3, 4)
+				})
+
+				animationData := makePacketBytes(Nier.PacketTypeID_ANIMATION_START, animationStartBytes)
+				peer.SendBytes(animationData, 0, enet.PacketFlagReliable)
+
+				once_test = false
+			}
+
 			if now.Sub(pingTime) > time.Second {
 				log.Info("Sending ping")
 
-				peer.SendBytes(makeEmptyPacketBytes(Nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
+				sendPing(peer)
 				pingTime = now
 				continue
 			}
 
 			if now.Sub(sendUpdateTime) >= (time.Second / 60) {
-				log.Info("Sending update")
+				//log.Info("Sending update")
 
 				playerDataBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 					return Nier.CreatePlayerData(builder, true, 0.1, 0.5, 0.25, 1, 0, 0, rand.Float32(), rand.Float32(), 250.0)
