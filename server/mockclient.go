@@ -112,7 +112,7 @@ func sendHello(client enet.Host, peer enet.Peer) bool {
 		data := getNextPacket(ev)
 
 		if data == nil {
-			return false
+			continue
 		}
 
 		if data.Id() == Nier.PacketTypeID_PONG {
