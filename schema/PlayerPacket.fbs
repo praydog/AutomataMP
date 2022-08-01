@@ -1,0 +1,26 @@
+include "Math.fbs";
+
+namespace Nier;
+
+// Packets sent from client to server
+struct PlayerData {
+    flashlight: bool;
+    speed: float;
+    facing: float;
+    facing2: float;
+    weapon_index: uint;
+    pod_index: uint;
+    held_button_flags: uint;
+    position: Nier.Vector3f;
+}
+
+struct AnimationStart {
+    anim: uint;
+    variant: uint;
+    a3: uint;
+    a4: uint;
+}
+
+table Buttons {
+    buttons: [uint]; // 8 buttons
+}

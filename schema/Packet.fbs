@@ -1,0 +1,34 @@
+include "Math.fbs";
+
+namespace Nier;
+
+enum PacketType : uint {
+    // Some of the master client packets
+    // will essentially be a proxy to bounce the packet to all the clients
+    ID_MASTER_CLIENT_START = 0,
+    ID_SPAWN_ENTITY = 1,
+    ID_DESTROY_ENTITY = 2,
+    ID_ENTITY_DATA,
+    ID_MASTER_CLIENT_END,
+
+    ID_SERVER_START = 2048,
+    ID_SERVER_END,
+
+    ID_CLIENT_START = 4096,
+    ID_PLAYER_DATA,
+    ID_ANIMATION_START,
+    ID_CHANGE_PLAYER,
+    ID_BUTTONS,
+    ID_CLIENT_END,
+
+    ID_PING = 32768,
+    ID_PONG = 32769
+}
+
+table Packet {
+    magic:uint = 0x504D414E; // "NAMP"
+    id:PacketType;
+    data:[ubyte];
+}
+
+root_type Packet;
