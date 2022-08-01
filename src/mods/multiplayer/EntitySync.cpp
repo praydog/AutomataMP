@@ -6,6 +6,8 @@
 using namespace std;
 
 void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
+    scoped_lock _(m_mapMutex);
+
     auto guid = m_maxGuid++;
 
     addEntity(entity, guid);
