@@ -75,6 +75,13 @@ func makeEmptyPacketBytes(id nier.PacketType) []uint8 {
 	return builder.FinishedBytes()
 }
 
+func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8 {
+	builder := flatbuffers.NewBuilder(0)
+	offs := cb(builder)
+	builder.Finish(offs)
+	return builder.FinishedBytes()
+}
+
 func main() {
 	// Initialize enet
 	enet.Initialize()
@@ -87,6 +94,8 @@ func main() {
 	}
 
 	log.Info("Created host")
+
+	server_password := ""
 
 	// The event loop
 	for true {
@@ -125,6 +134,48 @@ func main() {
 			}
 
 			switch data.Id() {
+			case nier.PacketTypeID_HELLO:
+				log.Info("Hello packet received")
+				helloData := nier.GetRootAsHello(data.DataBytes(), 0)
+
+				if helloData.Major() != uint32(nier.VersionMajorValue) {
+					log.Error("Invalid major version: %d", helloData.Major())
+					continue
+				}
+
+				if helloData.Minor() > uint32(nier.VersionMinorValue) {
+					log.Error("Client is newer than server, disconnecting")
+					ev.GetPeer().DisconnectNow(0)
+					continue
+				}
+
+				if helloData.Minor() != uint32(nier.VersionMinorValue) {
+					log.Info("Minor version mismatch, this is okay")
+				}
+
+				log.Info("Version check passed")
+
+				if server_password != "" {
+					if string(helloData.Password()) != server_password {
+						log.Error("Invalid password, client sent: \"%s\"", string(helloData.Password()))
+						ev.GetPeer().DisconnectNow(0)
+						continue
+					}
+				}
+
+				log.Info("Password check passed")
+
+				// Send a welcome packet
+				welcomeBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+					nier.WelcomeStart(builder)
+					nier.WelcomeAddGuid(builder, 0) // TODO: Generate a GUID
+					return nier.WelcomeEnd(builder)
+				})
+
+				log.Info("Sending welcome packet")
+				ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_WELCOME, welcomeBytes), 0, enet.PacketFlagReliable)
+
+				break
 			case nier.PacketTypeID_PING:
 				log.Info("Ping received")
 
@@ -154,15 +205,9 @@ func main() {
 				log.Info("a4: %d", animationData.A4())
 
 				break
+
 			default:
 				log.Error("Unknown packet type: %d", data.Id())
-			}
-
-			// Disconnect the peer if they say "bye"
-			if string(packetBytes) == "bye" {
-				log.Info("Bye!")
-				ev.GetPeer().Disconnect(0)
-				continue
 			}
 		}
 	}

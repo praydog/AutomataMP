@@ -22,7 +22,9 @@ enum PacketType : uint {
     ID_CLIENT_END,
 
     ID_PING = 32768,
-    ID_PONG = 32769
+    ID_PONG = 32769,
+    ID_HELLO = 32770,
+    ID_WELCOME = 32771
 }
 
 table Packet {

@@ -1,0 +1,23 @@
+namespace nier;
+
+enum VersionMajor : uint {
+    Value = 1
+}
+
+enum VersionMinor : uint {
+    Value = 0
+}
+
+enum VersionPatch : uint {
+    Value = 0
+}
+
+table Hello {
+    major: uint;
+    minor: uint;
+    patch: uint;
+    name: string;
+    password: string;
+}
+
+root_type Hello;

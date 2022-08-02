@@ -1,0 +1,7 @@
+namespace nier;
+
+table Welcome {
+    guid: ulong;
+}
+
+root_type Welcome;

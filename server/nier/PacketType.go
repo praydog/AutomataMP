@@ -22,6 +22,8 @@ const (
 	PacketTypeID_CLIENT_END          PacketType = 4101
 	PacketTypeID_PING                PacketType = 32768
 	PacketTypeID_PONG                PacketType = 32769
+	PacketTypeID_HELLO               PacketType = 32770
+	PacketTypeID_WELCOME             PacketType = 32771
 )
 
 var EnumNamesPacketType = map[PacketType]string{
@@ -40,6 +42,8 @@ var EnumNamesPacketType = map[PacketType]string{
 	PacketTypeID_CLIENT_END:          "ID_CLIENT_END",
 	PacketTypeID_PING:                "ID_PING",
 	PacketTypeID_PONG:                "ID_PONG",
+	PacketTypeID_HELLO:               "ID_HELLO",
+	PacketTypeID_WELCOME:             "ID_WELCOME",
 }
 
 var EnumValuesPacketType = map[string]PacketType{
@@ -58,6 +62,8 @@ var EnumValuesPacketType = map[string]PacketType{
 	"ID_CLIENT_END":          PacketTypeID_CLIENT_END,
 	"ID_PING":                PacketTypeID_PING,
 	"ID_PONG":                PacketTypeID_PONG,
+	"ID_HELLO":               PacketTypeID_HELLO,
+	"ID_WELCOME":             PacketTypeID_WELCOME,
 }
 
 func (v PacketType) String() string {

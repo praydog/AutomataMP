@@ -82,6 +82,24 @@ func sendPing(peer enet.Peer) {
 	peer.SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
 }
 
+func sendHello(peer enet.Peer, name string, password string) {
+	helloBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+		name_pkt := builder.CreateString(name)
+		pwd_pkt := builder.CreateString(password)
+		nier.HelloStart(builder)
+		nier.HelloAddMajor(builder, uint32(nier.VersionMajorValue))
+		nier.HelloAddMinor(builder, uint32(nier.VersionMinorValue))
+		nier.HelloAddPatch(builder, uint32(nier.VersionPatchValue))
+		nier.HelloAddName(builder, name_pkt)
+		nier.HelloAddPassword(builder, pwd_pkt)
+
+		return nier.HelloEnd(builder)
+	})
+
+	pkt := makePacketBytes(nier.PacketTypeID_HELLO, helloBytes)
+	peer.SendBytes(pkt, 0, enet.PacketFlagReliable)
+}
+
 func getNextPacket(ev enet.Event) *nier.Packet {
 	if ev.GetType() == enet.EventReceive {
 		packet := ev.GetPacket()
@@ -104,8 +122,8 @@ func getNextPacket(ev enet.Event) *nier.Packet {
 	return nil
 }
 
-func sendHello(client enet.Host, peer enet.Peer) bool {
-	sendPing(peer)
+func sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
+	sendHello(peer, "test", "test")
 
 	for i := 0; i < 20; i++ {
 		ev := client.Service(100)
@@ -115,7 +133,7 @@ func sendHello(client enet.Host, peer enet.Peer) bool {
 			continue
 		}
 
-		if data.Id() == nier.PacketTypeID_PONG {
+		if data.Id() == nier.PacketTypeID_WELCOME {
 			log.Info("Hello acknowledged")
 			return true
 		}
@@ -150,7 +168,7 @@ func performStartupHandshake(client enet.Host, peer enet.Peer) bool {
 	}
 
 	log.Info("Sending initial hello...")
-	if !sendHello(client, peer) {
+	if !sendHelloAndWait(client, peer) {
 		log.Error("Failed to receive hello response from server")
 		return false
 	}
@@ -191,7 +209,7 @@ func main() {
 		now := time.Now()
 
 		// Wait until the next event
-		ev := client.Service(1000)
+		ev := client.Service(1000 / 60)
 
 		// Send a ping if we didn't get any event
 		if ev.GetType() == enet.EventNone {
