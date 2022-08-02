@@ -149,7 +149,7 @@ func main() {
 					continue
 				}
 
-				if helloData.Minor() != uint32(nier.VersionMinorValue) {
+				if helloData.Patch() != uint32(nier.VersionPatchValue) {
 					log.Info("Minor version mismatch, this is okay")
 				}
 
