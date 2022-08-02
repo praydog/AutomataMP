@@ -1,6 +1,6 @@
 include "Math.fbs";
 
-namespace Nier;
+namespace nier;
 
 enum PacketType : uint {
     // Some of the master client packets

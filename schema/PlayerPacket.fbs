@@ -1,6 +1,6 @@
 include "Math.fbs";
 
-namespace Nier;
+namespace nier;
 
 // Packets sent from client to server
 struct PlayerData {
@@ -11,7 +11,7 @@ struct PlayerData {
     weapon_index: uint;
     pod_index: uint;
     held_button_flags: uint;
-    position: Nier.Vector3f;
+    position: nier.Vector3f;
 }
 
 struct AnimationStart {

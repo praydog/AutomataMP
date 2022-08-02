@@ -1,4 +1,4 @@
-namespace Nier;
+namespace nier;
 
 struct Vector3f {
     x:float;

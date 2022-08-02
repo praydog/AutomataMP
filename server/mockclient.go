@@ -1,7 +1,7 @@
 package main
 
 import (
-	"automatampserver/Nier"
+	nier "automatampserver/nier"
 	"math/rand"
 	"time"
 
@@ -10,7 +10,7 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-func checkValidPacket(data *Nier.Packet) bool {
+func checkValidPacket(data *nier.Packet) bool {
 	if data.Magic() != 1347240270 {
 		log.Error("Invalid magic number: %d", data.Magic())
 		return false
@@ -24,50 +24,50 @@ func checkValidPacket(data *Nier.Packet) bool {
 	return true
 }
 
-func packetStart(id Nier.PacketType) *flatbuffers.Builder {
+func packetStart(id nier.PacketType) *flatbuffers.Builder {
 	builder := flatbuffers.NewBuilder(0)
-	Nier.PacketStart(builder)
-	Nier.PacketAddMagic(builder, 1347240270)
-	Nier.PacketAddId(builder, id)
-	//Nier.PacketEnd(builder)
+	nier.PacketStart(builder)
+	nier.PacketAddMagic(builder, 1347240270)
+	nier.PacketAddId(builder, id)
+	//nier.PacketEnd(builder)
 
 	return builder
 }
 
-func packetStartWithData(id Nier.PacketType, data []uint8) *flatbuffers.Builder {
+func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder {
 	builder := flatbuffers.NewBuilder(0)
 
 	dataoffs := flatbuffers.UOffsetT(0)
 
 	if len(data) > 0 {
-		Nier.PacketStartDataVector(builder, len(data))
+		nier.PacketStartDataVector(builder, len(data))
 		for i := len(data) - 1; i >= 0; i-- {
 			builder.PrependUint8(data[i])
 		}
 		dataoffs = builder.EndVector(len(data))
 	}
 
-	Nier.PacketStart(builder)
-	Nier.PacketAddMagic(builder, 1347240270)
-	Nier.PacketAddId(builder, id)
+	nier.PacketStart(builder)
+	nier.PacketAddMagic(builder, 1347240270)
+	nier.PacketAddId(builder, id)
 
 	if (len(data)) > 0 {
-		Nier.PacketAddData(builder, dataoffs)
+		nier.PacketAddData(builder, dataoffs)
 	}
-	//Nier.PacketEnd(builder)
+	//nier.PacketEnd(builder)
 
 	return builder
 }
 
-func makePacketBytes(id Nier.PacketType, data []uint8) []uint8 {
+func makePacketBytes(id nier.PacketType, data []uint8) []uint8 {
 	builder := packetStartWithData(id, data)
-	builder.Finish(Nier.PacketEnd(builder))
+	builder.Finish(nier.PacketEnd(builder))
 	return builder.FinishedBytes()
 }
 
-func makeEmptyPacketBytes(id Nier.PacketType) []uint8 {
+func makeEmptyPacketBytes(id nier.PacketType) []uint8 {
 	builder := packetStart(id)
-	builder.Finish(Nier.PacketEnd(builder))
+	builder.Finish(nier.PacketEnd(builder))
 	return builder.FinishedBytes()
 }
 
@@ -79,10 +79,10 @@ func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8
 }
 
 func sendPing(peer enet.Peer) {
-	peer.SendBytes(makeEmptyPacketBytes(Nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
+	peer.SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
 }
 
-func getNextPacket(ev enet.Event) *Nier.Packet {
+func getNextPacket(ev enet.Event) *nier.Packet {
 	if ev.GetType() == enet.EventReceive {
 		packet := ev.GetPacket()
 		defer packet.Destroy()
@@ -92,7 +92,7 @@ func getNextPacket(ev enet.Event) *Nier.Packet {
 
 		log.Info("Received %d bytes from server", len(packetBytes))
 
-		data := Nier.GetRootAsPacket(packetBytes, 0)
+		data := nier.GetRootAsPacket(packetBytes, 0)
 
 		if !checkValidPacket(data) {
 			return nil
@@ -115,7 +115,7 @@ func sendHello(client enet.Host, peer enet.Peer) bool {
 			continue
 		}
 
-		if data.Id() == Nier.PacketTypeID_PONG {
+		if data.Id() == nier.PacketTypeID_PONG {
 			log.Info("Hello acknowledged")
 			return true
 		}
@@ -198,10 +198,10 @@ func main() {
 			if once_test {
 				log.Info("Sending animation start")
 				animationStartBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-					return Nier.CreateAnimationStart(builder, 1, 2, 3, 4)
+					return nier.CreateAnimationStart(builder, 1, 2, 3, 4)
 				})
 
-				animationData := makePacketBytes(Nier.PacketTypeID_ANIMATION_START, animationStartBytes)
+				animationData := makePacketBytes(nier.PacketTypeID_ANIMATION_START, animationStartBytes)
 				peer.SendBytes(animationData, 0, enet.PacketFlagReliable)
 
 				once_test = false
@@ -219,10 +219,10 @@ func main() {
 				//log.Info("Sending update")
 
 				playerDataBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-					return Nier.CreatePlayerData(builder, true, 0.1, 0.5, 0.25, 1, 0, 0, rand.Float32(), rand.Float32(), 250.0)
+					return nier.CreatePlayerData(builder, true, 0.1, 0.5, 0.25, 1, 0, 0, rand.Float32(), rand.Float32(), 250.0)
 				})
 
-				packetData := makePacketBytes(Nier.PacketTypeID_PLAYER_DATA, playerDataBytes)
+				packetData := makePacketBytes(nier.PacketTypeID_PLAYER_DATA, playerDataBytes)
 				peer.SendBytes(packetData, 0, enet.PacketFlagReliable)
 				sendUpdateTime = now
 				continue
@@ -245,14 +245,14 @@ func main() {
 
 			log.Info("Received %d bytes from server", len(packetBytes))
 
-			data := Nier.GetRootAsPacket(packetBytes, 0)
+			data := nier.GetRootAsPacket(packetBytes, 0)
 
 			if !checkValidPacket(data) {
 				continue
 			}
 
 			switch data.Id() {
-			case Nier.PacketTypeID_PONG:
+			case nier.PacketTypeID_PONG:
 				log.Info("Pong received")
 				break
 			default:

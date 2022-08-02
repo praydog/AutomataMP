@@ -1,6 +1,6 @@
 include "Math.fbs";
 
-namespace Nier;
+namespace nier;
 
 // Packets sent from master client to server
 // and bounced to all connected clients
