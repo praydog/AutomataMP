@@ -2,6 +2,8 @@ package main
 
 import (
 	nier "automatampserver/nier"
+	"encoding/json"
+	"io/ioutil"
 
 	"github.com/codecat/go-enet"
 	"github.com/codecat/go-libs/log"
@@ -95,7 +97,17 @@ func main() {
 
 	log.Info("Created host")
 
-	server_password := ""
+	serverJson, err := ioutil.ReadFile("server.json")
+	if err != nil {
+		log.Error("Server requires a server.json file to be present")
+		return
+	}
+
+	var serverConfig map[string]interface{}
+	json.Unmarshal(serverJson, &serverConfig)
+
+	serverPassword := serverConfig["password"]
+	log.Info("Server password: %s", serverPassword)
 
 	// The event loop
 	for true {
@@ -155,8 +167,8 @@ func main() {
 
 				log.Info("Version check passed")
 
-				if server_password != "" {
-					if string(helloData.Password()) != server_password {
+				if serverPassword != "" {
+					if string(helloData.Password()) != serverPassword {
 						log.Error("Invalid password, client sent: \"%s\"", string(helloData.Password()))
 						ev.GetPeer().DisconnectNow(0)
 						continue
