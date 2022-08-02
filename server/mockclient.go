@@ -123,7 +123,7 @@ func getNextPacket(ev enet.Event) *nier.Packet {
 }
 
 func sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
-	sendHello(peer, "test", "test")
+	sendHello(peer, "", "test")
 
 	for i := 0; i < 20; i++ {
 		ev := client.Service(100)
@@ -269,14 +269,34 @@ func main() {
 				continue
 			}
 
+			var playerPacket *nier.PlayerPacket = nil
+
+			// Bounced player packets from server
+			if data.Id() > nier.PacketTypeID_CLIENT_START && data.Id() < nier.PacketTypeID_CLIENT_END {
+				log.Info("Bounced packet %d received", data.Id())
+				playerPacket = nier.GetRootAsPlayerPacket(data.DataBytes(), 0)
+			}
+
 			switch data.Id() {
 			case nier.PacketTypeID_PONG:
 				log.Info("Pong received")
 				break
+			// Bounced packets from server
+			case nier.PacketTypeID_ANIMATION_START:
+				log.Info("Animation start received from client %d", playerPacket.Guid())
+
+				animationData := &nier.AnimationStart{}
+				flatbuffers.GetRootAs(playerPacket.DataBytes(), 0, animationData)
+
+				log.Info("Animation: %d", animationData.Anim())
+				log.Info("Variant: %d", animationData.Variant())
+				log.Info("a3: %d", animationData.A3())
+				log.Info("a4: %d", animationData.A4())
+
+				break
 			default:
 				log.Error("Unknown packet type: %d", data.Id())
 			}
-
 		}
 	}
 

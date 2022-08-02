@@ -24,3 +24,11 @@ struct AnimationStart {
 table Buttons {
     buttons: [uint]; // 8 buttons
 }
+
+// this is prepended onto the bounced packet from the server
+table PlayerPacket {
+    guid: ulong;
+    data: [ubyte];
+}
+
+root_type PlayerPacket;

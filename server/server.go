@@ -11,6 +11,18 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
+type Client struct {
+	guid           uint64
+	name           string
+	isMasterClient bool
+	lastPlayerData *nier.PlayerData
+}
+
+type Connection struct {
+	peer   enet.Peer
+	client *Client
+}
+
 func check(err error) {
 	if err != nil {
 		panic(err)
@@ -41,9 +53,7 @@ func packetStart(id nier.PacketType) *flatbuffers.Builder {
 	return builder
 }
 
-func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder {
-	builder := flatbuffers.NewBuilder(0)
-
+func makeVectorData(builder *flatbuffers.Builder, data []uint8) flatbuffers.UOffsetT {
 	dataoffs := flatbuffers.UOffsetT(0)
 
 	if len(data) > 0 {
@@ -53,6 +63,14 @@ func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder 
 		}
 		dataoffs = builder.EndVector(len(data))
 	}
+
+	return dataoffs
+}
+
+func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder {
+	builder := flatbuffers.NewBuilder(0)
+
+	dataoffs := makeVectorData(builder, data)
 
 	nier.PacketStart(builder)
 	nier.PacketAddMagic(builder, 1347240270)
@@ -85,19 +103,43 @@ func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8
 	return builder.FinishedBytes()
 }
 
-type Client struct {
-	guid           uint64
-	name           string
-	lastPlayerData *nier.PlayerData
-}
+func makePlayerPacketBytes(connection *Connection, id nier.PacketType, data []uint8) []uint8 {
+	playerPacketData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+		dataoffs := makeVectorData(builder, data)
 
-type Connection struct {
-	client *Client
+		nier.PlayerPacketStart(builder)
+		nier.PlayerPacketAddGuid(builder, connection.client.guid)
+		nier.PlayerPacketAddData(builder, dataoffs)
+		return nier.PlayerPacketEnd(builder)
+	})
+
+	return makePacketBytes(id, playerPacketData)
 }
 
 // client map
 var connections = make(map[enet.Peer]*Connection)
+var clients = make(map[*Connection]*Client)
 var connectionCount uint64 = 0
+
+func bouncePlayerPacketToAll(connection *Connection, id nier.PacketType, data []uint8) {
+	bounceData := makePlayerPacketBytes(connection, nier.PacketTypeID_ANIMATION_START, data)
+
+	for conn := range clients {
+		conn.peer.SendBytes(bounceData, 0, enet.PacketFlagReliable)
+	}
+}
+
+func bouncePlayerPacketToAllExceptSender(sender enet.Peer, connection *Connection, id nier.PacketType, data []uint8) {
+	bounceData := makePlayerPacketBytes(connection, nier.PacketTypeID_ANIMATION_START, data)
+
+	for conn := range clients {
+		if conn.peer == sender {
+			continue
+		}
+
+		conn.peer.SendBytes(bounceData, 0, enet.PacketFlagReliable)
+	}
+}
 
 func main() {
 	// Initialize enet
@@ -138,12 +180,17 @@ func main() {
 		case enet.EventConnect: // A new peer has connected
 			log.Info("New peer connected: %s", ev.GetPeer().GetAddress())
 			connection := &Connection{}
+			connection.peer = ev.GetPeer()
 			connection.client = nil
 			connections[ev.GetPeer()] = connection
 			break
 
 		case enet.EventDisconnect: // A connected peer has disconnected
 			log.Info("Peer disconnected: %s", ev.GetPeer().GetAddress())
+			if connections[ev.GetPeer()] != nil {
+				clients[connections[ev.GetPeer()]] = nil
+			}
+
 			connections[ev.GetPeer()] = nil
 			break
 
@@ -233,15 +280,19 @@ func main() {
 
 				// Create a new client for the peer
 				client := &Client{
-					guid: connectionCount,
-					name: clientName,
+					guid:           connectionCount,
+					name:           clientName,
+					isMasterClient: false,
 				}
+
+				client.isMasterClient = len(clients) == 0
 
 				log.Info("Client name: %s", clientName)
 				log.Info("Client GUID: %d", client.guid)
 
 				// Add the client to the map
 				connection.client = client
+				clients[connection] = client
 
 				// Send a welcome packet
 				welcomeBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -270,6 +321,10 @@ func main() {
 				pos := playerData.Position(nil)
 				log.Info("Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
 
+				connection.client.lastPlayerData = playerData
+
+				// Bounce the packet back to all valid clients (except the sender)
+				bouncePlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_PLAYER_DATA, data.DataBytes())
 				break
 			case nier.PacketTypeID_ANIMATION_START:
 				log.Info("Animation start received")
@@ -282,6 +337,10 @@ func main() {
 				log.Info("a3: %d", animationData.A3())
 				log.Info("a4: %d", animationData.A4())
 
+				// TODO: sanitize the data
+
+				// Bounce the packet back to all valid clients (except the sender)
+				bouncePlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_ANIMATION_START, data.DataBytes())
 				break
 
 			default:
