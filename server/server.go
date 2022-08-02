@@ -3,7 +3,8 @@ package main
 import (
 	nier "automatampserver/nier"
 	"encoding/json"
-	"io/ioutil"
+	"os"
+	"strconv"
 
 	"github.com/codecat/go-enet"
 	"github.com/codecat/go-libs/log"
@@ -84,6 +85,20 @@ func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8
 	return builder.FinishedBytes()
 }
 
+type Client struct {
+	guid           uint64
+	name           string
+	lastPlayerData *nier.PlayerData
+}
+
+type Connection struct {
+	client *Client
+}
+
+// client map
+var connections = make(map[enet.Peer]*Connection)
+var connectionCount uint64 = 0
+
 func main() {
 	// Initialize enet
 	enet.Initialize()
@@ -97,7 +112,7 @@ func main() {
 
 	log.Info("Created host")
 
-	serverJson, err := ioutil.ReadFile("server.json")
+	serverJson, err := os.ReadFile("server.json")
 	if err != nil {
 		log.Error("Server requires a server.json file to be present")
 		return
@@ -122,13 +137,24 @@ func main() {
 		switch ev.GetType() {
 		case enet.EventConnect: // A new peer has connected
 			log.Info("New peer connected: %s", ev.GetPeer().GetAddress())
+			connection := &Connection{}
+			connection.client = nil
+			connections[ev.GetPeer()] = connection
 			break
 
 		case enet.EventDisconnect: // A connected peer has disconnected
 			log.Info("Peer disconnected: %s", ev.GetPeer().GetAddress())
+			connections[ev.GetPeer()] = nil
 			break
 
 		case enet.EventReceive: // A peer sent us some data
+			connection := connections[ev.GetPeer()]
+
+			if connection == nil {
+				log.Error("Received data from unknown peer, ignoring")
+				break
+			}
+
 			// Get the packet
 			packet := ev.GetPacket()
 
@@ -137,7 +163,12 @@ func main() {
 
 			// Get the bytes in the packet
 			packetBytes := packet.GetData()
-			log.Info("Peer sent data %d bytes", len(packetBytes))
+
+			if connection.client != nil {
+				log.Info("Peer %d sent data %d bytes", connection.client.guid, len(packetBytes))
+			} else {
+				log.Info("Peer (unknown) sent data %d bytes", len(packetBytes))
+			}
 
 			data := nier.GetRootAsPacket(packetBytes, 0)
 
@@ -145,13 +176,25 @@ func main() {
 				continue
 			}
 
+			if data.Id() != nier.PacketTypeID_HELLO && connection.client == nil {
+				log.Error("Received packet before hello was sent, discarding")
+				continue
+			}
+
 			switch data.Id() {
 			case nier.PacketTypeID_HELLO:
 				log.Info("Hello packet received")
+
+				if connection.client != nil {
+					log.Error("Received hello packet from client that already has a client, discarding")
+					continue
+				}
+
 				helloData := nier.GetRootAsHello(data.DataBytes(), 0)
 
 				if helloData.Major() != uint32(nier.VersionMajorValue) {
 					log.Error("Invalid major version: %d", helloData.Major())
+					ev.GetPeer().DisconnectNow(0)
 					continue
 				}
 
@@ -177,10 +220,33 @@ func main() {
 
 				log.Info("Password check passed")
 
+				clientName := ""
+
+				if helloData.Name() == nil || string(helloData.Name()) == "" {
+					log.Error("Client sent empty name, assigning random name")
+					clientName = "Client" + strconv.FormatInt(int64(len(connections)), 10)
+				} else {
+					clientName = string(helloData.Name())
+				}
+
+				connectionCount++
+
+				// Create a new client for the peer
+				client := &Client{
+					guid: connectionCount,
+					name: clientName,
+				}
+
+				log.Info("Client name: %s", clientName)
+				log.Info("Client GUID: %d", client.guid)
+
+				// Add the client to the map
+				connection.client = client
+
 				// Send a welcome packet
 				welcomeBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 					nier.WelcomeStart(builder)
-					nier.WelcomeAddGuid(builder, 0) // TODO: Generate a GUID
+					nier.WelcomeAddGuid(builder, client.guid)
 					return nier.WelcomeEnd(builder)
 				})
 
@@ -189,7 +255,7 @@ func main() {
 
 				break
 			case nier.PacketTypeID_PING:
-				log.Info("Ping received")
+				log.Info("Ping received from %s", connection.client.name)
 
 				ev.GetPeer().SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PONG), 0, enet.PacketFlagReliable)
 				break
