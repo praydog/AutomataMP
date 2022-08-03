@@ -121,23 +121,23 @@ var connections = make(map[enet.Peer]*Connection)
 var clients = make(map[*Connection]*Client)
 var connectionCount uint64 = 0
 
-func bouncePlayerPacketToAll(connection *Connection, id nier.PacketType, data []uint8) {
-	bounceData := makePlayerPacketBytes(connection, nier.PacketTypeID_ANIMATION_START, data)
+func broadcastPlayerPacketToAll(connection *Connection, id nier.PacketType, data []uint8) {
+	broadcastData := makePlayerPacketBytes(connection, id, data)
 
 	for conn := range clients {
-		conn.peer.SendBytes(bounceData, 0, enet.PacketFlagReliable)
+		conn.peer.SendBytes(broadcastData, 0, enet.PacketFlagReliable)
 	}
 }
 
-func bouncePlayerPacketToAllExceptSender(sender enet.Peer, connection *Connection, id nier.PacketType, data []uint8) {
-	bounceData := makePlayerPacketBytes(connection, nier.PacketTypeID_ANIMATION_START, data)
+func broadcastPlayerPacketToAllExceptSender(sender enet.Peer, connection *Connection, id nier.PacketType, data []uint8) {
+	broadcastData := makePlayerPacketBytes(connection, id, data)
 
 	for conn := range clients {
 		if conn.peer == sender {
-			continue
+			//continue
 		}
 
-		conn.peer.SendBytes(bounceData, 0, enet.PacketFlagReliable)
+		conn.peer.SendBytes(broadcastData, 0, enet.PacketFlagReliable)
 	}
 }
 
@@ -323,8 +323,8 @@ func main() {
 
 				connection.client.lastPlayerData = playerData
 
-				// Bounce the packet back to all valid clients (except the sender)
-				bouncePlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_PLAYER_DATA, data.DataBytes())
+				// Broadcast the packet back to all valid clients (except the sender)
+				broadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_PLAYER_DATA, data.DataBytes())
 				break
 			case nier.PacketTypeID_ANIMATION_START:
 				log.Info("Animation start received")
@@ -339,8 +339,8 @@ func main() {
 
 				// TODO: sanitize the data
 
-				// Bounce the packet back to all valid clients (except the sender)
-				bouncePlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_ANIMATION_START, data.DataBytes())
+				// Broadcast the packet back to all valid clients (except the sender)
+				broadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_ANIMATION_START, data.DataBytes())
 				break
 
 			default:
