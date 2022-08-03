@@ -210,10 +210,10 @@ func spawnPlayer(player *Player) {
 		localPlayer.player = player
 	}
 
-	log.Info("Spawning player %d", player.guid)
-	log.Info("Is local player: %t", player.guid == localPlayer.guid)
-	log.Info("Is master client: %t", player.guid == localPlayer.guid && localPlayer.isMasterClient)
-	log.Info("Model: %d", player.model)
+	log.Info(" Spawning player %d", player.guid)
+	log.Info(" Is local player: %t", player.guid == localPlayer.guid)
+	log.Info(" Is master client: %t", player.guid == localPlayer.guid && localPlayer.isMasterClient)
+	log.Info(" Model: %d", player.model)
 
 	// Doesn't actually do anything, this is just mock code.
 	// Implement it in the actual game.
@@ -325,6 +325,7 @@ func main() {
 
 			case nier.PacketTypeID_CREATE_PLAYER:
 				log.Info("Player creation packet received")
+
 				playerCreationPacket := nier.GetRootAsCreatePlayer(data.DataBytes(), 0)
 
 				players[playerCreationPacket.Guid()] = new(Player)
@@ -337,21 +338,43 @@ func main() {
 				spawnPlayer(players[playerCreationPacket.Guid()])
 
 				break
+			case nier.PacketTypeID_DESTROY_PLAYER:
+				log.Info("Player destruction packet received")
+
+				playerDestructionPacket := &nier.DestroyPlayer{}
+				flatbuffers.GetRootAs(data.DataBytes(), 0, playerDestructionPacket)
+
+				log.Info(" Destroying player %d", playerDestructionPacket.Guid())
+
+				players[playerDestructionPacket.Guid()] = nil // ezpz
+
+				break
 			// Bounced packets from server
 			case nier.PacketTypeID_ANIMATION_START:
 				log.Info("Animation start received from client %d", playerPacket.Guid())
 
+				if players[playerPacket.Guid()] == nil {
+					log.Error(" Player %d not found", playerPacket.Guid())
+					continue
+				}
+
 				animationData := &nier.AnimationStart{}
 				flatbuffers.GetRootAs(playerPacket.DataBytes(), 0, animationData)
 
-				log.Info("Animation: %d", animationData.Anim())
-				log.Info("Variant: %d", animationData.Variant())
-				log.Info("a3: %d", animationData.A3())
-				log.Info("a4: %d", animationData.A4())
+				log.Info(" Animation: %d", animationData.Anim())
+				log.Info(" Variant: %d", animationData.Variant())
+				log.Info(" a3: %d", animationData.A3())
+				log.Info(" a4: %d", animationData.A4())
 
 				break
 			case nier.PacketTypeID_PLAYER_DATA:
 				log.Info("Player data received from client %d", playerPacket.Guid())
+
+				if players[playerPacket.Guid()] == nil {
+					log.Error(" Player %d not found", playerPacket.Guid())
+					continue
+				}
+
 				playerData := &nier.PlayerData{}
 				flatbuffers.GetRootAs(playerPacket.DataBytes(), 0, playerData)
 
@@ -360,6 +383,8 @@ func main() {
 				log.Info("Facing: %f", playerData.Facing())
 				pos := playerData.Position(nil)
 				log.Info("Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
+
+				break
 			default:
 				log.Error("Unknown packet type: %d", data.Id())
 			}

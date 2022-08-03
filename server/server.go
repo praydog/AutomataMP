@@ -13,6 +13,7 @@ import (
 
 type Client struct {
 	guid           uint64
+	model          uint32
 	name           string
 	isMasterClient bool
 	lastPlayerData *nier.PlayerData
@@ -229,6 +230,15 @@ func main() {
 		case enet.EventDisconnect: // A connected peer has disconnected
 			log.Info("Peer disconnected: %s", ev.GetPeer().GetAddress())
 			if connections[ev.GetPeer()] != nil {
+				// Broadcast a destroy player packet to everyone except the disconnected peer
+				if connections[ev.GetPeer()].client != nil {
+					destroyPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+						return nier.CreateDestroyPlayer(builder, connections[ev.GetPeer()].client.guid)
+					})
+
+					broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_PLAYER, destroyPlayerBytes)
+				}
+
 				clients[connections[ev.GetPeer()]] = nil
 			}
 
@@ -314,15 +324,21 @@ func main() {
 
 				// Create a new client for the peer
 				client := &Client{
-					guid:           connectionCount,
-					name:           clientName,
-					isMasterClient: false,
-				}
+					guid:  connectionCount,
+					name:  clientName,
+					model: uint32(nier.ModelTypeMODEL_2B), // Placeholder
 
-				client.isMasterClient = len(clients) == 0
+					// Allows the first person that connects to be the master client
+					// In an ideal world, the server would run all of the simulation logic
+					// like movement, physics, enemy AI & movement, but this would be
+					// a monumental task because this is a mod, not a game where we have the source code.
+					// So we let the master client control the simulation.
+					isMasterClient: len(clients) == 0,
+				}
 
 				log.Info("Client name: %s", clientName)
 				log.Info("Client GUID: %d", client.guid)
+				log.Info("Client is master client: %t", client.isMasterClient)
 
 				// Add the client to the map
 				connection.client = client
@@ -345,13 +361,31 @@ func main() {
 					nier.CreatePlayerStart(builder)
 					nier.CreatePlayerAddGuid(builder, client.guid)
 					nier.CreatePlayerAddName(builder, playerName)
-					nier.CreatePlayerAddModel(builder, uint32(nier.ModelTypeMODEL_2B)) // Placeholder
+					nier.CreatePlayerAddModel(builder, client.model)
 					return nier.CreatePlayerEnd(builder)
 				})
 
 				log.Info("Sending create player packet to everyone")
 				broadcastPacketToAll(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes)
 
+				// Broadcast previously connected clients to the new client
+				for _, prevClient := range clients {
+					if prevClient == nil || prevClient == client { // Skip the new client
+						continue
+					}
+
+					createPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+						playerName := builder.CreateString(prevClient.name)
+						nier.CreatePlayerStart(builder)
+						nier.CreatePlayerAddGuid(builder, prevClient.guid)
+						nier.CreatePlayerAddName(builder, playerName)
+						nier.CreatePlayerAddModel(builder, prevClient.model)
+						return nier.CreatePlayerEnd(builder)
+					})
+
+					log.Info("Sending create player packet for previous client %d to client %d", prevClient.guid, client.guid)
+					ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes), 0, enet.PacketFlagReliable)
+				}
 				break
 			case nier.PacketTypeID_PING:
 				log.Info("Ping received from %s", connection.client.name)
@@ -359,15 +393,15 @@ func main() {
 				ev.GetPeer().SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PONG), 0, enet.PacketFlagReliable)
 				break
 			case nier.PacketTypeID_PLAYER_DATA:
-				log.Info("Player data received %d", flatbuffers.GetSizePrefix(data.DataBytes(), 0))
+				log.Info("Player data received")
 				playerData := &nier.PlayerData{}
 				flatbuffers.GetRootAs(data.DataBytes(), 0, playerData)
 
-				log.Info("Flashlight: %d", playerData.Flashlight())
-				log.Info("Speed: %f", playerData.Speed())
-				log.Info("Facing: %f", playerData.Facing())
+				log.Info(" Flashlight: %d", playerData.Flashlight())
+				log.Info(" Speed: %f", playerData.Speed())
+				log.Info(" Facing: %f", playerData.Facing())
 				pos := playerData.Position(nil)
-				log.Info("Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
+				log.Info(" Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
 
 				connection.client.lastPlayerData = playerData
 
