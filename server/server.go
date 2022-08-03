@@ -141,6 +141,27 @@ func broadcastPlayerPacketToAllExceptSender(sender enet.Peer, connection *Connec
 	}
 }
 
+func getFilteredPlayerName(input []uint8) string {
+	out := ""
+
+	if input == nil || string(input) == "" {
+		log.Error("Client sent empty name, assigning random name")
+		out = "Client" + strconv.FormatInt(int64(len(connections)), 10)
+	} else {
+		out = string(input)
+	}
+
+	for _, client := range clients {
+		if client.name == out {
+			log.Error("Client sent duplicate name, appending number")
+			out = out + strconv.FormatInt(int64(len(connections)), 10)
+			break
+		}
+	}
+
+	return out
+}
+
 func main() {
 	// Initialize enet
 	enet.Initialize()
@@ -267,14 +288,7 @@ func main() {
 
 				log.Info("Password check passed")
 
-				clientName := ""
-
-				if helloData.Name() == nil || string(helloData.Name()) == "" {
-					log.Error("Client sent empty name, assigning random name")
-					clientName = "Client" + strconv.FormatInt(int64(len(connections)), 10)
-				} else {
-					clientName = string(helloData.Name())
-				}
+				clientName := getFilteredPlayerName(helloData.Name())
 
 				connectionCount++
 
