@@ -121,6 +121,26 @@ var connections = make(map[enet.Peer]*Connection)
 var clients = make(map[*Connection]*Client)
 var connectionCount uint64 = 0
 
+func broadcastPacketToAll(id nier.PacketType, data []uint8) {
+	broadcastData := makePacketBytes(id, data)
+
+	for conn := range clients {
+		conn.peer.SendBytes(broadcastData, 0, enet.PacketFlagReliable)
+	}
+}
+
+func broadcastPacketToAllExceptSender(sender enet.Peer, id nier.PacketType, data []uint8) {
+	broadcastData := makePacketBytes(id, data)
+
+	for conn := range clients {
+		if conn.peer == sender {
+			continue
+		}
+
+		conn.peer.SendBytes(broadcastData, 0, enet.PacketFlagReliable)
+	}
+}
+
 func broadcastPlayerPacketToAll(connection *Connection, id nier.PacketType, data []uint8) {
 	broadcastData := makePlayerPacketBytes(connection, id, data)
 
@@ -329,8 +349,8 @@ func main() {
 					return nier.CreatePlayerEnd(builder)
 				})
 
-				log.Info("Sending create player packet")
-				ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes), 0, enet.PacketFlagReliable)
+				log.Info("Sending create player packet to everyone")
+				broadcastPacketToAll(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes)
 
 				break
 			case nier.PacketTypeID_PING:
