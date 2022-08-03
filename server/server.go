@@ -134,7 +134,7 @@ func broadcastPlayerPacketToAllExceptSender(sender enet.Peer, connection *Connec
 
 	for conn := range clients {
 		if conn.peer == sender {
-			//continue
+			continue
 		}
 
 		conn.peer.SendBytes(broadcastData, 0, enet.PacketFlagReliable)

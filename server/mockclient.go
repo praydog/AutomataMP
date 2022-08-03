@@ -294,6 +294,16 @@ func main() {
 				log.Info("a4: %d", animationData.A4())
 
 				break
+			case nier.PacketTypeID_PLAYER_DATA:
+				log.Info("Player data received from client %d", playerPacket.Guid())
+				playerData := &nier.PlayerData{}
+				flatbuffers.GetRootAs(playerPacket.DataBytes(), 0, playerData)
+
+				log.Info("Flashlight: %d", playerData.Flashlight())
+				log.Info("Speed: %f", playerData.Speed())
+				log.Info("Facing: %f", playerData.Facing())
+				pos := playerData.Position(nil)
+				log.Info("Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
 			default:
 				log.Error("Unknown packet type: %d", data.Id())
 			}
