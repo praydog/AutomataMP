@@ -46,6 +46,17 @@ if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
     message(NOTICE "Building in Release mode")
 endif()
 
+include(FetchContent)
+
+message(STATUS "Fetching flatbuffers (v2.0.0)...")
+FetchContent_Declare(flatbuffers
+	GIT_REPOSITORY
+		"https://github.com/google/flatbuffers"
+	GIT_TAG
+		v2.0.0
+)
+FetchContent_MakeAvailable(flatbuffers)
+
 # Target spdlog
 set(CMKR_TARGET spdlog)
 set(spdlog_SOURCES "")
@@ -396,6 +407,7 @@ list(APPEND automatamp_SOURCES
 	"src/automata-imgui/imgui_impl_dx11.h"
 	"src/automata-imgui/imgui_impl_dx12.h"
 	"src/automata-imgui/imgui_impl_win32.h"
+	"src/mods/multiplayer/schema/Packets_generated.h"
 )
 
 list(APPEND automatamp_SOURCES
@@ -440,6 +452,7 @@ target_link_libraries(automatamp PUBLIC
 	enet
 	shlwapi
 	d3d11
+	flatbuffers
 )
 
 set_target_properties(automatamp PROPERTIES

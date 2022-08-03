@@ -43,6 +43,10 @@ link-libraries = [
     "winmm"
 ]
 
+[fetch-content.flatbuffers]
+git = "https://github.com/google/flatbuffers"
+tag = "v2.0.0"
+
 [target.imgui]
 type = "static"
 sources = ["dependencies/submodules/imgui/*.cpp"]
@@ -99,7 +103,8 @@ link-libraries = [
     "utility",
     "enet",
     "shlwapi",
-    "d3d11"
+    "d3d11",
+    "flatbuffers"
 ]
 
 [target.automatamp.properties]
