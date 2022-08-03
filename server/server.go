@@ -30,7 +30,19 @@ func check(err error) {
 	}
 }
 
+func handlepanic() {
+	if a := recover(); a != nil {
+		log.Info("RECOVER", a)
+	}
+}
+
 func checkValidPacket(data *nier.Packet) bool {
+	// recovering from the panic will return false
+	// so this should be fine
+	// the reason for the panic handler is so some client
+	// can't send us garbage data to crash the server.
+	defer handlepanic()
+
 	if data.Magic() != 1347240270 {
 		log.Error("Invalid magic number: %d", data.Magic())
 		return false
@@ -239,10 +251,10 @@ func main() {
 					broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_PLAYER, destroyPlayerBytes)
 				}
 
-				clients[connections[ev.GetPeer()]] = nil
+				delete(clients, connections[ev.GetPeer()])
 			}
 
-			connections[ev.GetPeer()] = nil
+			delete(connections, ev.GetPeer())
 			break
 
 		case enet.EventReceive: // A peer sent us some data
@@ -263,9 +275,9 @@ func main() {
 			packetBytes := packet.GetData()
 
 			if connection.client != nil {
-				log.Info("Peer %d sent data %d bytes", connection.client.guid, len(packetBytes))
+				log.Info("Peer %d @ %s sent data %d bytes", connection.client.guid, ev.GetPeer().GetAddress().String(), len(packetBytes))
 			} else {
-				log.Info("Peer (unknown) sent data %d bytes", len(packetBytes))
+				log.Info("Peer %s sent data %d bytes", ev.GetPeer().GetAddress().String(), len(packetBytes))
 			}
 
 			data := nier.GetRootAsPacket(packetBytes, 0)
