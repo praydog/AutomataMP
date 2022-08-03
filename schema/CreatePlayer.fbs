@@ -1,0 +1,20 @@
+namespace nier;
+
+struct DestroyPlayer {
+    guid: ulong;
+}
+
+struct SetMasterClient {
+    guid: ulong;
+}
+
+// Sent from the server to all clients.
+// All currently connected clients are sent upon an initial connect.
+// Any new client that connects is also sent to any already connected clients.
+table CreatePlayer {
+    guid: ulong; // Every client must assign a slot for this player.
+    name: string; // The player's name.
+    model: uint; // The player's model.
+}
+
+root_type CreatePlayer;

@@ -13,7 +13,10 @@ const (
 	PacketTypeID_ENTITY_DATA         PacketType = 3
 	PacketTypeID_MASTER_CLIENT_END   PacketType = 4
 	PacketTypeID_SERVER_START        PacketType = 2048
-	PacketTypeID_SERVER_END          PacketType = 2049
+	PacketTypeID_CREATE_PLAYER       PacketType = 2049
+	PacketTypeID_DESTROY_PLAYER      PacketType = 2050
+	PacketTypeID_SET_MASTER_CLIENT   PacketType = 2051
+	PacketTypeID_SERVER_END          PacketType = 2052
 	PacketTypeID_CLIENT_START        PacketType = 4096
 	PacketTypeID_PLAYER_DATA         PacketType = 4097
 	PacketTypeID_ANIMATION_START     PacketType = 4098
@@ -33,6 +36,9 @@ var EnumNamesPacketType = map[PacketType]string{
 	PacketTypeID_ENTITY_DATA:         "ID_ENTITY_DATA",
 	PacketTypeID_MASTER_CLIENT_END:   "ID_MASTER_CLIENT_END",
 	PacketTypeID_SERVER_START:        "ID_SERVER_START",
+	PacketTypeID_CREATE_PLAYER:       "ID_CREATE_PLAYER",
+	PacketTypeID_DESTROY_PLAYER:      "ID_DESTROY_PLAYER",
+	PacketTypeID_SET_MASTER_CLIENT:   "ID_SET_MASTER_CLIENT",
 	PacketTypeID_SERVER_END:          "ID_SERVER_END",
 	PacketTypeID_CLIENT_START:        "ID_CLIENT_START",
 	PacketTypeID_PLAYER_DATA:         "ID_PLAYER_DATA",
@@ -53,6 +59,9 @@ var EnumValuesPacketType = map[string]PacketType{
 	"ID_ENTITY_DATA":         PacketTypeID_ENTITY_DATA,
 	"ID_MASTER_CLIENT_END":   PacketTypeID_MASTER_CLIENT_END,
 	"ID_SERVER_START":        PacketTypeID_SERVER_START,
+	"ID_CREATE_PLAYER":       PacketTypeID_CREATE_PLAYER,
+	"ID_DESTROY_PLAYER":      PacketTypeID_DESTROY_PLAYER,
+	"ID_SET_MASTER_CLIENT":   PacketTypeID_SET_MASTER_CLIENT,
 	"ID_SERVER_END":          PacketTypeID_SERVER_END,
 	"ID_CLIENT_START":        PacketTypeID_CLIENT_START,
 	"ID_PLAYER_DATA":         PacketTypeID_PLAYER_DATA,

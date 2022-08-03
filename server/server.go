@@ -312,11 +312,25 @@ func main() {
 				welcomeBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 					nier.WelcomeStart(builder)
 					nier.WelcomeAddGuid(builder, client.guid)
+					nier.WelcomeAddIsMasterClient(builder, client.isMasterClient)
 					return nier.WelcomeEnd(builder)
 				})
 
 				log.Info("Sending welcome packet")
 				ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_WELCOME, welcomeBytes), 0, enet.PacketFlagReliable)
+
+				// Send the player creation packet
+				createPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+					playerName := builder.CreateString(client.name)
+					nier.CreatePlayerStart(builder)
+					nier.CreatePlayerAddGuid(builder, client.guid)
+					nier.CreatePlayerAddName(builder, playerName)
+					nier.CreatePlayerAddModel(builder, uint32(nier.ModelTypeMODEL_2B)) // Placeholder
+					return nier.CreatePlayerEnd(builder)
+				})
+
+				log.Info("Sending create player packet")
+				ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes), 0, enet.PacketFlagReliable)
 
 				break
 			case nier.PacketTypeID_PING:

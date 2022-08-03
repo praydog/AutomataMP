@@ -3,3 +3,4 @@ include "Hello.fbs";
 include "Welcome.fbs";
 include "EntityPacket.fbs";
 include "PlayerPacket.fbs";
+include "CreatePlayer.fbs";

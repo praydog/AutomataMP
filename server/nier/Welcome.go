@@ -45,11 +45,26 @@ func (rcv *Welcome) MutateGuid(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(4, n)
 }
 
+func (rcv *Welcome) IsMasterClient() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Welcome) MutateIsMasterClient(n bool) bool {
+	return rcv._tab.MutateBoolSlot(6, n)
+}
+
 func WelcomeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+	builder.StartObject(2)
 }
 func WelcomeAddGuid(builder *flatbuffers.Builder, guid uint64) {
 	builder.PrependUint64Slot(0, guid, 0)
+}
+func WelcomeAddIsMasterClient(builder *flatbuffers.Builder, isMasterClient bool) {
+	builder.PrependBoolSlot(1, isMasterClient, false)
 }
 func WelcomeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

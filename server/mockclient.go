@@ -10,6 +10,24 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
+type Player struct {
+	guid           uint64
+	name           string
+	model          uint32
+	lastPlayerData *nier.PlayerData
+}
+
+// create guid->player map
+var players = make(map[uint64]*Player)
+
+type LocalPlayer struct {
+	isMasterClient bool
+	guid           uint64
+	player         *Player
+}
+
+var localPlayer *LocalPlayer = nil
+
 func checkValidPacket(data *nier.Packet) bool {
 	if data.Magic() != 1347240270 {
 		log.Error("Invalid magic number: %d", data.Magic())
@@ -135,6 +153,15 @@ func sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
 
 		if data.Id() == nier.PacketTypeID_WELCOME {
 			log.Info("Hello acknowledged")
+			welcome := nier.GetRootAsWelcome(data.DataBytes(), 0)
+
+			localPlayer = new(LocalPlayer)
+			localPlayer.isMasterClient = welcome.IsMasterClient()
+			localPlayer.guid = welcome.Guid()
+
+			log.Info("Welcome: %d", welcome.Guid())
+			log.Info("Is master client: %t", welcome.IsMasterClient())
+
 			return true
 		}
 	}
@@ -176,6 +203,20 @@ func performStartupHandshake(client enet.Host, peer enet.Peer) bool {
 	log.Info("Connected.")
 
 	return true
+}
+
+func spawnPlayer(player *Player) {
+	if player.guid == localPlayer.guid {
+		localPlayer.player = player
+	}
+
+	log.Info("Spawning player %d", player.guid)
+	log.Info("Is local player: %t", player.guid == localPlayer.guid)
+	log.Info("Is master client: %t", player.guid == localPlayer.guid && localPlayer.isMasterClient)
+	log.Info("Model: %d", player.model)
+
+	// Doesn't actually do anything, this is just mock code.
+	// Implement it in the actual game.
 }
 
 func main() {
@@ -280,6 +321,21 @@ func main() {
 			switch data.Id() {
 			case nier.PacketTypeID_PONG:
 				log.Info("Pong received")
+				break
+
+			case nier.PacketTypeID_CREATE_PLAYER:
+				log.Info("Player creation packet received")
+				playerCreationPacket := nier.GetRootAsCreatePlayer(data.DataBytes(), 0)
+
+				players[playerCreationPacket.Guid()] = new(Player)
+				players[playerCreationPacket.Guid()].guid = playerCreationPacket.Guid()
+				players[playerCreationPacket.Guid()].name = string(playerCreationPacket.Name())
+				players[playerCreationPacket.Guid()].model = playerCreationPacket.Model()
+
+				// Doesn't actually do anything, this is just mock code.
+				// implement it in the actual game.
+				spawnPlayer(players[playerCreationPacket.Guid()])
+
 				break
 			// Bounced packets from server
 			case nier.PacketTypeID_ANIMATION_START:

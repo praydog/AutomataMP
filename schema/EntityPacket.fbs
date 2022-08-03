@@ -2,6 +2,12 @@ include "Math.fbs";
 
 namespace nier;
 
+enum ModelType : uint {
+    MODEL_2B = 0x10000,
+    MODEL_A2 = 0x10100,
+    MODEL_9S = 0x10200,
+}
+
 // Packets sent from master client to server
 // and bounced to all connected clients
 table EntityPacket {

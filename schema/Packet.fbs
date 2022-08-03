@@ -11,9 +11,15 @@ enum PacketType : uint {
     ID_ENTITY_DATA,
     ID_MASTER_CLIENT_END,
 
+    // Packets sent specifically by the server backend.
     ID_SERVER_START = 2048,
+    ID_CREATE_PLAYER,
+    ID_DESTROY_PLAYER,
+    ID_SET_MASTER_CLIENT,
     ID_SERVER_END,
 
+    // Packets sent from basic clients to the server.
+    // They are then re-broadcasted to all the other clients.
     ID_CLIENT_START = 4096,
     ID_PLAYER_DATA,
     ID_ANIMATION_START,

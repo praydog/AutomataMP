@@ -2,6 +2,7 @@ namespace nier;
 
 table Welcome {
     guid: ulong;
+    isMasterClient: bool;
 }
 
 root_type Welcome;
