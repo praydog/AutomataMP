@@ -1,1 +1,2 @@
-.\flatc.exe --go --gen-all -o "schema/generated" "schema\shared\Packet.fbs" "schema\shared\EntityPacket.fbs" "schema\client\PlayerPacket.fbs"
+.\flatc.exe --go --gen-all -o "schema/generated" "schema\Packets.fbs"
+.\flatc.exe --cpp --gen-all -o "schema/generated" "schema\Packets.fbs"
