@@ -37,6 +37,9 @@ public:
     void on_frame() override;
     void on_think() override;
     void sharedThink();
+    void signalDestroyClient() {
+        m_wantsDestroyClient = true;
+    }
 
     auto& getNetworkEntities() {
         return m_networkEntities;
@@ -62,6 +65,7 @@ private:
     std::chrono::high_resolution_clock::time_point m_nextThink;
 
     bool m_isServer{ false };
+    bool m_wantsDestroyClient{false};
     
     std::mutex m_hookGuard;
 

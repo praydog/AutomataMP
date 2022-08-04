@@ -651,7 +651,8 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MINOR = 6,
     VT_PATCH = 8,
     VT_NAME = 10,
-    VT_PASSWORD = 12
+    VT_PASSWORD = 12,
+    VT_MODEL = 14
   };
   uint32_t major() const {
     return GetField<uint32_t>(VT_MAJOR, 0);
@@ -668,6 +669,9 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *password() const {
     return GetPointer<const flatbuffers::String *>(VT_PASSWORD);
   }
+  uint32_t model() const {
+    return GetField<uint32_t>(VT_MODEL, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_MAJOR) &&
@@ -677,6 +681,7 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyOffset(verifier, VT_PASSWORD) &&
            verifier.VerifyString(password()) &&
+           VerifyField<uint32_t>(verifier, VT_MODEL) &&
            verifier.EndTable();
   }
 };
@@ -700,6 +705,9 @@ struct HelloBuilder {
   void add_password(flatbuffers::Offset<flatbuffers::String> password) {
     fbb_.AddOffset(Hello::VT_PASSWORD, password);
   }
+  void add_model(uint32_t model) {
+    fbb_.AddElement<uint32_t>(Hello::VT_MODEL, model, 0);
+  }
   explicit HelloBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -717,8 +725,10 @@ inline flatbuffers::Offset<Hello> CreateHello(
     uint32_t minor = 0,
     uint32_t patch = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::String> password = 0) {
+    flatbuffers::Offset<flatbuffers::String> password = 0,
+    uint32_t model = 0) {
   HelloBuilder builder_(_fbb);
+  builder_.add_model(model);
   builder_.add_password(password);
   builder_.add_name(name);
   builder_.add_patch(patch);
@@ -733,7 +743,8 @@ inline flatbuffers::Offset<Hello> CreateHelloDirect(
     uint32_t minor = 0,
     uint32_t patch = 0,
     const char *name = nullptr,
-    const char *password = nullptr) {
+    const char *password = nullptr,
+    uint32_t model = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto password__ = password ? _fbb.CreateString(password) : 0;
   return nier::CreateHello(
@@ -742,7 +753,8 @@ inline flatbuffers::Offset<Hello> CreateHelloDirect(
       minor,
       patch,
       name__,
-      password__);
+      password__,
+      model);
 }
 
 struct Welcome FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

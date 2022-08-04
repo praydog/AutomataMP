@@ -330,6 +330,14 @@ func main() {
 
 				log.Info("Password check passed")
 
+				if _, ok := nier.EnumNamesModelType[nier.ModelType(helloData.Model())]; !ok {
+					log.Error("Invalid model type: %d", helloData.Model())
+					ev.GetPeer().DisconnectNow(0)
+					return
+				}
+
+				log.Info("Model type check passed")
+
 				clientName := getFilteredPlayerName(helloData.Name())
 
 				connectionCount++
@@ -338,7 +346,7 @@ func main() {
 				client := &Client{
 					guid:  connectionCount,
 					name:  clientName,
-					model: uint32(nier.ModelTypeMODEL_2B), // Placeholder
+					model: helloData.Model(),
 
 					// Allows the first person that connects to be the master client
 					// In an ideal world, the server would run all of the simulation logic

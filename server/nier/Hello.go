@@ -85,8 +85,20 @@ func (rcv *Hello) Password() []byte {
 	return nil
 }
 
+func (rcv *Hello) Model() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Hello) MutateModel(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(14, n)
+}
+
 func HelloStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(6)
 }
 func HelloAddMajor(builder *flatbuffers.Builder, major uint32) {
 	builder.PrependUint32Slot(0, major, 0)
@@ -102,6 +114,9 @@ func HelloAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 }
 func HelloAddPassword(builder *flatbuffers.Builder, password flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(password), 0)
+}
+func HelloAddModel(builder *flatbuffers.Builder, model uint32) {
+	builder.PrependUint32Slot(5, model, 0)
 }
 func HelloEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

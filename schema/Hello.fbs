@@ -18,6 +18,7 @@ table Hello {
     patch: uint;
     name: string;
     password: string;
+    model: uint;
 }
 
 root_type Hello;

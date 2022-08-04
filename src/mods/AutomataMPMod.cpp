@@ -128,12 +128,13 @@ void AutomataMPMod::on_frame() {
 }
 
 void AutomataMPMod::on_think() {
-    if (nier::isLoading()) {
+    if (nier::isLoading() || m_wantsDestroyClient) {
         if (m_client != nullptr) {
             m_client->disconnect();
             m_client.reset();
         }
 
+        m_wantsDestroyClient = false;
         return;
     }
 

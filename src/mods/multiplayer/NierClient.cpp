@@ -76,6 +76,12 @@ void NierClient::on_draw_ui() {
 }
 
 void NierClient::onConnect() {
+    if (auto ents = EntityList::get(); ents == nullptr || ents->getPossessedEntity() == nullptr) {
+        AutomataMPMod::get()->signalDestroyClient();
+        spdlog::error("Please spawn a player before connecting to the server.");
+        return;
+    }
+
     spdlog::set_default_logger(spdlog::basic_logger_mt("AutomataMPClient", "automatamp_clientlog.txt", true));
     spdlog::info("Connected");
 
@@ -247,6 +253,15 @@ void NierClient::sendButtons(const uint32_t* buttons) {
 }
 
 void NierClient::sendHello() {
+    auto ents = EntityList::get();
+    auto possessed = ents->getPossessedEntity();
+
+    if (possessed == nullptr || possessed->entity == nullptr) {
+        spdlog::error("No possessed entity");
+        return;
+    }
+    
+
     flatbuffers::FlatBufferBuilder builder{};
     const auto name_pkt = builder.CreateString(m_helloName);
     const auto pwd_pkt = builder.CreateString(m_password);
@@ -257,6 +272,7 @@ void NierClient::sendHello() {
     helloBuilder.add_patch(nier::VersionPatch_Value);
     helloBuilder.add_name(name_pkt);
     helloBuilder.add_password(pwd_pkt);
+    helloBuilder.add_model(*possessed->entity->getModel());
 
     builder.Finish(helloBuilder.Finish());
 
