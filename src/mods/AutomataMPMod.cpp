@@ -129,7 +129,11 @@ void AutomataMPMod::on_frame() {
 
 void AutomataMPMod::on_think() {
     if (nier::isLoading()) {
-        m_players[1].setHandle(0);
+        if (m_client != nullptr) {
+            m_client->disconnect();
+            m_client.reset();
+        }
+
         return;
     }
 
@@ -387,7 +391,7 @@ void AutomataMPMod::sharedThink() {
 
     auto realBuddy = entityList->getByHandle(controlledEntity->entity->getBuddyHandle());
     
-    if (realBuddy && realBuddy->entity) {
+    /*if (realBuddy && realBuddy->entity) {
         realBuddy->entity->setBuddyFlags(0);
 
         if (m_players[1].getHandle() != realBuddy->handle) {
@@ -400,7 +404,9 @@ void AutomataMPMod::sharedThink() {
     else {
         spdlog::info("Buddy not found");
         m_players[1].setHandle(0);
-    }
+    }*/
+
+    //synchronize();
 
     /*auto& playerData = m_players[0].getPlayerData();
     playerData.facing = *controlledEntity->entity->getFacing();
@@ -426,29 +432,38 @@ void AutomataMPMod::sharedThink() {
 }
 
 void AutomataMPMod::synchronize() {
-    auto container = EntityList::get()->getByHandle(m_players[1].getHandle());
-    if (container == nullptr) {
-        spdlog::error("Container for player 1 not found");
+    if (m_client == nullptr) {
         return;
     }
 
-    auto npc = container->entity;
+    for (auto& it : m_client->getPlayers()) {
+        const auto& networkedPlayer = it.second;
 
-    if (npc == nullptr) {
-        spdlog::error("NPC for player 1 not found");
-        return;
+        // Do not update the local player here.
+        if (networkedPlayer == nullptr || networkedPlayer->getGuid() == m_client->getGuid()) {
+            continue;
+        }
+
+        auto npc = networkedPlayer->getEntity();
+
+        if (npc == nullptr) {
+            spdlog::error("NPC for player {} not found", networkedPlayer->getGuid());
+            continue;
+        }
+
+        spdlog::info("Synchronizing player {}", networkedPlayer->getGuid());
+
+        auto& data = networkedPlayer->getPlayerData();
+        *npc->getRunSpeedType() = SPEED_PLAYER;
+        *npc->getFlashlightEnabled() = data.flashlight();
+        *npc->getSpeed() = data.speed();
+        *npc->getFacing() = data.facing();
+        *npc->getFacing2() = data.facing2();
+        *npc->getWeaponIndex() = data.weapon_index();
+        *npc->getPodIndex() = data.pod_index();
+        npc->getCharacterController()->heldFlags = data.held_button_flags();
+        //*npc->getPosition() = movement.position;
     }
-
-    auto& data = m_players[1].getPlayerData();
-    *npc->getRunSpeedType() = SPEED_PLAYER;
-    *npc->getFlashlightEnabled() = data.flashlight;
-    *npc->getSpeed() = data.speed;
-    *npc->getFacing() = data.facing;
-    *npc->getFacing2() = data.facing2;
-    *npc->getWeaponIndex() = data.weaponIndex;
-    *npc->getPodIndex() = data.podIndex; 
-    npc->getCharacterController()->heldFlags = data.heldButtonFlags;
-    //*npc->getPosition() = movement.position;
 }
 
 void AutomataMPMod::serverPacketProcess(const Packet* data, size_t size) {
@@ -487,17 +502,17 @@ void AutomataMPMod::sharedPacketProcess(const Packet* data, size_t size) {
 }
 
 void AutomataMPMod::processPlayerData(const nier_client_and_server::PlayerData* movement) {
-    auto npc = m_players[1].getEntity();
+    /*auto npc = m_players[1].getEntity();
     
     if (npc) {
         *npc->getPosition() = movement->position;
     }
 
-    m_players[1].setPlayerData(*movement);
+    m_players[1].setPlayerData(*movement);*/
 }
 
 void AutomataMPMod::processAnimationStart(const nier_client_and_server::AnimationStart* animation) {
-    auto npc = m_players[1].getEntity();
+    /*auto npc = m_players[1].getEntity();
 
     switch (animation->anim) {
     case INVALID_CRASHES_GAME:
@@ -512,11 +527,11 @@ void AutomataMPMod::processAnimationStart(const nier_client_and_server::Animatio
         } else {
             spdlog::error("Cannot start animation, npc is null");
         }
-    }
+    }*/
 }
 
 void AutomataMPMod::processButtons(const nier_client_and_server::Buttons* buttons) {
-    auto npc = m_players[1].getEntity();
+    /*auto npc = m_players[1].getEntity();
 
     if (npc) {
         memcpy(&npc->getCharacterController()->buttons, buttons->buttons, sizeof(buttons->buttons));
@@ -528,11 +543,11 @@ void AutomataMPMod::processButtons(const nier_client_and_server::Buttons* button
                 controller->heldFlags |= (1 << i);
             }
         }
-    }
+    }*/
 }
 
 void AutomataMPMod::processEntitySpawn(nier_server::EntitySpawn* spawn) {
-    spdlog::info("Enemy spawn received");
+    /*spdlog::info("Enemy spawn received");
     auto entityList = EntityList::get();
 
     if (entityList) {
@@ -550,7 +565,7 @@ void AutomataMPMod::processEntitySpawn(nier_server::EntitySpawn* spawn) {
         if (ent) {
             m_networkEntities.addEntity(ent, spawn->guid);
         }
-    }
+    }*/
 }
 
 void AutomataMPMod::processEntityData(nier_server::EntityData* data) {

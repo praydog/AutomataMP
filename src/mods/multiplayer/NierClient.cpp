@@ -35,6 +35,41 @@ void NierClient::think() {
             onDataReceived(a, b); 
         }
     );
+
+    if (m_helloSent && m_welcomeReceived && m_players.contains(m_guid)) {
+        updateLocalPlayerData();
+        sendPlayerData();
+
+        // Synchronize the players.
+        for (auto& it : m_players) {
+            const auto& networkedPlayer = it.second;
+
+            // Do not update the local player here.
+            if (networkedPlayer == nullptr || networkedPlayer->getGuid() == m_guid) {
+                continue;
+            }
+
+            auto npc = networkedPlayer->getEntity();
+
+            if (npc == nullptr) {
+                spdlog::error("NPC for player {} not found", networkedPlayer->getGuid());
+                continue;
+            }
+
+            spdlog::info("Synchronizing player {}", networkedPlayer->getGuid());
+
+            auto& data = networkedPlayer->getPlayerData();
+            *npc->getRunSpeedType() = SPEED_PLAYER;
+            *npc->getFlashlightEnabled() = data.flashlight();
+            *npc->getSpeed() = data.speed();
+            *npc->getFacing() = data.facing();
+            *npc->getFacing2() = data.facing2();
+            *npc->getWeaponIndex() = data.weapon_index();
+            *npc->getPodIndex() = data.pod_index();
+            npc->getCharacterController()->heldFlags = data.held_button_flags();
+            //*npc->getPosition() = *(Vector3f*)&data.position();
+        }
+    }
 }
 
 void NierClient::on_draw_ui() {
@@ -133,7 +168,7 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
 }
 
 void NierClient::onPlayerPacketReceived(nier::PacketType packetType, const nier::PlayerPacket* packet) {
-    spdlog::info("Player packet {}", nier::EnumNamePacketType(packetType));
+    spdlog::info("Player packet {} received from {}", nier::EnumNamePacketType(packetType), packet->guid());
 
     switch (packetType) {
         case nier::PacketType_ID_PLAYER_DATA: {
@@ -192,6 +227,73 @@ void NierClient::sendHello() {
 
     sendPacket(nier::PacketType_ID_HELLO, builder.GetBufferPointer(), builder.GetSize());
     m_helloSent = true;
+}
+
+void NierClient::updateLocalPlayerData() {
+    if (!m_helloSent || !m_welcomeReceived || m_guid == 0) {
+        return;
+    }
+
+    auto it = m_players.find(m_guid);
+
+    if (it == m_players.end() || it->second == nullptr) {
+        spdlog::error("Local player not set up");
+        return;
+    }
+
+    auto entityList = EntityList::get();
+
+    if (entityList == nullptr) {
+        return;
+    }
+
+    auto player = entityList->getPossessedEntity();
+
+    if (player == nullptr) {
+        return;
+    }
+
+    it->second->setHandle(player->handle);
+}
+
+void NierClient::sendPlayerData() {
+    if (m_guid == 0) {
+        spdlog::error("Cannot send player data without GUID");
+        return;
+    }
+
+    auto it = m_players.find(m_guid);
+
+    if (it == m_players.end() || it->second == nullptr) {
+        spdlog::error("Cannot send player data without player");
+        return;
+    }
+
+    auto& player = it->second;
+    
+    auto entity = player->getEntity();
+
+    if (entity == nullptr) {
+        spdlog::error("Cannot send player data without entity");
+        return;
+    }
+
+    nier::PlayerData playerData(
+        *entity->getFlashlightEnabled(),
+        *entity->getSpeed(),
+        *entity->getFacing(),
+        *entity->getFacing2(),
+        *entity->getWeaponIndex(),
+        *entity->getPodIndex(),
+        entity->getCharacterController()->heldFlags,
+        *(nier::Vector3f*)entity->getPosition()
+    );
+
+    flatbuffers::FlatBufferBuilder builder{};
+    const auto offs = builder.CreateStruct(playerData);
+    builder.Finish(offs);
+
+    sendPacket(nier::PacketType_ID_PLAYER_DATA, builder.GetBufferPointer(), builder.GetSize());
 }
 
 bool NierClient::handleWelcome(const nier::Packet* packet) {
@@ -255,12 +357,12 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
 
     // we don't want to spawn ourselves
     if (createPlayer->guid() != m_guid) {
-        spdlog::info("Spawning partner");
+        spdlog::info("Spawning player {}, {}", createPlayer->guid(), createPlayer->name()->c_str());
 
         auto ent = entityList->spawnEntity("partner", createPlayer->model(), *possessed->entity->getPosition());
 
         if (ent != nullptr) {
-            spdlog::info("Partner spawned");
+            spdlog::info(" Player spawned");
 
             ent->entity->setBuddyHandle(localplayer->handle);
             localplayer->entity->setBuddyHandle(ent->handle);
@@ -271,8 +373,8 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
             ent->assignAIRoutine("player");
 
             // alternate way of assigning AI/control to the entity easily.
-            //localplayer->entity->changePlayer();
-            //localplayer->entity->changePlayer();
+            localplayer->entity->changePlayer();
+            localplayer->entity->changePlayer();
 
             const auto old_flags = ent->entity->getBuddyFlags();
             ent->entity->setBuddyFlags(-1);
@@ -281,6 +383,8 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
 
             m_players[createPlayer->guid()]->setStartTick(*ent->entity->getTickCount());
             m_players[createPlayer->guid()]->setHandle(ent->handle);
+
+            spdlog::info(" player assigned handle {:x}", ent->handle);
         } else {
             spdlog::error("Failed to spawn partner");
         }
@@ -318,5 +422,61 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
 }
 
 bool NierClient::handlePlayerData(const nier::PlayerPacket* packet) {
+    const auto guid = packet->guid();
+
+    // do not update the local player. maybe change this later for forced updates/teleportation commands?
+    if (guid == m_guid) {
+        return true;
+    }
+
+    if (!m_players.contains(guid)) {
+        spdlog::error("Player data packet received for unknown player {}", guid);
+        return false;
+    }
+
+    const auto& playerNetworked = m_players[guid];
+
+    if (playerNetworked == nullptr) {
+        spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
+        return false;
+    }
+
+    auto playerData = flatbuffers::GetRoot<nier::PlayerData>(packet->data()->data());
+    auto npc = playerNetworked->getEntity();
+    
+    if (npc != nullptr) {
+        *npc->getPosition() = *(Vector3f*)&playerData->position();
+    }
+
+    playerNetworked->setPlayerData(*playerData);
+
+    /*if (playerNetworked == nullptr) {
+        spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
+        return false;
+    }
+
+    auto container = EntityList::get()->getByHandle(playerNetworked->getHandle());
+    if (container == nullptr) {
+        spdlog::error("Container for player {} not found", guid);
+        return;
+    }
+
+    auto npc = container->entity;
+
+    if (npc == nullptr) {
+        spdlog::error("NPC for player {} not found", guid);
+        return;
+    }
+
+    auto& data = playerNetworked->getPlayerData();
+    *npc->getRunSpeedType() = SPEED_PLAYER;
+    *npc->getFlashlightEnabled() = data.flashlight();
+    *npc->getSpeed() = data.speed();
+    *npc->getFacing() = data.facing();
+    *npc->getFacing2() = data.facing2();
+    *npc->getWeaponIndex() = data.weaponIndex();
+    *npc->getPodIndex() = data.podIndex();
+    npc->getCharacterController()->heldFlags = data.heldButtonFlags();*/
+
     return true;
 }

@@ -30,7 +30,7 @@ public:
     void sendPacket(const enet_uint8* data, size_t size);
 
     bool isServer() {
-        return m_server != nullptr;
+        return m_client != nullptr && m_client->isMasterClient();
     }
 
     void on_draw_ui() override;
@@ -38,12 +38,12 @@ public:
     void on_think() override;
     void sharedThink();
 
-    auto& getPlayers() {
-        return m_players;
-    }
-
     auto& getNetworkEntities() {
         return m_networkEntities;
+    }
+
+    auto& getClient() const {
+        return m_client;
     }
 
 public:
@@ -71,7 +71,6 @@ private:
     std::unique_ptr<NierClient> m_client;
     std::unique_ptr<NierServer> m_server;
 
-    std::array<Player, 2> m_players;
     EntitySync m_networkEntities;
 
 private:

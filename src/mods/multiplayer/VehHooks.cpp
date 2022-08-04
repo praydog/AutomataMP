@@ -168,10 +168,25 @@ VehHooks::VehHooks() {
     m_hook.hook(get_on_set_held_flags(), [=](const VehHook::RuntimeInfo& info) {
         auto entity = Address(info.context->Rcx).get(-0xCA0).as<Entity*>();
 
-        auto& player = AutomataMPMod::get()->getPlayers()[1];
+        const auto& amp = AutomataMPMod::get();
+        const auto& client = amp->getClient();
 
-        if (entity == player.getEntity()) {
-            entity->getCharacterController()->heldFlags = player.getPlayerData().heldButtonFlags;
+        if (client == nullptr) {
+            return;
+        }
+
+        const auto& players = client->getPlayers();
+
+        auto it = std::find_if(players.begin(), players.end(), [&](auto& player) {
+            return player.second->getEntity() == entity;
+        });
+
+        if (it == players.end() || it->second == nullptr) {
+            return;
+        }
+
+        if (entity == it->second->getEntity()) {
+            entity->getCharacterController()->heldFlags = it->second->getPlayerData().held_button_flags();
         }
     });
 

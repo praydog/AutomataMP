@@ -1,5 +1,6 @@
 #pragma once
 
+#include "schema/Packets_generated.h"
 #include "Packets.hpp"
 
 class Entity;
@@ -22,7 +23,7 @@ public:
         return m_name;
     }
 
-    void setPlayerData(const nier_client_and_server::PlayerData& movement) {
+    void setPlayerData(const nier::PlayerData& movement) {
         m_playerData = movement;
     }
 
@@ -53,5 +54,5 @@ private:
     uint64_t m_guid{};
     uint32_t m_entityHandle{ 0 };
     float m_startTick{ 0.0f };
-    nier_client_and_server::PlayerData m_playerData;
+    nier::PlayerData m_playerData;
 };

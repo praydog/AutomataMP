@@ -42,6 +42,10 @@ private:
 
     void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
     void sendHello();
+
+    void updateLocalPlayerData();
+    void sendPlayerData();
+
     bool handleWelcome(const nier::Packet* packet);
     bool handleCreatePlayer(const nier::Packet* packet);
     bool handleDestroyPlayer(const nier::Packet* packet);
