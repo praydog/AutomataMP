@@ -262,6 +262,21 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
 
     const auto destroyPlayer = flatbuffers::GetRoot<nier::DestroyPlayer>(packet->data()->data());
 
+    if (m_players.contains(destroyPlayer->guid()) && m_players[destroyPlayer->guid()] != nullptr) {
+        auto entityList = EntityList::get();
+
+        if (entityList == nullptr) {
+            // not an error, we just won't actually delete any entity from the entity list
+            spdlog::info("Entity list not found while handling destroy player packet");
+        } else {
+            auto localplayer = entityList->getByName("Player");
+            auto ent = entityList->getByHandle(m_players[destroyPlayer->guid()]->getHandle());
+            if (ent != nullptr && ent != localplayer) {
+                ent->entity->terminate();
+            }
+        }
+    }
+
     m_players[destroyPlayer->guid()].reset();
     m_players.erase(destroyPlayer->guid());
 
