@@ -77,31 +77,36 @@ void AutomataMPMod::on_draw_ui() {
         return;
     }
 
-    if (m_server) {
-        ImGui::Text("State: Server");
-    } else if (m_client) {
+    if (m_client) {
         ImGui::Text("State: Client");
     } else {
         ImGui::Text("State: Disconnected");
     }
 
-    if (ImGui::Button("Start Server")) {
+    /*if (ImGui::Button("Start Server")) {
         serverStart();
-    }
+    }*/
     
     if (ImGui::InputText("Connect IP", m_ip_connect_input.data(), m_ip_connect_input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
         m_server = {};
         m_client.reset();
 
-        m_client = make_unique<NierClient>(m_ip_connect_input.data());
+        m_client = make_unique<NierClient>(m_ip_connect_input.data(), m_name_input.data(), m_password_input.data());
 
         if (!m_client->isConnected()) {
             m_client.reset();
         }
     }
 
+    ImGui::InputText("Name", m_name_input.data(), m_name_input.size());
+    ImGui::InputText("Password", m_password_input.data(), m_password_input.size());
+
     if (m_server) {
         m_server->on_draw_ui();
+    }
+
+    if (m_client) {
+        m_client->on_draw_ui();
     }
 }
 
@@ -160,7 +165,7 @@ void AutomataMPMod::on_think() {
         }
     }
     else {
-        spdlog::info("Spawning partner");
+        /*spdlog::info("Spawning partner");
 
         auto ent = entityList->spawnEntity("partner", EModel::MODEL_2B, *player->entity->getPosition());
 
@@ -183,7 +188,7 @@ void AutomataMPMod::on_think() {
             ent->entity->setBuddyFlags(old_flags);
 
             m_players[1].setStartTick(*ent->entity->getTickCount());
-        }
+        }*/
     }
 
     //spdlog::info("Player: 0x%p, handle: 0x%X", player, player->handle);
@@ -364,7 +369,7 @@ void AutomataMPMod::sharedThink()
         return;
     }
 
-    if (m_client && controlledEntity->name != string("partner")) {
+    /*if (m_client && controlledEntity->name != string("partner")) {
         auto realBuddy = entityList->getByHandle(controlledEntity->entity->getBuddyHandle());
 
         if (realBuddy && realBuddy->entity) {
@@ -375,7 +380,7 @@ void AutomataMPMod::sharedThink()
         }
 
         return;
-    }
+    }*/
 
     m_vehHooks.addOverridenEntity(controlledEntity->entity);
     m_playerHook.reHook(controlledEntity->entity);
@@ -398,7 +403,7 @@ void AutomataMPMod::sharedThink()
         m_players[1].setHandle(0);
     }
 
-    auto& playerData = m_players[0].getPlayerData();
+    /*auto& playerData = m_players[0].getPlayerData();
     playerData.facing = *controlledEntity->entity->getFacing();
     playerData.facing2 = *controlledEntity->entity->getFacing2();
     playerData.speed = *controlledEntity->entity->getSpeed();
@@ -408,13 +413,13 @@ void AutomataMPMod::sharedThink()
     playerData.flashlight = *controlledEntity->entity->getFlashlightEnabled();
     playerData.heldButtonFlags = controlledEntity->entity->getCharacterController()->heldFlags;
 
-    sendPacket(playerData.data(), sizeof(playerData));
+    sendPacket(playerData.data(), sizeof(playerData));*/
 
     m_networkEntities.think();
 
-    if (m_server) {
+    /*if (m_server) {
         m_server->think();
-    }
+    }*/
 
     if (m_client) {
         m_client->think();

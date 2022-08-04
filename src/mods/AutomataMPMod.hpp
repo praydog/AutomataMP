@@ -77,4 +77,6 @@ private:
 private:
     // imgui stuff
     std::array<char, 256> m_ip_connect_input{};
+    std::array<char, 256> m_password_input{};
+    std::array<char, 256> m_name_input{};
 };

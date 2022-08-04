@@ -6,6 +6,22 @@ class Entity;
 
 class Player {
 public:
+    void setGuid(uint64_t guid) {
+        m_guid = guid;
+    }
+
+    uint64_t getGuid() const {
+        return m_guid;
+    }
+    
+    void setName(const std::string& name) {
+        m_name = name;
+    }
+
+    const std::string& getName() const {
+        return m_name;
+    }
+
     void setPlayerData(const nier_client_and_server::PlayerData& movement) {
         m_playerData = movement;
     }
@@ -33,6 +49,8 @@ public:
     Entity* getEntity();
 
 private:
+    std::string m_name{};
+    uint64_t m_guid{};
     uint32_t m_entityHandle{ 0 };
     float m_startTick{ 0.0f };
     nier_client_and_server::PlayerData m_playerData;
