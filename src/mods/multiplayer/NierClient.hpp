@@ -23,6 +23,7 @@ public:
 
     void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
     void sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
+    void sendButtons(const uint32_t* buttons);
     
     const auto getGuid() const {
         return m_guid;
@@ -54,6 +55,7 @@ private:
 
     bool handlePlayerData(const nier::PlayerPacket* packet);
     bool handleAnimationStart(const nier::PlayerPacket* packet);
+    bool handleButtons(const nier::PlayerPacket* packet);
 
 
     std::string m_helloName{};

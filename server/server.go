@@ -405,15 +405,15 @@ func main() {
 				ev.GetPeer().SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PONG), 0, enet.PacketFlagReliable)
 				break
 			case nier.PacketTypeID_PLAYER_DATA:
-				log.Info("Player data received")
+				//log.Info("Player data received")
 				playerData := &nier.PlayerData{}
 				flatbuffers.GetRootAs(data.DataBytes(), 0, playerData)
 
-				log.Info(" Flashlight: %d", playerData.Flashlight())
+				/*log.Info(" Flashlight: %d", playerData.Flashlight())
 				log.Info(" Speed: %f", playerData.Speed())
 				log.Info(" Facing: %f", playerData.Facing())
 				pos := playerData.Position(nil)
-				log.Info(" Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())
+				log.Info(" Position: %f, %f, %f", pos.X(), pos.Y(), pos.Z())*/
 
 				connection.client.lastPlayerData = playerData
 
@@ -436,7 +436,12 @@ func main() {
 				// Broadcast the packet back to all valid clients (except the sender)
 				broadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_ANIMATION_START, data.DataBytes())
 				break
+			case nier.PacketTypeID_BUTTONS:
+				log.Info("Buttons received")
 
+				// Broadcast the packet back to all valid clients (except the sender)
+				broadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_BUTTONS, data.DataBytes())
+				break
 			default:
 				log.Error("Unknown packet type: %d", data.Id())
 			}

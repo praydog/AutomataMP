@@ -185,6 +185,13 @@ void NierClient::onPlayerPacketReceived(nier::PacketType packetType, const nier:
 
             break;
         }
+        case nier::PacketType_ID_BUTTONS: {
+            if (!handleButtons(packet)) {
+                spdlog::error("Failed to handle buttons");
+            }
+
+            break;
+        }
         default:
             spdlog::error("Unknown player packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
             break;
@@ -226,6 +233,17 @@ void NierClient::sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3
     builder.Finish(dataoffs);
 
     sendPacket(nier::PacketType_ID_ANIMATION_START, builder.GetBufferPointer(), builder.GetSize());
+}
+
+void NierClient::sendButtons(const uint32_t* buttons) {
+    flatbuffers::FlatBufferBuilder builder(0);
+    const auto dataoffs = builder.CreateVector(buttons, 8);
+
+    nier::Buttons::Builder dataBuilder(builder);
+    dataBuilder.add_buttons(dataoffs);
+    builder.Finish(dataBuilder.Finish());
+
+    sendPacket(nier::PacketType_ID_BUTTONS, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void NierClient::sendHello() {
@@ -510,5 +528,45 @@ bool NierClient::handleAnimationStart(const nier::PlayerPacket* packet) {
         }
     }
     
+    return true;
+}
+
+bool NierClient::handleButtons(const nier::PlayerPacket* packet) {
+    const auto guid = packet->guid();
+    
+    // do not update the local player. maybe change this later for forced updates/teleportation commands?
+    if (guid == m_guid) {
+        return true;
+    }
+
+    if (!m_players.contains(guid)) {
+        spdlog::error("Player data packet received for unknown player {}", guid);
+        return false;
+    }
+
+    const auto& playerNetworked = m_players[guid];
+
+    if (playerNetworked == nullptr) {
+        spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
+        return false;
+    }
+
+    auto buttons = flatbuffers::GetRoot<nier::Buttons>(packet->data()->data());
+    auto npc = playerNetworked->getEntity();
+
+    if (npc != nullptr) {
+        const auto buttonsData = buttons->buttons()->data();
+        const auto sizeButtons = sizeof(Entity::CharacterController::buttons);
+        memcpy(&npc->getCharacterController()->buttons, buttonsData, sizeButtons);
+
+        for (uint32_t i = 0; i < Entity::CharacterController::INDEX_MAX; ++i) {
+            auto controller = npc->getCharacterController();
+
+            if (buttonsData[i] > 0) {
+                controller->heldFlags |= (1 << i);
+            }
+        }
+    }
+
     return true;
 }

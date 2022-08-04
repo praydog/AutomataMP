@@ -222,11 +222,16 @@ void VehHooks::onProcessedButtons(const VehHook::RuntimeInfo& info)
     auto entity = Address(info.context->Rbx).get(-0xCA0).as<Entity*>();
 
     if (m_overridenEntities.count(entity) != 0) {
+        const auto amp = AutomataMPMod::get();
+        auto& client = amp->getClient();
+
+        if (client == nullptr) {
+            return;
+        }
+
         for (auto button : entity->getCharacterController()->buttons) {
             if (button != 0) {
-                nier_client_and_server::Buttons buttons;
-                memcpy(&buttons.buttons, &entity->getCharacterController()->buttons, sizeof(buttons.buttons));
-                AutomataMPMod::get()->sendPacket(buttons.data(), sizeof(buttons));
+                client->sendButtons(entity->getCharacterController()->buttons);
                 break;
             }
         }
