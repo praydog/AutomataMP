@@ -178,6 +178,13 @@ void NierClient::onPlayerPacketReceived(nier::PacketType packetType, const nier:
 
             break;
         }
+        case nier::PacketType_ID_ANIMATION_START: {
+            if (!handleAnimationStart(packet)) {
+                spdlog::error("Failed to handle animation start");
+            }
+
+            break;
+        }
         default:
             spdlog::error("Unknown player packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
             break;
@@ -209,6 +216,16 @@ void NierClient::sendPacket(nier::PacketType id, const uint8_t* data, size_t siz
     builder.Finish(packetBuilder.Finish());
 
     this->send_packet(0, builder.GetBufferPointer(), builder.GetSize(), ENET_PACKET_FLAG_RELIABLE);
+}
+
+void NierClient::sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
+    nier::AnimationStart data{anim, variant, a3, a4};
+
+    flatbuffers::FlatBufferBuilder builder(0);
+    auto dataoffs = builder.CreateStruct(data);
+    builder.Finish(dataoffs);
+
+    sendPacket(nier::PacketType_ID_ANIMATION_START, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void NierClient::sendHello() {
@@ -450,33 +467,48 @@ bool NierClient::handlePlayerData(const nier::PlayerPacket* packet) {
 
     playerNetworked->setPlayerData(*playerData);
 
-    /*if (playerNetworked == nullptr) {
+    return true;
+}
+
+bool NierClient::handleAnimationStart(const nier::PlayerPacket* packet) {
+    const auto guid = packet->guid();
+
+    // do not update the local player. maybe change this later for forced updates/teleportation commands?
+    if (guid == m_guid) {
+        return true;
+    }
+
+    if (!m_players.contains(guid)) {
+        spdlog::error("Player data packet received for unknown player {}", guid);
+        return false;
+    }
+
+    const auto& playerNetworked = m_players[guid];
+
+    if (playerNetworked == nullptr) {
         spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
         return false;
     }
 
-    auto container = EntityList::get()->getByHandle(playerNetworked->getHandle());
-    if (container == nullptr) {
-        spdlog::error("Container for player {} not found", guid);
-        return;
+    auto animationData = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
+    auto npc = playerNetworked->getEntity();
+
+    if (npc != nullptr) {
+        switch (animationData->anim()) {
+        case INVALID_CRASHES_GAME:
+        case INVALID_CRASHES_GAME2:
+        case INVALID_CRASHES_GAME3:
+        case INVALID_CRASHES_GAME4:
+        case Light_Attack:
+            return true;
+        default:
+            if (npc) {
+                npc->startAnimation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
+            } else {
+                spdlog::error("Cannot start animation, npc is null");
+            }
+        }
     }
-
-    auto npc = container->entity;
-
-    if (npc == nullptr) {
-        spdlog::error("NPC for player {} not found", guid);
-        return;
-    }
-
-    auto& data = playerNetworked->getPlayerData();
-    *npc->getRunSpeedType() = SPEED_PLAYER;
-    *npc->getFlashlightEnabled() = data.flashlight();
-    *npc->getSpeed() = data.speed();
-    *npc->getFacing() = data.facing();
-    *npc->getFacing2() = data.facing2();
-    *npc->getWeaponIndex() = data.weaponIndex();
-    *npc->getPodIndex() = data.podIndex();
-    npc->getCharacterController()->heldFlags = data.heldButtonFlags();*/
-
+    
     return true;
 }

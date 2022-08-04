@@ -41,13 +41,20 @@ void __thiscall PlayerHook::startAnimationHook(Entity* ent, uint32_t anim, uint3
     }*/
 
     if (g_unreplicatedAnims.count(anim) == 0) {
-        nier_client_and_server::AnimationStart animation;
+        /*nier_client_and_server::AnimationStart animation;
         animation.anim = anim;
         animation.variant = variant;
         animation.a3 = a3;
         animation.a4 = a4;
 
-        AutomataMPMod::get()->sendPacket(animation.data(), sizeof(animation));
+        AutomataMPMod::get()->sendPacket(animation.data(), sizeof(animation));*/
+
+        auto amp = AutomataMPMod::get();
+        auto& client = amp->getClient();
+
+        if (client != nullptr) {
+            client->sendAnimationStart(anim, variant, a3, a4);
+        }
     }
 
     spdlog::info("anim: {}, variant: {}, a3: {}, return: {:x}", anim, variant, a3, (uintptr_t)_ReturnAddress());

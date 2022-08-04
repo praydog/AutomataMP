@@ -20,6 +20,9 @@ public:
     void think();
     void on_draw_ui();
     bool isConnected() { return get_connection_state() == enetpp::CONNECT_CONNECTED; }
+
+    void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
+    void sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
     
     const auto getGuid() const {
         return m_guid;
@@ -40,7 +43,6 @@ private:
     void onPacketReceived(const nier::Packet* packet);
     void onPlayerPacketReceived(nier::PacketType packetType, const nier::PlayerPacket* packet);
 
-    void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
     void sendHello();
 
     void updateLocalPlayerData();
@@ -49,7 +51,9 @@ private:
     bool handleWelcome(const nier::Packet* packet);
     bool handleCreatePlayer(const nier::Packet* packet);
     bool handleDestroyPlayer(const nier::Packet* packet);
+
     bool handlePlayerData(const nier::PlayerPacket* packet);
+    bool handleAnimationStart(const nier::PlayerPacket* packet);
 
 
     std::string m_helloName{};
