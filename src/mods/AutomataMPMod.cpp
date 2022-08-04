@@ -342,9 +342,8 @@ void AutomataMPMod::on_think() {
     }
 }
 
-void AutomataMPMod::sharedThink()
-{
-    spdlog::info("Shared think");
+void AutomataMPMod::sharedThink() {
+    //spdlog::info("Shared think");
 
     //static uint32_t(*changePlayer)(Entity* player) = (decltype(changePlayer))0x1401ED500;
 

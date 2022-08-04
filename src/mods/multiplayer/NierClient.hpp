@@ -38,12 +38,14 @@ private:
     void onDisconnect();
     void onDataReceived(const enet_uint8* data, size_t size);
     void onPacketReceived(const nier::Packet* packet);
+    void onPlayerPacketReceived(nier::PacketType packetType, const nier::PlayerPacket* packet);
 
     void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
     void sendHello();
     bool handleWelcome(const nier::Packet* packet);
     bool handleCreatePlayer(const nier::Packet* packet);
     bool handleDestroyPlayer(const nier::Packet* packet);
+    bool handlePlayerData(const nier::PlayerPacket* packet);
 
 
     std::string m_helloName{};

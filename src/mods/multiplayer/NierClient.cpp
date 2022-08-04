@@ -73,10 +73,27 @@ void NierClient::onDataReceived(const enet_uint8* data, size_t size) {
 
 void NierClient::onPacketReceived(const nier::Packet* packet) {
     if (!m_welcomeReceived && packet->id() != nier::PacketType_ID_WELCOME) {
-        spdlog::error("Expected welcome packet, but got {}, ignoring", packet->id());
+        spdlog::error("Expected welcome packet, but got {} ({}), ignoring", packet->id(), nier::EnumNamePacketType(packet->id()));
         return;
     }
 
+    const nier::PlayerPacket* playerPacket = nullptr;
+
+    // Bounced player packets.
+    if (packet->id() > nier::PacketType_ID_CLIENT_START && packet->id() < nier::PacketType_ID_CLIENT_END) {
+        playerPacket = flatbuffers::GetRoot<nier::PlayerPacket>(packet->data()->data());
+        flatbuffers::Verifier playerVerif(packet->data()->data(), packet->data()->size());
+
+        if (!playerPacket->Verify(playerVerif)) {
+            spdlog::error("Invalid player packet {} ({})", packet->id(), nier::EnumNamePacketType(packet->id()));
+            return;
+        }
+
+        onPlayerPacketReceived(packet->id(), playerPacket);
+        return;
+    }
+
+    // Standard packets.
     switch(packet->id()) {
         case nier::PacketType_ID_WELCOME: {
             if (handleWelcome(packet)) {
@@ -103,7 +120,7 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
         }
 
         default:
-            spdlog::error("Unknown packet type {}", packet->id());
+            spdlog::error("Unknown packet type {} ({})", packet->id(), nier::EnumNamePacketType(packet->id()));
             break;
     }
 
@@ -113,6 +130,23 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
     else if (data->id >= ID_SERVER_START && data->id < ID_SERVER_END) {
         AutomataMPMod::get()->serverPacketProcess(data, size);
     }*/
+}
+
+void NierClient::onPlayerPacketReceived(nier::PacketType packetType, const nier::PlayerPacket* packet) {
+    spdlog::info("Player packet {}", nier::EnumNamePacketType(packetType));
+
+    switch (packetType) {
+        case nier::PacketType_ID_PLAYER_DATA: {
+            if (!handlePlayerData(packet)) {
+                spdlog::error("Failed to handle player data");
+            }
+
+            break;
+        }
+        default:
+            spdlog::error("Unknown player packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
+            break;
+    }
 }
 
 void NierClient::sendPacket(nier::PacketType id, const uint8_t* data, size_t size) {
@@ -280,5 +314,9 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
     m_players[destroyPlayer->guid()].reset();
     m_players.erase(destroyPlayer->guid());
 
+    return true;
+}
+
+bool NierClient::handlePlayerData(const nier::PlayerPacket* packet) {
     return true;
 }
