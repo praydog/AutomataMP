@@ -20,9 +20,9 @@ jobs:
 
     - name: Build
       run: |
-        apt-get update
-        apt-get install libenet-dev
-        apt-get install pkg-config
+        sudo apt-get update
+        sudo apt-get install -y libenet-dev
+        sudo apt-get install -y pkg-config
         go build server/server.go
         
     - name: Upload artifacts
