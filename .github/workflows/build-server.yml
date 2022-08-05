@@ -1,15 +1,11 @@
-name: Go
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+name: Build Server
+on: [push, workflow_dispatch]
 jobs:
-
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
     - uses: actions/checkout@v3
 
@@ -18,12 +14,17 @@ jobs:
       with:
         go-version: 1.18
 
-    - name: Build
+    - name: Build Linux
       run: |
         sudo apt-get update
         sudo apt-get install -y libenet-dev
         sudo apt-get install -y pkg-config
         cd server && go build server.go
+      if: matrix.os == 'ubuntu-latest'
+      
+    - name: Build Windows
+      run: cd server && go build server.go
+      if: matrix.os == 'windows-latest'
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v2.3.1
