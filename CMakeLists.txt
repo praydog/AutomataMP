@@ -32,6 +32,8 @@ project(automatamp-proj)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 
+set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
+
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
@@ -47,6 +49,33 @@ if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
 endif()
 
 include(FetchContent)
+
+message(STATUS "Fetching asmjit (2a706fd2ba355808cada31ac1eed8ce28caa6b37)...")
+FetchContent_Declare(asmjit
+	GIT_REPOSITORY
+		"https://github.com/asmjit/asmjit.git"
+	GIT_TAG
+		2a706fd2ba355808cada31ac1eed8ce28caa6b37
+)
+FetchContent_MakeAvailable(asmjit)
+
+message(STATUS "Fetching bddisasm (v1.34.10)...")
+FetchContent_Declare(bddisasm
+	GIT_REPOSITORY
+		"https://github.com/bitdefender/bddisasm"
+	GIT_TAG
+		v1.34.10
+)
+FetchContent_MakeAvailable(bddisasm)
+
+message(STATUS "Fetching safetyhook (209fb0190602d9360fb1865fd42c4f6d3801c1c4)...")
+FetchContent_Declare(safetyhook
+	GIT_REPOSITORY
+		"https://github.com/cursey/safetyhook"
+	GIT_TAG
+		209fb0190602d9360fb1865fd42c4f6d3801c1c4
+)
+FetchContent_MakeAvailable(safetyhook)
 
 message(STATUS "Fetching flatbuffers (v2.0.0)...")
 FetchContent_Declare(flatbuffers
@@ -378,11 +407,11 @@ list(APPEND automatamp_SOURCES
 	"src/mods/AutomataMPMod.cpp"
 	"src/mods/BuddyFeatures.cpp"
 	"src/mods/multiplayer/EntitySync.cpp"
+	"src/mods/multiplayer/MidHooks.cpp"
 	"src/mods/multiplayer/NierClient.cpp"
 	"src/mods/multiplayer/NierServer.cpp"
 	"src/mods/multiplayer/Player.cpp"
 	"src/mods/multiplayer/PlayerHook.cpp"
-	"src/mods/multiplayer/VehHooks.cpp"
 	"src/AutomataMP.hpp"
 	"src/ExceptionHandler.hpp"
 	"src/LicenseStrings.hpp"
@@ -398,12 +427,12 @@ list(APPEND automatamp_SOURCES
 	"src/mods/AutomataMPMod.hpp"
 	"src/mods/BuddyFeatures.hpp"
 	"src/mods/multiplayer/EntitySync.hpp"
+	"src/mods/multiplayer/MidHooks.hpp"
 	"src/mods/multiplayer/NierClient.hpp"
 	"src/mods/multiplayer/NierServer.hpp"
 	"src/mods/multiplayer/Packets.hpp"
 	"src/mods/multiplayer/Player.hpp"
 	"src/mods/multiplayer/PlayerHook.hpp"
-	"src/mods/multiplayer/VehHooks.hpp"
 	"src/automata-imgui/imgui_impl_dx11.h"
 	"src/automata-imgui/imgui_impl_dx12.h"
 	"src/automata-imgui/imgui_impl_win32.h"
@@ -453,6 +482,8 @@ target_link_libraries(automatamp PUBLIC
 	shlwapi
 	d3d11
 	flatbuffers
+	safetyhook
+	asmjit
 )
 
 set_target_properties(automatamp PROPERTIES

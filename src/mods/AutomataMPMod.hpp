@@ -5,7 +5,7 @@
 
 #include "../Mod.hpp"
 
-#include "multiplayer/VehHooks.hpp"
+#include "multiplayer/MidHooks.hpp"
 #include "multiplayer/PlayerHook.hpp"
 
 #include "multiplayer/NierServer.hpp"
@@ -69,7 +69,7 @@ private:
     
     std::mutex m_hookGuard;
 
-    VehHooks m_vehHooks;
+    MidHooks m_midHooks;
     PlayerHook m_playerHook;
 
     std::unique_ptr<NierClient> m_client;

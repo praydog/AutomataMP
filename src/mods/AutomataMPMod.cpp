@@ -25,8 +25,6 @@ AutomataMPMod::~AutomataMPMod() {
     if (m_client) {
         m_client->disconnect();
     }
-
-    m_vehHooks.getHook().remove();
 }
 
 std::optional<std::string> AutomataMPMod::on_initialize() try {
@@ -386,46 +384,13 @@ void AutomataMPMod::sharedThink() {
         return;
     }*/
 
-    m_vehHooks.addOverridenEntity(controlledEntity->entity);
+    m_midHooks.addOverridenEntity(controlledEntity->entity);
     m_playerHook.reHook(controlledEntity->entity);
     controlledEntity->entity->setBuddyFlags(0);
 
     auto realBuddy = entityList->getByHandle(controlledEntity->entity->getBuddyHandle());
-    
-    /*if (realBuddy && realBuddy->entity) {
-        realBuddy->entity->setBuddyFlags(0);
-
-        if (m_players[1].getHandle() != realBuddy->handle) {
-            spdlog::info("Setting buddy handle {:x}->{:x}", controlledEntity->entity->getBuddyHandle(), realBuddy->handle);
-        }
-        
-        m_players[1].setHandle(realBuddy->handle);
-        synchronize();
-    }
-    else {
-        spdlog::info("Buddy not found");
-        m_players[1].setHandle(0);
-    }*/
-
-    //synchronize();
-
-    /*auto& playerData = m_players[0].getPlayerData();
-    playerData.facing = *controlledEntity->entity->getFacing();
-    playerData.facing2 = *controlledEntity->entity->getFacing2();
-    playerData.speed = *controlledEntity->entity->getSpeed();
-    playerData.position = *controlledEntity->entity->getPosition();
-    playerData.weaponIndex = *controlledEntity->entity->getWeaponIndex();
-    playerData.podIndex = *controlledEntity->entity->getPodIndex();
-    playerData.flashlight = *controlledEntity->entity->getFlashlightEnabled();
-    playerData.heldButtonFlags = controlledEntity->entity->getCharacterController()->heldFlags;
-
-    sendPacket(playerData.data(), sizeof(playerData));*/
 
     m_networkEntities.think();
-
-    /*if (m_server) {
-        m_server->think();
-    }*/
 
     if (m_client) {
         m_client->think();
@@ -483,68 +448,15 @@ void AutomataMPMod::serverPacketProcess(const Packet* data, size_t size) {
 }
 
 void AutomataMPMod::sharedPacketProcess(const Packet* data, size_t size) {
-    spdlog::info("Shared packet {} received", data->id);
-
-    switch (data->id) {
-        // Shared
-    case ID_PLAYER_DATA:
-        processPlayerData((nier_client_and_server::PlayerData*)data);
-        break;
-    case ID_ANIMATION_START:
-        processAnimationStart((nier_client_and_server::AnimationStart*)data);
-        break;
-    case ID_BUTTONS:
-        processButtons((nier_client_and_server::Buttons*)data);
-        break;
-    case ID_CHANGE_PLAYER:
-    default:
-        break;
-    }
 }
 
 void AutomataMPMod::processPlayerData(const nier_client_and_server::PlayerData* movement) {
-    /*auto npc = m_players[1].getEntity();
-    
-    if (npc) {
-        *npc->getPosition() = movement->position;
-    }
-
-    m_players[1].setPlayerData(*movement);*/
 }
 
 void AutomataMPMod::processAnimationStart(const nier_client_and_server::AnimationStart* animation) {
-    /*auto npc = m_players[1].getEntity();
-
-    switch (animation->anim) {
-    case INVALID_CRASHES_GAME:
-    case INVALID_CRASHES_GAME2:
-    case INVALID_CRASHES_GAME3:
-    case INVALID_CRASHES_GAME4:
-    case Light_Attack:
-        return;
-    default:
-        if (npc) {
-            npc->startAnimation(animation->anim, animation->variant, animation->a3, animation->a4);
-        } else {
-            spdlog::error("Cannot start animation, npc is null");
-        }
-    }*/
 }
 
 void AutomataMPMod::processButtons(const nier_client_and_server::Buttons* buttons) {
-    /*auto npc = m_players[1].getEntity();
-
-    if (npc) {
-        memcpy(&npc->getCharacterController()->buttons, buttons->buttons, sizeof(buttons->buttons));
-
-        for (uint32_t i = 0; i < Entity::CharacterController::INDEX_MAX; ++i) {
-            auto controller = npc->getCharacterController();
-
-            if (buttons->buttons[i] > 0) {
-                controller->heldFlags |= (1 << i);
-            }
-        }
-    }*/
 }
 
 void AutomataMPMod::processEntitySpawn(nier_server::EntitySpawn* spawn) {

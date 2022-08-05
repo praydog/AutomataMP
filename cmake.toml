@@ -8,6 +8,8 @@ cmake-after = """
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 
+set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
+
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
@@ -42,6 +44,18 @@ link-libraries = [
     "ws2_32",
     "winmm"
 ]
+
+[fetch-content.asmjit]
+git = "https://github.com/asmjit/asmjit.git"
+tag = "2a706fd2ba355808cada31ac1eed8ce28caa6b37"
+
+[fetch-content.bddisasm]
+git = "https://github.com/bitdefender/bddisasm"
+tag = "v1.34.10"
+
+[fetch-content.safetyhook]
+git = "https://github.com/cursey/safetyhook"
+tag = "209fb0190602d9360fb1865fd42c4f6d3801c1c4"
 
 [fetch-content.flatbuffers]
 git = "https://github.com/google/flatbuffers"
@@ -104,7 +118,9 @@ link-libraries = [
     "enet",
     "shlwapi",
     "d3d11",
-    "flatbuffers"
+    "flatbuffers",
+    "safetyhook",
+    "asmjit"
 ]
 
 [target.automatamp.properties]

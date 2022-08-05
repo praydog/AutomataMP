@@ -58,6 +58,7 @@ private:
     bool handleButtons(const nier::PlayerPacket* packet);
 
 
+    std::recursive_mutex m_mtx{};
     std::string m_helloName{};
     std::string m_password{};
 

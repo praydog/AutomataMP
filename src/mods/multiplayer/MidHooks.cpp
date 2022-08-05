@@ -2,6 +2,9 @@
 
 #include <spdlog/spdlog.h>
 
+#include <SafetyHook.hpp>
+#include <asmjit/asmjit.h>
+
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
 
@@ -13,31 +16,33 @@
 #include "mods/AutomataMPMod.hpp"
 #include "AutomataMP.hpp"
 
-#include "VehHooks.hpp"
+#include "MidHooks.hpp"
 
 using namespace std;
 
+MidHooks* g_MidHooks = nullptr;
+
 uintptr_t get_on_update_function() {
     static uintptr_t on_update_function = []() -> uintptr_t {
-        spdlog::info("[VehHooks] Finding on_update_function...");
+        spdlog::info("[MidHooks] Finding on_update_function...");
 
         const auto middle = utility::scan(utility::get_executable(), "? 89 ? e8 00 00 00 ? 89 ? f0 00 00 00 ? ? ? e8 ? ? ? ? ? ? ? ? ? 00 00");
 
         if (!middle) {
-            spdlog::error("[VehHooks] Failed to find on_update_function.");
+            spdlog::error("[MidHooks] Failed to find on_update_function.");
             return 0;
         }
 
         const auto int3s = utility::scan_reverse(*middle, 0x100, "CC CC CC");
 
         if (!int3s) {
-            spdlog::error("[VehHooks] Failed to find int3s.");
+            spdlog::error("[MidHooks] Failed to find int3s.");
             return 0;
         }
 
         const auto result = *int3s + 3;
 
-        spdlog::info("[VehHooks] on_update_function: {:x}", result);
+        spdlog::info("[MidHooks] on_update_function: {:x}", result);
 
         return result;
     }();
@@ -48,18 +53,18 @@ uintptr_t get_on_update_function() {
 // gets an instruction near the end of the function that has an easy-ish to scan for pattern
 uintptr_t get_on_processed_buttons() {
     static uintptr_t on_processed_buttons = []() -> uintptr_t {
-        spdlog::info("[VehHooks] Finding on_processed_buttons...");
+        spdlog::info("[MidHooks] Finding on_processed_buttons...");
 
         const auto middle = utility::scan(utility::get_executable(), "C7 ? 90 07 00 00 14 00 00 00 48");
 
         if (!middle) {
-            spdlog::error("[VehHooks] Failed to find on_processed_buttons.");
+            spdlog::error("[MidHooks] Failed to find on_processed_buttons.");
             return 0;
         }
 
         const auto result = *middle + 10;
 
-        spdlog::info("[VehHooks] on_processed_buttons: {:x}", result);
+        spdlog::info("[MidHooks] on_processed_buttons: {:x}", result);
 
         return result;
     }();
@@ -70,28 +75,28 @@ uintptr_t get_on_processed_buttons() {
 // near the top of ProcessButtons
 uintptr_t get_on_set_held_flags() {
     static uintptr_t pre_process_buttons = []() -> uintptr_t {
-        spdlog::info("[VehHooks] Finding on_set_held_flags...");
+        spdlog::info("[MidHooks] Finding on_set_held_flags...");
 
         const auto middle = get_on_processed_buttons();
         const auto ref = utility::scan_reverse(middle, 0x1000, "CC CC CC");
 
         if (!ref) {
-            spdlog::error("[VehHooks] Failed to find pre_process_buttons.");
+            spdlog::error("[MidHooks] Failed to find pre_process_buttons.");
             return 0;
         }
 
         const auto func = *ref + 3;
 
-        spdlog::info("[VehHooks] pre_process_buttons: {:x}", func);
+        spdlog::info("[MidHooks] pre_process_buttons: {:x}", func);
 
         const auto result = utility::scan_disasm(func, 0x100, "48 89 81 40 07 00 00");
 
         if (!result) {
-            spdlog::error("[VehHooks] Failed to find on_set_held_Flags.");
+            spdlog::error("[MidHooks] Failed to find on_set_held_Flags.");
             return 0;
         }
 
-        spdlog::info("[VehHooks] on_set_held_flags: {:x}", *result);
+        spdlog::info("[MidHooks] on_set_held_flags: {:x}", *result);
 
         return *result;
     }();
@@ -101,29 +106,29 @@ uintptr_t get_on_set_held_flags() {
 
 uintptr_t get_entity_terminate_fn() {
     static uintptr_t entity_terminate_fn = []() -> uintptr_t {
-        spdlog::info("[VehHooks] Finding entity_terminate_fn...");
+        spdlog::info("[MidHooks] Finding entity_terminate_fn...");
 
         const auto terminate = ScriptFunctions::get().find("Behavior.terminate");
 
         if (!terminate) {
-            spdlog::error("[VehHooks] Failed to find entity_terminate_fn.");
+            spdlog::error("[MidHooks] Failed to find entity_terminate_fn.");
             return 0;
         }
 
         const auto terminate_script_fn = terminate->function;
 
-        spdlog::info("[VehHooks] entity_terminate_script_fn: {:x}", terminate_script_fn);
+        spdlog::info("[MidHooks] entity_terminate_script_fn: {:x}", terminate_script_fn);
 
         const auto ref = utility::scan_disasm(terminate_script_fn, 0x100, "0F 85");
 
         if (!ref) {
-            spdlog::error("[VehHooks] Failed to find entity_terminate_fn.");
+            spdlog::error("[MidHooks] Failed to find entity_terminate_fn.");
             return 0;
         }
 
         const auto result = utility::calculate_absolute(*ref + 2);
 
-        spdlog::info("[VehHooks] entity_terminate_fn: {:x}", result);
+        spdlog::info("[MidHooks] entity_terminate_fn: {:x}", result);
 
         return result;
     }();
@@ -131,8 +136,10 @@ uintptr_t get_entity_terminate_fn() {
     return entity_terminate_fn;
 }
 
-VehHooks::VehHooks() {
-    spdlog::info("[VehHooks] Initializing...");
+MidHooks::MidHooks() {
+    spdlog::info("[MidHooks] Initializing...");
+
+    g_MidHooks = this;
 
     // required to allow button to be held down without resetting
     /*m_hook.hook(0x140262B22, [=](const VehHook::RuntimeInfo& info) {
@@ -146,27 +153,27 @@ VehHooks::VehHooks() {
     });*/
 
     // Early version hooks
-    /*addHook(0x140263006, &VehHooks::onProcessedButtons);
-    addHook(0x1404F9AA0, &VehHooks::onPreEntitySpawn);
-    addHook(0x1404F9BE9, &VehHooks::onPostEntitySpawn);
-    addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);
-    addHook(0x140519460, &VehHooks::onUpdate);*/
+    /*addHook(0x140263006, &MidHooks::onProcessedButtons);
+    addHook(0x1404F9AA0, &MidHooks::onPreEntitySpawn);
+    addHook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
+    addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);
+    addHook(0x140519460, &MidHooks::onUpdate);*/
 
-    /*addHook(0x140263006, &VehHooks::onProcessedButtons);
-    addHook(0x1404F9AA0, &VehHooks::onPreEntitySpawn);
-    addHook(0x1404F9BE9, &VehHooks::onPostEntitySpawn);
-    addHook(0x1404F8DE0, &VehHooks::onEntityTerminate);*/
+    /*addHook(0x140263006, &MidHooks::onProcessedButtons);
+    addHook(0x1404F9AA0, &MidHooks::onPreEntitySpawn);
+    addHook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
+    addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);*/
 
     const auto [spawn_fn, spawn_this] = EntityList::getSpawnEntityFn();
-    addHook((uintptr_t)spawn_fn, &VehHooks::onPreEntitySpawn);
-    addHook((uintptr_t)EntityList::getPostSpawnEntityFn(), &VehHooks::onPostEntitySpawn);
-    addHook(get_entity_terminate_fn(), &VehHooks::onEntityTerminate);
+    addHook((uintptr_t)spawn_fn, &MidHooks::onPreEntitySpawn);
+    addHook((uintptr_t)EntityList::getPostSpawnEntityFn(), &MidHooks::onPostEntitySpawn);
+    addHook(get_entity_terminate_fn(), &MidHooks::onEntityTerminate);
     // todo: hook the other version of the terminate function (the script function)
-    addHook(get_on_update_function(), &VehHooks::onUpdate);
-    addHook(get_on_processed_buttons(), &VehHooks::onProcessedButtons);
+    addHook(get_on_update_function(), &MidHooks::onUpdate);
+    addHook(get_on_processed_buttons(), &MidHooks::onProcessedButtons);
 
-    m_hook.hook(get_on_set_held_flags(), [=](const VehHook::RuntimeInfo& info) {
-        auto entity = Address(info.context->Rcx).get(-0xCA0).as<Entity*>();
+    addHook(get_on_set_held_flags(), [](safetyhook::Context& context) {
+        auto entity = Address(context.rcx).get(-0xCA0).as<Entity*>();
 
         const auto& amp = AutomataMPMod::get();
         const auto& client = amp->getClient();
@@ -190,10 +197,10 @@ VehHooks::VehHooks() {
         }
     });
 
-    spdlog::info("[VehHooks] Initialized.");
+    spdlog::info("[MidHooks] Initialized.");
 }
 
-void VehHooks::onLightAttack(const VehHook::RuntimeInfo& info) {
+void MidHooks::onLightAttack(const VehHook::RuntimeInfo& info) {
     auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
 
     if (m_overridenEntities.count(entity) != 0) {
@@ -204,7 +211,7 @@ void VehHooks::onLightAttack(const VehHook::RuntimeInfo& info) {
     }
 }
 
-void VehHooks::onHeavyAttack(const VehHook::RuntimeInfo & info) {
+void MidHooks::onHeavyAttack(const VehHook::RuntimeInfo & info) {
     auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
 
     if (m_overridenEntities.count(entity) != 0) {
@@ -215,11 +222,11 @@ void VehHooks::onHeavyAttack(const VehHook::RuntimeInfo & info) {
     }
 }
 
-void VehHooks::onProcessedButtons(const VehHook::RuntimeInfo& info)
+void MidHooks::onProcessedButtons(safetyhook::Context& context)
 {   
     // OLD VERSION USES R8. THE REGISTER IS THE CHARACTER CONTROLLER OF THE ENTITY.
     //auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
-    auto entity = Address(info.context->Rbx).get(-0xCA0).as<Entity*>();
+    auto entity = Address(context.rbx).get(-0xCA0).as<Entity*>();
 
     if (m_overridenEntities.count(entity) != 0) {
         const auto amp = AutomataMPMod::get();
@@ -238,12 +245,12 @@ void VehHooks::onProcessedButtons(const VehHook::RuntimeInfo& info)
     }
 }
 
-void VehHooks::onPreEntitySpawn(const VehHook::RuntimeInfo& info) {
+void MidHooks::onPreEntitySpawn(safetyhook::Context& context) {
     if (!AutomataMPMod::get()->isServer()) {
         return;
     }
 
-    auto spawnParams = (EntitySpawnParams*)info.context->Rdx;
+    auto spawnParams = (EntitySpawnParams*)context.rdx;
 
     if (spawnParams->name) {
         if (spawnParams->name != string("FreeEnemy")) {
@@ -255,14 +262,14 @@ void VehHooks::onPreEntitySpawn(const VehHook::RuntimeInfo& info) {
     }
 }
 
-void VehHooks::onPostEntitySpawn(const VehHook::RuntimeInfo& info) {
+void MidHooks::onPostEntitySpawn(safetyhook::Context& context) {
     auto threadId = GetCurrentThreadId();
 
     if (m_threadIdToSpawnParams.find(threadId) == m_threadIdToSpawnParams.end()) {
         return;
     }
 
-    auto entity = (EntityContainer*)info.context->Rax;
+    auto entity = (EntityContainer*)context.rax;
 
     if (entity) {
         AutomataMPMod::get()->getNetworkEntities().onEntityCreated(entity, m_threadIdToSpawnParams[threadId]);
@@ -272,8 +279,8 @@ void VehHooks::onPostEntitySpawn(const VehHook::RuntimeInfo& info) {
     m_threadIdToSpawnParams.erase(threadId);
 }
 
-void VehHooks::onEntityTerminate(const VehHook::RuntimeInfo& info) {
-    auto ent = (EntityContainer*)info.context->Rcx;
+void MidHooks::onEntityTerminate(safetyhook::Context& context) {
+    auto ent = (EntityContainer*)context.rcx;
 
     AutomataMPMod::get()->getNetworkEntities().onEntityDeleted(ent);
 }
@@ -304,7 +311,9 @@ Function calls:
 0x0000000140938030: 5
 */
 
-void VehHooks::onUpdate(const VehHook::RuntimeInfo& info) {
+void MidHooks::onUpdate(safetyhook::Context& info) {
+    spdlog::info("test! {} {:x}", this == g_MidHooks, (uintptr_t)info.rcx);
+
     auto entityList = EntityList::get();
     auto player = entityList->getByName("Player");
 
@@ -381,10 +390,43 @@ void VehHooks::onUpdate(const VehHook::RuntimeInfo& info) {
     }
 }
 
-void VehHooks::addOverridenEntity(Entity* ent) {
+void MidHooks::addOverridenEntity(Entity* ent) {
     m_overridenEntities.insert(ent);
 }
 
-void VehHooks::addHook(uintptr_t address, MemberCallbackFn cb) {
-    m_hook.hook(address, [=](const VehHook::RuntimeInfo& info) { invoke(cb, this, info); });
+void MidHooks::addHook(uintptr_t address, MemberMidCallbackFn cb) {
+    std::scoped_lock _{m_hookMutex};
+
+    auto factory = SafetyHookFactory::init();
+    auto builder = factory->acquire();
+
+    using namespace asmjit;
+    using namespace asmjit::x86;
+
+    //std::scoped_lock _{m_jit_mux};
+    CodeHolder code{};
+    code.init(m_jit.environment());
+
+    Assembler a{&code};
+
+    const void* realCb = (void*&)cb;
+
+    a.mov(rdx, rcx);
+    a.mov(rcx, g_MidHooks);
+    a.mov(rax, realCb);
+    a.jmp(rax);
+
+    uintptr_t code_addr{};
+    m_jit.add(&code_addr, &code);
+
+    m_midHooks.emplace_back(builder.create_mid((void*)address, (safetyhook::MidHookFn)code_addr));
+}
+
+void MidHooks::addHook(uintptr_t address, safetyhook::MidHookFn cb) {
+    std::scoped_lock _{m_hookMutex};
+
+    auto factory = SafetyHookFactory::init();
+    auto builder = factory->acquire();
+
+    m_midHooks.emplace_back(builder.create_mid((void*)address, cb));
 }

@@ -28,6 +28,8 @@ NierClient::~NierClient() {
 }
 
 void NierClient::think() {
+    std::scoped_lock _{m_mtx};
+
     consume_events(
         [this]() { onConnect(); },
         [this]() { onDisconnect(); },
@@ -73,6 +75,26 @@ void NierClient::think() {
 }
 
 void NierClient::on_draw_ui() {
+    std::scoped_lock _{m_mtx};
+
+    for (auto& it : m_players) {
+        if (it.second->getGuid() == m_guid) {
+            continue;
+        }
+
+        if (ImGui::TreeNode(it.second->getName().c_str())) {
+            if (ImGui::Button("Teleport To")) {
+                auto ents = EntityList::get();
+                auto controlled = ents->getPossessedEntity();
+
+                if (controlled != nullptr) {
+                    *controlled->entity->getPosition() = *(Vector3f*)&it.second->getPlayerData().position();
+                }
+            }
+
+            ImGui::TreePop();
+        }
+    }
 }
 
 void NierClient::onConnect() {
@@ -243,7 +265,7 @@ void NierClient::sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3
 
 void NierClient::sendButtons(const uint32_t* buttons) {
     flatbuffers::FlatBufferBuilder builder(0);
-    const auto dataoffs = builder.CreateVector(buttons, 8);
+    const auto dataoffs = builder.CreateVector(buttons, Entity::CharacterController::EButtonIndex::INDEX_MAX);
 
     nier::Buttons::Builder dataBuilder(builder);
     dataBuilder.add_buttons(dataoffs);
@@ -575,7 +597,7 @@ bool NierClient::handleButtons(const nier::PlayerPacket* packet) {
         const auto sizeButtons = sizeof(Entity::CharacterController::buttons);
         memcpy(&npc->getCharacterController()->buttons, buttonsData, sizeButtons);
 
-        for (uint32_t i = 0; i < Entity::CharacterController::INDEX_MAX; ++i) {
+        for (uint32_t i = 0; i < Entity::CharacterController::EButtonIndex::INDEX_MAX; ++i) {
             auto controller = npc->getCharacterController();
 
             if (buttonsData[i] > 0) {
