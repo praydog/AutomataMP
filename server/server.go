@@ -447,10 +447,10 @@ func main() {
 				animationData := &nier.AnimationStart{}
 				flatbuffers.GetRootAs(data.DataBytes(), 0, animationData)
 
-				log.Info("Animation: %d", animationData.Anim())
-				log.Info("Variant: %d", animationData.Variant())
-				log.Info("a3: %d", animationData.A3())
-				log.Info("a4: %d", animationData.A4())
+				log.Info(" Animation: %d", animationData.Anim())
+				log.Info(" Variant: %d", animationData.Variant())
+				log.Info(" a3: %d", animationData.A3())
+				log.Info(" a4: %d", animationData.A4())
 
 				// TODO: sanitize the data
 
@@ -482,13 +482,37 @@ func main() {
 				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_ENTITY, data.DataBytes())
 				break
 			case nier.PacketTypeID_ENTITY_DATA:
-				log.Info("Entity data received")
+				//log.Info("Entity data received")
 				if !connection.client.isMasterClient {
 					log.Info(" Not a master client, ignoring")
 					break
 				}
 
 				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_DATA, data.DataBytes())
+				break
+			case nier.PacketTypeID_ENTITY_ANIMATION_START:
+				log.Info("ENTITY Animation start received")
+
+				if !connection.client.isMasterClient {
+					log.Info(" Not a master client, ignoring")
+					break
+				}
+
+				entityPkt := &nier.EntityPacket{}
+				flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
+
+				animationData := &nier.AnimationStart{}
+				flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, animationData)
+
+				log.Info(" Animation: %d", animationData.Anim())
+				log.Info(" Variant: %d", animationData.Variant())
+				log.Info(" a3: %d", animationData.A3())
+				log.Info(" a4: %d", animationData.A4())
+
+				// TODO: sanitize the data
+
+				// Broadcast the packet back to all valid clients (except the sender)
+				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_ANIMATION_START, data.DataBytes())
 				break
 			default:
 				log.Error("Unknown packet type: %d", data.Id())

@@ -191,7 +191,8 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
         
         case nier::PacketType_ID_SPAWN_ENTITY: [[fallthrough]];
         case nier::PacketType_ID_DESTROY_ENTITY: [[fallthrough]];
-        case nier::PacketType_ID_ENTITY_DATA: {
+        case nier::PacketType_ID_ENTITY_DATA: [[fallthrough]];
+        case nier::PacketType_ID_ENTITY_ANIMATION_START: {
             const auto entityPacket = flatbuffers::GetRoot<nier::EntityPacket>(packet->data()->data());
             flatbuffers::Verifier entityVerif(packet->data()->data(), packet->data()->size());
 
@@ -269,6 +270,13 @@ void NierClient::onEntityPacketReceived(nier::PacketType packetType, const nier:
         case nier::PacketType_ID_ENTITY_DATA: {
             if (!handleEntityData(packet)) {
                 spdlog::error("Failed to handle entity data");
+            }
+
+            break;
+        }
+        case nier::PacketType_ID_ENTITY_ANIMATION_START: {
+            if (!handleEntityAnimationStart(packet)) {
+                spdlog::error("Failed to handle entity animation start");
             }
 
             break;
@@ -390,6 +398,19 @@ void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
 
     m_networkEntities.processEntityData(guid, &newData);
     sendEntityPacket(nier::PacketType_ID_ENTITY_DATA, guid, builder.GetBufferPointer(), builder.GetSize());
+}
+
+void NierClient::sendEntityAnimationStart(uint32_t guid, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
+    if (!m_isMasterClient) {
+        spdlog::info("Not master client, not sending entity animation start");
+        return;
+    }
+    
+    flatbuffers::FlatBufferBuilder builder(0);
+    nier::AnimationStart data{anim, variant, a3, a4};
+    builder.Finish(builder.CreateStruct(data));
+
+    sendEntityPacket(nier::PacketType_ID_ENTITY_ANIMATION_START, guid, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
@@ -647,13 +668,15 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
 
         spdlog::info(" Spawning {}", spawn->name()->c_str());
 
-        //const auto pos = spawn->positional() != nullptr ? *(Vector3f*)&spawn->positional()->position() : Vector3f{};
-        //auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
+        const auto pos = spawn->positional() != nullptr ? *(Vector3f*)&spawn->positional()->position() : Vector3f{};
+        auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
 
-        auto ent = entityList->spawnEntity(params);
+        //auto ent = entityList->spawnEntity(params);
 
         if (ent != nullptr) {
-            spdlog::info(" Entity spawned");
+            //ent->entity->setSuspend(false);
+
+            spdlog::info(" Entity spawned @ {:x}", (uintptr_t)ent);
             auto newNetworkEnt = m_networkEntities.addEntity(ent, packet->guid());
 
             if (newNetworkEnt != nullptr) {
@@ -680,6 +703,39 @@ bool NierClient::handleEntityData(const nier::EntityPacket* packet) {
 
     const auto entityData = flatbuffers::GetRoot<nier::EntityData>(packet->data()->data());
     m_networkEntities.processEntityData(packet->guid(), entityData);
+
+    return true;
+}
+
+bool NierClient::handleEntityAnimationStart(const nier::EntityPacket* packet) {
+    spdlog::info("Entity animation start packet received");
+
+    const auto guid = packet->guid();
+    auto entityNetworked = m_networkEntities.getNetworkEntityFromGuid(guid);
+
+    if (entityNetworked == nullptr) {
+        spdlog::error(" (nullptr) Entity data packet received for unknown entity {}", guid);
+        return false;
+    }
+
+    auto animationData = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
+    auto npc = entityNetworked->getEntity() != nullptr ? entityNetworked->getEntity()->entity : nullptr;
+
+    if (npc != nullptr) {
+        switch (animationData->anim()) {
+        case INVALID_CRASHES_GAME:
+        case INVALID_CRASHES_GAME2:
+        case INVALID_CRASHES_GAME3:
+        case INVALID_CRASHES_GAME4:
+            return true;
+        default:
+            if (npc) {
+                npc->startAnimation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
+            } else {
+                spdlog::error(" Cannot start animation, npc is null");
+            }
+        }
+    }
 
     return true;
 }

@@ -30,6 +30,7 @@ public:
     void sendEntityCreate(uint32_t guid, EntitySpawnParams* data);
     void sendEntityDestroy(uint32_t guid);
     void sendEntityData(uint32_t guid, Entity* entity);
+    void sendEntityAnimationStart(uint32_t guid, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
 
     void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
     void onEntityDeleted(EntityContainer* entity);
@@ -66,6 +67,7 @@ private:
     bool handleCreateEntity(const nier::EntityPacket* packet);
     bool handleDestroyEntity(const nier::EntityPacket* packet);
     bool handleEntityData(const nier::EntityPacket* packet);
+    bool handleEntityAnimationStart(const nier::EntityPacket* packet);
 
     bool handlePlayerData(const nier::PlayerPacket* packet);
     bool handleAnimationStart(const nier::PlayerPacket* packet);

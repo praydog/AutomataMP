@@ -9,6 +9,7 @@ enum PacketType : uint {
     ID_SPAWN_ENTITY = 1,
     ID_DESTROY_ENTITY = 2,
     ID_ENTITY_DATA,
+    ID_ENTITY_ANIMATION_START,
     ID_MASTER_CLIENT_END,
 
     // Packets sent specifically by the server backend.

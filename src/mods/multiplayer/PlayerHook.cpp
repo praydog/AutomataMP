@@ -26,29 +26,12 @@ void PlayerHook::reHook(Entity* player) {
     }
 
     if (m_hook.create(player)) {
-        m_hook.hookMethod(18, &startAnimationHook);
+        m_hook.hookMethod(Entity::s_startAnimationIndex, &startAnimationHook);
     }
 }
 
 void __thiscall PlayerHook::startAnimationHook(Entity* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
-    /*auto partners = EntityList::get()->getAllByName("partner");
-
-    for (auto partner : partners) {
-        if (partner && partner->entity) {
-            partner->entity->startAnimation(anim, variant, a3, a4);
-            //partner->entity->setBuddyFlags(0);
-        }
-    }*/
-
     if (g_unreplicatedAnims.count(anim) == 0) {
-        /*nier_client_and_server::AnimationStart animation;
-        animation.anim = anim;
-        animation.variant = variant;
-        animation.a3 = a3;
-        animation.a4 = a4;
-
-        AutomataMPMod::get()->sendPacket(animation.data(), sizeof(animation));*/
-
         auto amp = AutomataMPMod::get();
         auto& client = amp->getClient();
 

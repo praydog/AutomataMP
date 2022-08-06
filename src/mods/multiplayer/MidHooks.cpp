@@ -165,8 +165,7 @@ MidHooks::MidHooks() {
     addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);*/
 
     const auto [spawn_fn, spawn_this] = EntityList::getSpawnEntityFn();
-    addHook((uintptr_t)spawn_fn, &MidHooks::onPreEntitySpawn);
-    addHook((uintptr_t)EntityList::getPostSpawnEntityFn(), &MidHooks::onPostEntitySpawn);
+    addHook((uintptr_t)spawn_fn, (MemberInlineCallbackFn)&MidHooks::onEntitySpawn);
     addHook(get_entity_terminate_fn(), &MidHooks::onEntityTerminate);
     // todo: hook the other version of the terminate function (the script function)
     addHook(get_on_update_function(), &MidHooks::onUpdate);
@@ -245,43 +244,27 @@ void MidHooks::onProcessedButtons(safetyhook::Context& context)
     }
 }
 
-void MidHooks::onPreEntitySpawn(safetyhook::Context& context) {
-    scoped_lock<mutex> _(m_spawnMutex);
+EntityContainer* MidHooks::onEntitySpawn(HookAndParams& hookAndParams) {
+    scoped_lock _(m_spawnMutex);
 
-    if (!AutomataMPMod::get()->isServer()) {
-        return;
-    }
-
-    auto spawnParams = (EntitySpawnParams*)context.rdx;
-
-    if (spawnParams->name) {
-        if (spawnParams->name != string("FreeEnemy")) {
-            return;
-        }
-
-        m_threadIdToSpawnParams[GetCurrentThreadId()] = spawnParams;
-    }
-}
-
-void MidHooks::onPostEntitySpawn(safetyhook::Context& context) {
-    scoped_lock<mutex> _(m_spawnMutex);
-
-    auto threadId = GetCurrentThreadId();
-
-    if (m_threadIdToSpawnParams.find(threadId) == m_threadIdToSpawnParams.end()) {
-        return;
-    }
-
-    auto entity = (EntityContainer*)context.rax;
+    auto spawnParams = (EntitySpawnParams*)hookAndParams.rdx;
+    auto& hook = hookAndParams.hook;
+    auto entity = hook->call<EntityContainer*, void*, void*>(hookAndParams.rcx, hookAndParams.rdx);
 
     if (entity) {
-        AutomataMPMod::get()->onEntityCreated(entity, m_threadIdToSpawnParams[threadId]);
+        if (spawnParams->name != string("FreeEnemy")) {
+            return entity;
+        }
+
+        AutomataMPMod::get()->onEntityCreated(entity, spawnParams);
     }
 
-    m_threadIdToSpawnParams.erase(threadId);
+    return entity;
 }
 
 void MidHooks::onEntityTerminate(safetyhook::Context& context) {
+    scoped_lock _(m_spawnMutex);
+
     auto ent = (EntityContainer*)context.rcx;
 
     AutomataMPMod::get()->onEntityDeleted(ent);
@@ -353,7 +336,6 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
 
         if (test) {
             test->entity->setSuspend(false);
-            AutomataMPMod::get()->getClient()->onEntityCreated(test, &params);
         }
 
         return;
@@ -411,4 +393,40 @@ void MidHooks::addHook(uintptr_t address, safetyhook::MidHookFn cb) {
     auto builder = factory->acquire();
 
     m_midHooks.emplace_back(builder.create_mid((void*)address, cb));
+}
+
+void MidHooks::addHook(uintptr_t address, MemberInlineCallbackFn cb) {
+    std::scoped_lock _{m_hookMutex};
+
+    auto factory = SafetyHookFactory::init();
+    auto builder = factory->acquire();
+
+    using namespace asmjit;
+    using namespace asmjit::x86;
+
+    //std::scoped_lock _{m_jit_mux};
+    CodeHolder code{};
+    code.init(m_jit.environment());
+
+    Assembler a{&code};
+
+    auto result = std::make_unique<HookAndParams>();
+
+    const void* realCb = (void*&)cb;
+
+    a.mov(rax, result.get());
+    a.mov(ptr(rax), rcx);
+    a.mov(ptr(rax, 8), rdx);
+    a.mov(ptr(rax, 0x10), r8);
+    a.mov(ptr(rax, 0x18), r9);
+    a.mov(rcx, g_MidHooks);
+    a.mov(rdx, result.get());
+    a.mov(rax, realCb);
+    a.jmp(rax);
+
+    uintptr_t code_addr{};
+    m_jit.add(&code_addr, &code);
+
+    result->hook = builder.create_inline((void*)address, (void*)code_addr);
+    m_inlineHooks.emplace_back(std::move(result));
 }

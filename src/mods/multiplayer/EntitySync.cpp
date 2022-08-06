@@ -7,6 +7,43 @@
 
 using namespace std;
 
+EntitySync* g_entitySync = nullptr;
+
+NetworkEntity::NetworkEntity(EntityContainer* entity, uint32_t guid) 
+    : m_guid(guid)
+    , m_entityHandle(entity->handle)
+{
+    spdlog::info("Hooking entity {}", guid);
+    m_hook = std::make_unique<VtableHook>();
+    
+    if (m_hook->create(entity->entity)) {
+        m_hook->hookMethod(Entity::s_startAnimationIndex, &startAnimationHook);
+        spdlog::info("Hooked entity {}", guid);
+    }
+}
+
+void NetworkEntity::startAnimationHook(Entity* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
+    scoped_lock _(g_entitySync->m_mapMutex);
+
+    spdlog::info("NETWORKENTITY anim: {}, variant: {}, a3: {}, return: {:x}", anim, variant, a3, (uintptr_t)_ReturnAddress());
+
+    auto amp = AutomataMPMod::get();
+    auto& client = amp->getClient();
+
+    auto networkEntity = g_entitySync->getNetworkEntityFromHandle(ent->getContainer()->handle);
+
+    if (client != nullptr) {
+        client->sendEntityAnimationStart(networkEntity->getGuid(), anim, variant, a3, a4);
+    }
+
+    auto original = networkEntity->m_hook->getMethod<decltype(startAnimationHook)*>(Entity::s_startAnimationIndex);
+    original(ent, anim, variant, a3, a4);
+}
+
+EntitySync::EntitySync() {
+    g_entitySync = this;
+}
+
 void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
     scoped_lock _(m_mapMutex);
 
@@ -55,8 +92,8 @@ std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, ui
     scoped_lock _(m_mapMutex);
     auto& networkEntity = m_networkEntities[guid];
 
-    if (networkEntity == nullptr) {
-        networkEntity = std::make_shared<NetworkEntity>();
+    if (networkEntity == nullptr || networkEntity->getEntity() != entity) {
+        networkEntity = std::make_shared<NetworkEntity>(entity, guid);
     }
 
     m_handleMap[entity->handle] = guid;
@@ -87,8 +124,7 @@ void EntitySync::think() {
     scoped_lock _(m_mapMutex);
 
     for (auto& it : m_networkEntities) {
-        auto& networkedEntity = it.second;
-
+        auto networkedEntity = it.second;
         auto ent = networkedEntity->getEntity();
 
         if (ent == nullptr) {

@@ -53,7 +53,8 @@ enum PacketType : uint32_t {
   PacketType_ID_SPAWN_ENTITY = 1,
   PacketType_ID_DESTROY_ENTITY = 2,
   PacketType_ID_ENTITY_DATA = 3,
-  PacketType_ID_MASTER_CLIENT_END = 4,
+  PacketType_ID_ENTITY_ANIMATION_START = 4,
+  PacketType_ID_MASTER_CLIENT_END = 5,
   PacketType_ID_SERVER_START = 2048,
   PacketType_ID_CREATE_PLAYER = 2049,
   PacketType_ID_DESTROY_PLAYER = 2050,
@@ -73,12 +74,13 @@ enum PacketType : uint32_t {
   PacketType_MAX = PacketType_ID_WELCOME
 };
 
-inline const PacketType (&EnumValuesPacketType())[20] {
+inline const PacketType (&EnumValuesPacketType())[21] {
   static const PacketType values[] = {
     PacketType_ID_MASTER_CLIENT_START,
     PacketType_ID_SPAWN_ENTITY,
     PacketType_ID_DESTROY_ENTITY,
     PacketType_ID_ENTITY_DATA,
+    PacketType_ID_ENTITY_ANIMATION_START,
     PacketType_ID_MASTER_CLIENT_END,
     PacketType_ID_SERVER_START,
     PacketType_ID_CREATE_PLAYER,
@@ -105,6 +107,7 @@ inline const char *EnumNamePacketType(PacketType e) {
     case PacketType_ID_SPAWN_ENTITY: return "ID_SPAWN_ENTITY";
     case PacketType_ID_DESTROY_ENTITY: return "ID_DESTROY_ENTITY";
     case PacketType_ID_ENTITY_DATA: return "ID_ENTITY_DATA";
+    case PacketType_ID_ENTITY_ANIMATION_START: return "ID_ENTITY_ANIMATION_START";
     case PacketType_ID_MASTER_CLIENT_END: return "ID_MASTER_CLIENT_END";
     case PacketType_ID_SERVER_START: return "ID_SERVER_START";
     case PacketType_ID_CREATE_PLAYER: return "ID_CREATE_PLAYER";

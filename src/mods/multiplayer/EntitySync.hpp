@@ -3,18 +3,30 @@
 #include <unordered_map>
 #include <mutex>
 
+#include <utility/VtableHook.hpp>
+
 #include "schema/Packets_generated.h"
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
 
+class EntitySync;
+
 class NetworkEntity {
 public:
+    NetworkEntity(EntityContainer* entity, uint32_t guid);
+
     void setEntity(EntityContainer* entity) {
-        m_entity = entity;
+        m_entityHandle = entity->handle;
     }
 
-    auto getEntity() {
-        return m_entity;
+    EntityContainer* getEntity() {
+        auto entityList = EntityList::get();
+
+        if (entityList == nullptr) {
+            return nullptr;
+        }
+
+        return entityList->getByHandle(m_entityHandle);
     }
 
     auto& getEntityData() {
@@ -34,13 +46,19 @@ public:
     }
 
 private:
+    friend class EntitySync;
+    static void startAnimationHook(Entity* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
+
+    std::unique_ptr<VtableHook> m_hook{};
     uint32_t m_guid{};
-    EntityContainer* m_entity;
+    uint32_t m_entityHandle{};
     nier::EntityData m_entityData;
 };
 
 class EntitySync {
 public:
+    EntitySync();
+
     void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
     void onEntityDeleted(EntityContainer* entity);
 
@@ -66,7 +84,18 @@ public:
         return it2->second;
     }
 
+    std::shared_ptr<NetworkEntity> getNetworkEntityFromGuid(uint32_t guid) {
+        auto it = m_networkEntities.find(guid);
+
+        if (it == m_networkEntities.end()) {
+            return nullptr;
+        }
+
+        return it->second;
+    }
+
 private:
+    friend class NetworkEntity;
     uint32_t m_maxGuid{ 0 };
     std::unordered_map<uint32_t, std::shared_ptr<NetworkEntity>> m_networkEntities;
     std::unordered_map<uint32_t, uint32_t> m_handleMap;
