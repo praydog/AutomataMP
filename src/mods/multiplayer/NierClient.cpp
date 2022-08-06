@@ -71,11 +71,13 @@ void NierClient::think() {
             npc->getCharacterController()->heldFlags = data.held_button_flags();
             //*npc->getPosition() = *(Vector3f*)&data.position();
         }
+
+        m_networkEntities.think();
     }
 }
 
 void NierClient::on_draw_ui() {
-    std::scoped_lock _{m_mtx};
+    //std::scoped_lock _{m_mtx};
 
     for (auto& it : m_players) {
         if (it.second->getGuid() == m_guid) {
@@ -181,6 +183,21 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
 
             break;
         }
+        
+        case nier::PacketType_ID_SPAWN_ENTITY: [[fallthrough]];
+        case nier::PacketType_ID_DESTROY_ENTITY: [[fallthrough]];
+        case nier::PacketType_ID_ENTITY_DATA: {
+            const auto entityPacket = flatbuffers::GetRoot<nier::EntityPacket>(packet->data()->data());
+            flatbuffers::Verifier entityVerif(packet->data()->data(), packet->data()->size());
+
+            if (!entityPacket->Verify(entityVerif)) {
+                spdlog::error("Invalid entity packet {} ({})", packet->id(), nier::EnumNamePacketType(packet->id()));
+                return;
+            }
+
+            onEntityPacketReceived(packet->id(), entityPacket);
+            break;
+        }
 
         default:
             spdlog::error("Unknown packet type {} ({})", packet->id(), nier::EnumNamePacketType(packet->id()));
@@ -222,6 +239,37 @@ void NierClient::onPlayerPacketReceived(nier::PacketType packetType, const nier:
         }
         default:
             spdlog::error("Unknown player packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
+            break;
+    }
+}
+
+void NierClient::onEntityPacketReceived(nier::PacketType packetType, const nier::EntityPacket* packet) {
+    spdlog::info("Entity packet {} received from {}", nier::EnumNamePacketType(packetType), packet->guid());
+
+    switch (packetType) {
+        case nier::PacketType_ID_SPAWN_ENTITY: {
+            if (!handleCreateEntity(packet)) {
+                spdlog::error("Failed to handle spawn entity");
+            }
+
+            break;
+        }
+        case nier::PacketType_ID_DESTROY_ENTITY: {
+            if (!handleDestroyEntity(packet)) {
+                spdlog::error("Failed to handle destroy entity");
+            }
+
+            break;
+        }
+        case nier::PacketType_ID_ENTITY_DATA: {
+            if (!handleEntityData(packet)) {
+                spdlog::error("Failed to handle entity data");
+            }
+
+            break;
+        }
+        default:
+            spdlog::error("Unknown entity packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
             break;
     }
 }
@@ -272,6 +320,83 @@ void NierClient::sendButtons(const uint32_t* buttons) {
     builder.Finish(dataBuilder.Finish());
 
     sendPacket(nier::PacketType_ID_BUTTONS, builder.GetBufferPointer(), builder.GetSize());
+}
+
+void NierClient::sendEntityPacket(nier::PacketType id, uint32_t guid, const uint8_t* data, size_t size) {
+    flatbuffers::FlatBufferBuilder builder(0);
+    const auto dataoffs = builder.CreateVector(data, size);
+
+    nier::EntityPacket::Builder dataBuilder(builder);
+    dataBuilder.add_guid(guid);
+    dataBuilder.add_data(dataoffs);
+    builder.Finish(dataBuilder.Finish());
+
+    sendPacket(id, builder.GetBufferPointer(), builder.GetSize());
+}
+
+void NierClient::sendEntityCreate(uint32_t guid, EntitySpawnParams* data) {
+    if (!m_isMasterClient) {
+        spdlog::info("Not master client, not sending entity create");
+        return;
+    }
+
+    // entity packet.
+    flatbuffers::FlatBufferBuilder builder(0);
+    const auto name = builder.CreateString(data->name);
+
+    nier::EntitySpawnParams::Builder dataBuilder(builder);
+    dataBuilder.add_name(name);
+    dataBuilder.add_model(data->model);
+    dataBuilder.add_model2(data->model2);
+
+    if (data->matrix != nullptr) {
+        dataBuilder.add_positional((nier::EntitySpawnPositionalData*)data->matrix);
+    }
+
+    builder.Finish(dataBuilder.Finish());
+
+    sendEntityPacket(nier::PacketType_ID_SPAWN_ENTITY, guid, builder.GetBufferPointer(), builder.GetSize());
+}
+
+void NierClient::sendEntityDestroy(uint32_t guid) {
+    if (!m_isMasterClient) {
+        spdlog::info("Not master client, not sending entity destroy");
+        return;
+    }
+
+    sendEntityPacket(nier::PacketType_ID_DESTROY_ENTITY, guid);
+}
+
+void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
+    if (!m_isMasterClient) {
+        spdlog::info("Not master client, not sending entity data");
+        return;
+    }
+
+    flatbuffers::FlatBufferBuilder builder(0);
+    nier::EntityData newData(
+        *entity->getFacing(),
+        *entity->getFacing2(), 
+        *entity->getHealth(), 
+        *(nier::Vector3f*)&*entity->getPosition()
+    );
+
+    builder.Finish(builder.CreateStruct(newData));
+
+    m_networkEntities.processEntityData(guid, &newData);
+    sendEntityPacket(nier::PacketType_ID_ENTITY_DATA, guid, builder.GetBufferPointer(), builder.GetSize());
+}
+
+void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
+    if (!m_isMasterClient) {
+        return;
+    }
+
+    m_networkEntities.onEntityCreated(entity, data);
+}
+
+void NierClient::onEntityDeleted(EntityContainer* entity) {
+    m_networkEntities.onEntityDeleted(entity);
 }
 
 void NierClient::sendHello() {
@@ -490,6 +615,61 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
 
     m_players[destroyPlayer->guid()].reset();
     m_players.erase(destroyPlayer->guid());
+
+    return true;
+}
+
+bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
+    spdlog::info("Create entity packet received");
+
+    const auto spawn = flatbuffers::GetRoot<nier::EntitySpawnParams>(packet->data()->data());
+    auto verif = flatbuffers::Verifier(packet->data()->data(), packet->data()->size());
+
+    if (!spawn->Verify(verif)) {
+        spdlog::error("Invalid create entity packet");
+        return false;
+    }
+
+    auto entityList = EntityList::get();
+
+    if (entityList != nullptr) {
+        /*EntitySpawnParams params{};
+        auto matrix = spawn->positional() != nullptr ? *(EntitySpawnParams::PositionalData*)spawn->positional() : EntitySpawnParams::PositionalData{};
+        params.matrix = &matrix;
+        params.model = spawn->model();
+        params.model2 = spawn->model2();
+        params.name = spawn->name()->c_str();*/
+
+        spdlog::info(" Spawning {}", spawn->name()->c_str());
+
+        const auto pos = spawn->positional() != nullptr ? *(Vector3f*)&spawn->positional()->position() : Vector3f{};
+
+        auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
+
+        if (ent != nullptr) {
+            spdlog::info(" Entity spawned");
+            m_networkEntities.addEntity(ent, packet->guid());
+        } else {
+            spdlog::error(" Failed to spawn entity");
+        }
+    }
+
+    return true;
+}
+
+bool NierClient::handleDestroyEntity(const nier::EntityPacket* packet) {
+    spdlog::info("Destroy entity packet received");
+
+    m_networkEntities.removeEntity(packet->guid());
+
+    return true;
+}
+
+bool NierClient::handleEntityData(const nier::EntityPacket* packet) {
+    spdlog::info("Entity data packet received");
+
+    const auto entityData = flatbuffers::GetRoot<nier::EntityData>(packet->data()->data());
+    m_networkEntities.processEntityData(packet->guid(), entityData);
 
     return true;
 }

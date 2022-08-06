@@ -24,10 +24,10 @@ struct WelcomeBuilder;
 struct EntityPacket;
 struct EntityPacketBuilder;
 
-struct EntitySpawnParams;
+struct EntitySpawnPositionalData;
 
-struct EntitySpawn;
-struct EntitySpawnBuilder;
+struct EntitySpawnParams;
+struct EntitySpawnParamsBuilder;
 
 struct EntityData;
 
@@ -296,7 +296,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector4f FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Vector4f, 16);
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) EntitySpawnParams FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) EntitySpawnPositionalData FLATBUFFERS_FINAL_CLASS {
  private:
   nier::Vector4f forward_;
   nier::Vector4f up_;
@@ -315,7 +315,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) EntitySpawnParams FLATBUFFERS_FINAL_CLASS
   uint32_t unk8_;
 
  public:
-  EntitySpawnParams()
+  EntitySpawnPositionalData()
       : forward_(),
         up_(),
         right_(),
@@ -332,7 +332,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) EntitySpawnParams FLATBUFFERS_FINAL_CLASS
         unk7_(0),
         unk8_(0) {
   }
-  EntitySpawnParams(const nier::Vector4f &_forward, const nier::Vector4f &_up, const nier::Vector4f &_right, const nier::Vector4f &_w, const nier::Vector4f &_position, const nier::Vector4f &_unknown, const nier::Vector4f &_unknown2, uint32_t _unk, uint32_t _unk2, uint32_t _unk3, uint32_t _unk4, uint32_t _unk5, uint32_t _unk6, uint32_t _unk7, uint32_t _unk8)
+  EntitySpawnPositionalData(const nier::Vector4f &_forward, const nier::Vector4f &_up, const nier::Vector4f &_right, const nier::Vector4f &_w, const nier::Vector4f &_position, const nier::Vector4f &_unknown, const nier::Vector4f &_unknown2, uint32_t _unk, uint32_t _unk2, uint32_t _unk3, uint32_t _unk4, uint32_t _unk5, uint32_t _unk6, uint32_t _unk7, uint32_t _unk8)
       : forward_(_forward),
         up_(_up),
         right_(_right),
@@ -395,7 +395,7 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) EntitySpawnParams FLATBUFFERS_FINAL_CLASS
     return flatbuffers::EndianScalar(unk8_);
   }
 };
-FLATBUFFERS_STRUCT_END(EntitySpawnParams, 144);
+FLATBUFFERS_STRUCT_END(EntitySpawnPositionalData, 144);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) EntityData FLATBUFFERS_FINAL_CLASS {
  private:
@@ -811,14 +811,20 @@ inline flatbuffers::Offset<Welcome> CreateWelcome(
 struct EntityPacket FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef EntityPacketBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_GUID = 4
+    VT_GUID = 4,
+    VT_DATA = 6
   };
   uint32_t guid() const {
     return GetField<uint32_t>(VT_GUID, 0);
   }
+  const flatbuffers::Vector<uint8_t> *data() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_GUID) &&
+           VerifyOffset(verifier, VT_DATA) &&
+           verifier.VerifyVector(data()) &&
            verifier.EndTable();
   }
 };
@@ -829,6 +835,9 @@ struct EntityPacketBuilder {
   flatbuffers::uoffset_t start_;
   void add_guid(uint32_t guid) {
     fbb_.AddElement<uint32_t>(EntityPacket::VT_GUID, guid, 0);
+  }
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
+    fbb_.AddOffset(EntityPacket::VT_DATA, data);
   }
   explicit EntityPacketBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -843,19 +852,32 @@ struct EntityPacketBuilder {
 
 inline flatbuffers::Offset<EntityPacket> CreateEntityPacket(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t guid = 0) {
+    uint32_t guid = 0,
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
   EntityPacketBuilder builder_(_fbb);
+  builder_.add_data(data);
   builder_.add_guid(guid);
   return builder_.Finish();
 }
 
-struct EntitySpawn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef EntitySpawnBuilder Builder;
+inline flatbuffers::Offset<EntityPacket> CreateEntityPacketDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t guid = 0,
+    const std::vector<uint8_t> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
+  return nier::CreateEntityPacket(
+      _fbb,
+      guid,
+      data__);
+}
+
+struct EntitySpawnParams FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef EntitySpawnParamsBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_MODEL = 6,
     VT_MODEL2 = 8,
-    VT_PARAMS = 10
+    VT_POSITIONAL = 10
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -866,8 +888,8 @@ struct EntitySpawn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   uint32_t model2() const {
     return GetField<uint32_t>(VT_MODEL2, 0);
   }
-  const nier::EntitySpawnParams *params() const {
-    return GetStruct<const nier::EntitySpawnParams *>(VT_PARAMS);
+  const nier::EntitySpawnPositionalData *positional() const {
+    return GetStruct<const nier::EntitySpawnPositionalData *>(VT_POSITIONAL);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -875,65 +897,65 @@ struct EntitySpawn FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<uint32_t>(verifier, VT_MODEL) &&
            VerifyField<uint32_t>(verifier, VT_MODEL2) &&
-           VerifyField<nier::EntitySpawnParams>(verifier, VT_PARAMS) &&
+           VerifyField<nier::EntitySpawnPositionalData>(verifier, VT_POSITIONAL) &&
            verifier.EndTable();
   }
 };
 
-struct EntitySpawnBuilder {
-  typedef EntitySpawn Table;
+struct EntitySpawnParamsBuilder {
+  typedef EntitySpawnParams Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(EntitySpawn::VT_NAME, name);
+    fbb_.AddOffset(EntitySpawnParams::VT_NAME, name);
   }
   void add_model(uint32_t model) {
-    fbb_.AddElement<uint32_t>(EntitySpawn::VT_MODEL, model, 0);
+    fbb_.AddElement<uint32_t>(EntitySpawnParams::VT_MODEL, model, 0);
   }
   void add_model2(uint32_t model2) {
-    fbb_.AddElement<uint32_t>(EntitySpawn::VT_MODEL2, model2, 0);
+    fbb_.AddElement<uint32_t>(EntitySpawnParams::VT_MODEL2, model2, 0);
   }
-  void add_params(const nier::EntitySpawnParams *params) {
-    fbb_.AddStruct(EntitySpawn::VT_PARAMS, params);
+  void add_positional(const nier::EntitySpawnPositionalData *positional) {
+    fbb_.AddStruct(EntitySpawnParams::VT_POSITIONAL, positional);
   }
-  explicit EntitySpawnBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit EntitySpawnParamsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<EntitySpawn> Finish() {
+  flatbuffers::Offset<EntitySpawnParams> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<EntitySpawn>(end);
+    auto o = flatbuffers::Offset<EntitySpawnParams>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<EntitySpawn> CreateEntitySpawn(
+inline flatbuffers::Offset<EntitySpawnParams> CreateEntitySpawnParams(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     uint32_t model = 0,
     uint32_t model2 = 0,
-    const nier::EntitySpawnParams *params = 0) {
-  EntitySpawnBuilder builder_(_fbb);
-  builder_.add_params(params);
+    const nier::EntitySpawnPositionalData *positional = 0) {
+  EntitySpawnParamsBuilder builder_(_fbb);
+  builder_.add_positional(positional);
   builder_.add_model2(model2);
   builder_.add_model(model);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<EntitySpawn> CreateEntitySpawnDirect(
+inline flatbuffers::Offset<EntitySpawnParams> CreateEntitySpawnParamsDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     uint32_t model = 0,
     uint32_t model2 = 0,
-    const nier::EntitySpawnParams *params = 0) {
+    const nier::EntitySpawnPositionalData *positional = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  return nier::CreateEntitySpawn(
+  return nier::CreateEntitySpawnParams(
       _fbb,
       name__,
       model,
       model2,
-      params);
+      positional);
 }
 
 struct Buttons FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

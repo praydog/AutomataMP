@@ -246,6 +246,8 @@ void MidHooks::onProcessedButtons(safetyhook::Context& context)
 }
 
 void MidHooks::onPreEntitySpawn(safetyhook::Context& context) {
+    scoped_lock<mutex> _(m_spawnMutex);
+
     if (!AutomataMPMod::get()->isServer()) {
         return;
     }
@@ -257,12 +259,13 @@ void MidHooks::onPreEntitySpawn(safetyhook::Context& context) {
             return;
         }
 
-        lock_guard<mutex> _(m_spawnMutex);
         m_threadIdToSpawnParams[GetCurrentThreadId()] = spawnParams;
     }
 }
 
 void MidHooks::onPostEntitySpawn(safetyhook::Context& context) {
+    scoped_lock<mutex> _(m_spawnMutex);
+
     auto threadId = GetCurrentThreadId();
 
     if (m_threadIdToSpawnParams.find(threadId) == m_threadIdToSpawnParams.end()) {
@@ -272,17 +275,16 @@ void MidHooks::onPostEntitySpawn(safetyhook::Context& context) {
     auto entity = (EntityContainer*)context.rax;
 
     if (entity) {
-        AutomataMPMod::get()->getNetworkEntities().onEntityCreated(entity, m_threadIdToSpawnParams[threadId]);
+        AutomataMPMod::get()->onEntityCreated(entity, m_threadIdToSpawnParams[threadId]);
     }
 
-    lock_guard<mutex> _(m_spawnMutex);
     m_threadIdToSpawnParams.erase(threadId);
 }
 
 void MidHooks::onEntityTerminate(safetyhook::Context& context) {
     auto ent = (EntityContainer*)context.rcx;
 
-    AutomataMPMod::get()->getNetworkEntities().onEntityDeleted(ent);
+    AutomataMPMod::get()->onEntityDeleted(ent);
 }
 
 // Potential OnUpdate candidates
@@ -312,32 +314,12 @@ Function calls:
 */
 
 void MidHooks::onUpdate(safetyhook::Context& info) {
-    spdlog::info("test! {} {:x}", this == g_MidHooks, (uintptr_t)info.rcx);
-
     auto entityList = EntityList::get();
     auto player = entityList->getByName("Player");
 
     if (!player) {
         return;
     }
-
-    //spdlog::info("In here");
-
-    //static std::unordered_map<uintptr_t, std::unordered_set<uintptr_t>> functionCalls;
-    //static std::mutex mut;
-
-    /*mut.lock();
-    functionCalls[Address(info.context->Rbx).get(0x20).to<uintptr_t>()].insert(info.context->Rbx);
-    //auto rcx = (Entity*)info.context->Rcx;
-
-    //spdlog::info("{:x} ({})", (uintptr_t)rcx, rcx->getContainer()->name);
-
-    spdlog::info("Function calls: ");
-
-    for (auto& i : functionCalls) {
-        spdlog::info("{:x}: {}", (uintptr_t)i.first, i.second.size());
-    }
-    mut.unlock();*/
 
     auto& mods = g_framework->get_mods()->get_mods();
 
@@ -371,7 +353,7 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
 
         if (test) {
             test->entity->setSuspend(false);
-            AutomataMPMod::get()->getNetworkEntities().onEntityCreated(test, &params);
+            AutomataMPMod::get()->getClient()->onEntityCreated(test, &params);
         }
 
         return;

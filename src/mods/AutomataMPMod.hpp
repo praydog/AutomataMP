@@ -33,16 +33,24 @@ public:
         return m_client != nullptr && m_client->isMasterClient();
     }
 
+    void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
+        if (m_client != nullptr) {
+            m_client->onEntityCreated(entity, data);
+        }
+    }
+    
+    void onEntityDeleted(EntityContainer* entity) {
+        if (m_client != nullptr) {
+            m_client->onEntityDeleted(entity);
+        }
+    }
+
     void on_draw_ui() override;
     void on_frame() override;
     void on_think() override;
     void sharedThink();
     void signalDestroyClient() {
         m_wantsDestroyClient = true;
-    }
-
-    auto& getNetworkEntities() {
-        return m_networkEntities;
     }
 
     auto& getClient() const {
@@ -73,9 +81,6 @@ private:
     PlayerHook m_playerHook;
 
     std::unique_ptr<NierClient> m_client;
-    std::unique_ptr<NierServer> m_server;
-
-    EntitySync m_networkEntities;
 
 private:
     // imgui stuff

@@ -275,7 +275,7 @@ func main() {
 			packetBytes := packet.GetData()
 
 			if connection.client != nil {
-				log.Info("Peer %d @ %s sent data %d bytes", connection.client.guid, ev.GetPeer().GetAddress().String(), len(packetBytes))
+				//log.Info("Peer %d @ %s sent data %d bytes", connection.client.guid, ev.GetPeer().GetAddress().String(), len(packetBytes))
 			} else {
 				log.Info("Peer %s sent data %d bytes", ev.GetPeer().GetAddress().String(), len(packetBytes))
 			}
@@ -449,6 +449,33 @@ func main() {
 
 				// Broadcast the packet back to all valid clients (except the sender)
 				broadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_BUTTONS, data.DataBytes())
+				break
+			case nier.PacketTypeID_SPAWN_ENTITY:
+				log.Info("Spawn entity received")
+				if !connection.client.isMasterClient {
+					log.Info(" Not a master client, ignoring")
+					break
+				}
+
+				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_SPAWN_ENTITY, data.DataBytes())
+				break
+			case nier.PacketTypeID_DESTROY_ENTITY:
+				log.Info("Destroy entity received")
+				if !connection.client.isMasterClient {
+					log.Info(" Not a master client, ignoring")
+					break
+				}
+
+				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_ENTITY, data.DataBytes())
+				break
+			case nier.PacketTypeID_ENTITY_DATA:
+				log.Info("Entity data received")
+				if !connection.client.isMasterClient {
+					log.Info(" Not a master client, ignoring")
+					break
+				}
+
+				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_DATA, data.DataBytes())
 				break
 			default:
 				log.Error("Unknown packet type: %d", data.Id())

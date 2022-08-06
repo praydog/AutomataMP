@@ -226,7 +226,7 @@ void* EntityList::getPostSpawnEntityFn() {
 }
 
 EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
-    static auto [spawn, thisptr] = getSpawnEntityFn();
+    auto [spawn, thisptr] = getSpawnEntityFn();
     return spawn(thisptr, params);
 }
 

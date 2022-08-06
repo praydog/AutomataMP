@@ -64,7 +64,7 @@ ProtectionOverride::ProtectionOverride(void* address, size_t size, uint32_t prot
     m_size{size}
 {
     if (!VirtualProtect(address, size, protection, (DWORD*)&m_old)) {
-        spdlog::error("PointerHook: VirtualProtect failed");
+        spdlog::error("PointerHook: VirtualProtect failed ({:x})", (uintptr_t)address);
         throw std::runtime_error("VirtualProtect failed");
     }
 }

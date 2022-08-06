@@ -57,16 +57,11 @@ bool AutomataMPMod::clientConnect() {
 }
 
 void AutomataMPMod::serverStart() {
-    m_server = make_unique<NierServer>();
 }
 
 void AutomataMPMod::sendPacket(const enet_uint8* data, size_t size) {
     if (m_client) {
         m_client->send_packet(0, data, size, ENET_PACKET_FLAG_RELIABLE);
-    }
-
-    if (m_server) {
-        m_server->send_packet_to_all_if(0, data, size, ENET_PACKET_FLAG_RELIABLE, [](auto& a) { return true; });
     }
 }
 
@@ -86,7 +81,6 @@ void AutomataMPMod::on_draw_ui() {
     }*/
     
     if (ImGui::InputText("Connect IP", m_ip_connect_input.data(), m_ip_connect_input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
-        m_server = {};
         m_client.reset();
 
         m_client = make_unique<NierClient>(m_ip_connect_input.data(), m_name_input.data(), m_password_input.data());
@@ -98,28 +92,23 @@ void AutomataMPMod::on_draw_ui() {
 
     ImGui::InputText("Name", m_name_input.data(), m_name_input.size());
     ImGui::InputText("Password", m_password_input.data(), m_password_input.size());
-
-    if (m_server) {
-        m_server->on_draw_ui();
-    }
-
+    
     if (m_client) {
         m_client->on_draw_ui();
     }
 }
 
 void AutomataMPMod::on_frame() {
-    if (m_server) {
+    if (m_client && m_client->isMasterClient()) {
         // Draw "Server" at 0, 0 with red text.
-        ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "Server");
+        ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "MasterClient");
     }
-
-    if (m_client) {
+    else if (m_client) {
         // Draw "Client" at 0, 0 with green text.
         ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "Client");
     }
 
-    if (!m_server && !m_client) {
+    if (!m_client) {
         // Draw "Disconnected" at 0, 0 with red text.
         ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "Disconnected");
     }
@@ -390,8 +379,6 @@ void AutomataMPMod::sharedThink() {
 
     auto realBuddy = entityList->getByHandle(controlledEntity->entity->getBuddyHandle());
 
-    m_networkEntities.think();
-
     if (m_client) {
         m_client->think();
     }
@@ -433,18 +420,6 @@ void AutomataMPMod::synchronize() {
 }
 
 void AutomataMPMod::serverPacketProcess(const Packet* data, size_t size) {
-    spdlog::info("Server packet {} received", data->id);
-
-    switch (data->id) {
-    case ID_SPAWN_ENTITY:
-        processEntitySpawn((nier_server::EntitySpawn*)data);
-        break;
-    case ID_ENTITY_DATA:
-        processEntityData((nier_server::EntityData*)data);
-        break;
-    default:
-        break;
-    }
 }
 
 void AutomataMPMod::sharedPacketProcess(const Packet* data, size_t size) {
@@ -482,5 +457,5 @@ void AutomataMPMod::processEntitySpawn(nier_server::EntitySpawn* spawn) {
 }
 
 void AutomataMPMod::processEntityData(nier_server::EntityData* data) {
-    m_networkEntities.processEntityData(data);
+    //m_networkEntities.processEntityData(data);
 }

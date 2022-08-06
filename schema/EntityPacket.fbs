@@ -12,9 +12,10 @@ enum ModelType : uint {
 // and bounced to all connected clients
 table EntityPacket {
     guid: uint;
+    data: [ubyte];
 }
 
-struct EntitySpawnParams {
+struct EntitySpawnPositionalData {
     forward: Vector4f;
     up: Vector4f;
     right: Vector4f;
@@ -32,11 +33,11 @@ struct EntitySpawnParams {
     unk8: uint;
 }
 
-table EntitySpawn {
+table EntitySpawnParams {
     name: string;
     model: uint;
     model2: uint;
-    params: EntitySpawnParams;
+    positional: EntitySpawnPositionalData;
 }
 
 struct EntityData {

@@ -5,6 +5,7 @@
 #include <enetpp/client.h>
 
 #include "Player.hpp"
+#include "EntitySync.hpp"
 #include "schema/Packets_generated.h"
 
 struct Packet;
@@ -15,7 +16,7 @@ public:
         const std::string& host, 
         const std::string& name = "Client",
         const std::string& password = "");
-    ~NierClient();
+    virtual ~NierClient();
 
     void think();
     void on_draw_ui();
@@ -24,6 +25,14 @@ public:
     void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
     void sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
     void sendButtons(const uint32_t* buttons);
+
+    void sendEntityPacket(nier::PacketType id, uint32_t guid, const uint8_t* data = nullptr, size_t size = 0);
+    void sendEntityCreate(uint32_t guid, EntitySpawnParams* data);
+    void sendEntityDestroy(uint32_t guid);
+    void sendEntityData(uint32_t guid, Entity* entity);
+
+    void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
+    void onEntityDeleted(EntityContainer* entity);
     
     const auto getGuid() const {
         return m_guid;
@@ -43,6 +52,7 @@ private:
     void onDataReceived(const enet_uint8* data, size_t size);
     void onPacketReceived(const nier::Packet* packet);
     void onPlayerPacketReceived(nier::PacketType packetType, const nier::PlayerPacket* packet);
+    void onEntityPacketReceived(nier::PacketType packetType, const nier::EntityPacket* packet);
 
     void sendHello();
 
@@ -53,10 +63,15 @@ private:
     bool handleCreatePlayer(const nier::Packet* packet);
     bool handleDestroyPlayer(const nier::Packet* packet);
 
+    bool handleCreateEntity(const nier::EntityPacket* packet);
+    bool handleDestroyEntity(const nier::EntityPacket* packet);
+    bool handleEntityData(const nier::EntityPacket* packet);
+
     bool handlePlayerData(const nier::PlayerPacket* packet);
     bool handleAnimationStart(const nier::PlayerPacket* packet);
     bool handleButtons(const nier::PlayerPacket* packet);
 
+    EntitySync m_networkEntities{};
 
     std::recursive_mutex m_mtx{};
     std::string m_helloName{};

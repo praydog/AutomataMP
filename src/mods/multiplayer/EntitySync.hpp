@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <mutex>
 
-#include "Packets.hpp"
+#include "schema/Packets_generated.h"
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
 
@@ -21,13 +21,22 @@ public:
         return m_entityData;
     }
 
-    void setEntityData(nier_server::EntityData& data) {
+    void setEntityData(const nier::EntityData& data) {
         m_entityData = data;
     }
 
+    auto getGuid() const {
+        return m_guid;
+    }
+
+    void setGuid(uint32_t guid) {
+        m_guid = guid;
+    }
+
 private:
+    uint32_t m_guid{};
     EntityContainer* m_entity;
-    nier_server::EntityData m_entityData;
+    nier::EntityData m_entityData;
 };
 
 class EntitySync {
@@ -35,15 +44,31 @@ public:
     void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
     void onEntityDeleted(EntityContainer* entity);
 
-    NetworkEntity& addEntity(EntityContainer* entity, uint32_t guid);
+    std::shared_ptr<NetworkEntity> addEntity(EntityContainer* entity, uint32_t guid);
     void removeEntity(uint32_t identifier);
 
     void think();
-    void processEntityData(nier_server::EntityData* data);
+    void processEntityData(uint32_t guid, const nier::EntityData* data);
+
+    std::shared_ptr<NetworkEntity> getNetworkEntityFromHandle(uint32_t handle) {
+        auto it = m_handleMap.find(handle);
+
+        if (it == m_handleMap.end()) {
+            return nullptr;
+        }
+
+        auto it2 = m_networkEntities.find(it->second);
+
+        if (it2 == m_networkEntities.end()) {
+            return nullptr;
+        }
+
+        return it2->second;
+    }
 
 private:
     uint32_t m_maxGuid{ 0 };
-    std::unordered_map<uint32_t, NetworkEntity> m_networkEntities;
-    std::unordered_map<uint32_t, NetworkEntity*> m_handleMap;
+    std::unordered_map<uint32_t, std::shared_ptr<NetworkEntity>> m_networkEntities;
+    std::unordered_map<uint32_t, uint32_t> m_handleMap;
     std::recursive_mutex m_mapMutex;
 };

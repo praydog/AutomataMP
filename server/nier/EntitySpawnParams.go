@@ -7,7 +7,21 @@ import (
 )
 
 type EntitySpawnParams struct {
-	_tab flatbuffers.Struct
+	_tab flatbuffers.Table
+}
+
+func GetRootAsEntitySpawnParams(buf []byte, offset flatbuffers.UOffsetT) *EntitySpawnParams {
+	n := flatbuffers.GetUOffsetT(buf[offset:])
+	x := &EntitySpawnParams{}
+	x.Init(buf, n+offset)
+	return x
+}
+
+func GetSizePrefixedRootAsEntitySpawnParams(buf []byte, offset flatbuffers.UOffsetT) *EntitySpawnParams {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &EntitySpawnParams{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
 }
 
 func (rcv *EntitySpawnParams) Init(buf []byte, i flatbuffers.UOffsetT) {
@@ -16,158 +30,69 @@ func (rcv *EntitySpawnParams) Init(buf []byte, i flatbuffers.UOffsetT) {
 }
 
 func (rcv *EntitySpawnParams) Table() flatbuffers.Table {
-	return rcv._tab.Table
+	return rcv._tab
 }
 
-func (rcv *EntitySpawnParams) Forward(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
+func (rcv *EntitySpawnParams) Name() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+0)
-	return obj
+	return nil
 }
-func (rcv *EntitySpawnParams) Up(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
+
+func (rcv *EntitySpawnParams) Model() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+16)
-	return obj
+	return 0
 }
-func (rcv *EntitySpawnParams) Right(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
+
+func (rcv *EntitySpawnParams) MutateModel(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(6, n)
+}
+
+func (rcv *EntitySpawnParams) Model2() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+32)
-	return obj
+	return 0
 }
-func (rcv *EntitySpawnParams) W(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
+
+func (rcv *EntitySpawnParams) MutateModel2(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(8, n)
+}
+
+func (rcv *EntitySpawnParams) Positional(obj *EntitySpawnPositionalData) *EntitySpawnPositionalData {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		x := o + rcv._tab.Pos
+		if obj == nil {
+			obj = new(EntitySpawnPositionalData)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+48)
-	return obj
-}
-func (rcv *EntitySpawnParams) Position(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
-	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+64)
-	return obj
-}
-func (rcv *EntitySpawnParams) Unknown(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
-	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+80)
-	return obj
-}
-func (rcv *EntitySpawnParams) Unknown2(obj *Vector4f) *Vector4f {
-	if obj == nil {
-		obj = new(Vector4f)
-	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+96)
-	return obj
-}
-func (rcv *EntitySpawnParams) Unk() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(112))
-}
-func (rcv *EntitySpawnParams) MutateUnk(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(112), n)
+	return nil
 }
 
-func (rcv *EntitySpawnParams) Unk2() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(116))
+func EntitySpawnParamsStart(builder *flatbuffers.Builder) {
+	builder.StartObject(4)
 }
-func (rcv *EntitySpawnParams) MutateUnk2(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(116), n)
+func EntitySpawnParamsAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
 }
-
-func (rcv *EntitySpawnParams) Unk3() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(120))
+func EntitySpawnParamsAddModel(builder *flatbuffers.Builder, model uint32) {
+	builder.PrependUint32Slot(1, model, 0)
 }
-func (rcv *EntitySpawnParams) MutateUnk3(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(120), n)
+func EntitySpawnParamsAddModel2(builder *flatbuffers.Builder, model2 uint32) {
+	builder.PrependUint32Slot(2, model2, 0)
 }
-
-func (rcv *EntitySpawnParams) Unk4() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(124))
+func EntitySpawnParamsAddPositional(builder *flatbuffers.Builder, positional flatbuffers.UOffsetT) {
+	builder.PrependStructSlot(3, flatbuffers.UOffsetT(positional), 0)
 }
-func (rcv *EntitySpawnParams) MutateUnk4(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(124), n)
-}
-
-func (rcv *EntitySpawnParams) Unk5() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(128))
-}
-func (rcv *EntitySpawnParams) MutateUnk5(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(128), n)
-}
-
-func (rcv *EntitySpawnParams) Unk6() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(132))
-}
-func (rcv *EntitySpawnParams) MutateUnk6(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(132), n)
-}
-
-func (rcv *EntitySpawnParams) Unk7() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(136))
-}
-func (rcv *EntitySpawnParams) MutateUnk7(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(136), n)
-}
-
-func (rcv *EntitySpawnParams) Unk8() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(140))
-}
-func (rcv *EntitySpawnParams) MutateUnk8(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(140), n)
-}
-
-func CreateEntitySpawnParams(builder *flatbuffers.Builder, forward_x float32, forward_y float32, forward_z float32, forward_w float32, up_x float32, up_y float32, up_z float32, up_w float32, right_x float32, right_y float32, right_z float32, right_w float32, w_x float32, w_y float32, w_z float32, w_w float32, position_x float32, position_y float32, position_z float32, position_w float32, unknown_x float32, unknown_y float32, unknown_z float32, unknown_w float32, unknown2_x float32, unknown2_y float32, unknown2_z float32, unknown2_w float32, unk uint32, unk2 uint32, unk3 uint32, unk4 uint32, unk5 uint32, unk6 uint32, unk7 uint32, unk8 uint32) flatbuffers.UOffsetT {
-	builder.Prep(4, 144)
-	builder.PrependUint32(unk8)
-	builder.PrependUint32(unk7)
-	builder.PrependUint32(unk6)
-	builder.PrependUint32(unk5)
-	builder.PrependUint32(unk4)
-	builder.PrependUint32(unk3)
-	builder.PrependUint32(unk2)
-	builder.PrependUint32(unk)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(unknown2_w)
-	builder.PrependFloat32(unknown2_z)
-	builder.PrependFloat32(unknown2_y)
-	builder.PrependFloat32(unknown2_x)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(unknown_w)
-	builder.PrependFloat32(unknown_z)
-	builder.PrependFloat32(unknown_y)
-	builder.PrependFloat32(unknown_x)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(position_w)
-	builder.PrependFloat32(position_z)
-	builder.PrependFloat32(position_y)
-	builder.PrependFloat32(position_x)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(w_w)
-	builder.PrependFloat32(w_z)
-	builder.PrependFloat32(w_y)
-	builder.PrependFloat32(w_x)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(right_w)
-	builder.PrependFloat32(right_z)
-	builder.PrependFloat32(right_y)
-	builder.PrependFloat32(right_x)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(up_w)
-	builder.PrependFloat32(up_z)
-	builder.PrependFloat32(up_y)
-	builder.PrependFloat32(up_x)
-	builder.Prep(4, 16)
-	builder.PrependFloat32(forward_w)
-	builder.PrependFloat32(forward_z)
-	builder.PrependFloat32(forward_y)
-	builder.PrependFloat32(forward_x)
-	return builder.Offset()
+func EntitySpawnParamsEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder.EndObject()
 }

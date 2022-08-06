@@ -1,5 +1,7 @@
 #include <spdlog/spdlog.h>
 
+#include "schema/Packets_generated.h"
+
 #include "mods/AutomataMPMod.hpp"
 #include "EntitySync.hpp"
 
@@ -12,7 +14,9 @@ void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
 
     addEntity(entity, guid);
 
-    nier_server::EntitySpawn packet;
+    AutomataMPMod::get()->getClient()->sendEntityCreate(guid, data);
+
+    /*nier_server::EntitySpawn packet;
     packet.guid = guid;
     packet.model = data->model;
     packet.model2 = data->model2;
@@ -27,35 +31,44 @@ void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
 
     spdlog::info("Sending enemy spawn {:x} with guid {}", (uintptr_t)entity, packet.guid);
 
-    AutomataMPMod::get()->sendPacket(packet.data(), sizeof(packet));
+    AutomataMPMod::get()->sendPacket(packet.data(), sizeof(packet));*/
 }
 
 void EntitySync::onEntityDeleted(EntityContainer* entity) {
     scoped_lock _(m_mapMutex);
 
-    if (m_handleMap.find(entity->handle) == m_handleMap.end()) {
+    auto networkedEntity = getNetworkEntityFromHandle(entity->handle);
+
+    if (networkedEntity == nullptr) {
         return;
     }
 
-    auto guid = m_handleMap[entity->handle]->getEntityData().guid;
-
     m_handleMap.erase(entity->handle);
-    removeEntity(guid);
+    removeEntity(networkedEntity->getGuid());
+
+    AutomataMPMod::get()->getClient()->sendEntityDestroy(networkedEntity->getGuid());
 }
 
-NetworkEntity& EntitySync::addEntity(EntityContainer* entity, uint32_t guid) {
+std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, uint32_t guid) {
     spdlog::info("Adding entity {:x} with guid {}", (uintptr_t)entity, guid);
 
     scoped_lock _(m_mapMutex);
     auto& networkEntity = m_networkEntities[guid];
-    m_handleMap[entity->handle] = &networkEntity;
-    networkEntity.getEntityData().guid = guid;
-    networkEntity.setEntity(entity);
+
+    if (networkEntity == nullptr) {
+        networkEntity = std::make_shared<NetworkEntity>();
+    }
+
+    m_handleMap[entity->handle] = guid;
+    networkEntity->setGuid(guid);
+    networkEntity->setEntity(entity);
 
     return networkEntity;
 }
 
 void EntitySync::removeEntity(uint32_t identifier) {
+    scoped_lock _(m_mapMutex);
+
     if (m_networkEntities.find(identifier) != m_networkEntities.end()) {
         spdlog::info("Removing entity from EntitySync");
         m_networkEntities.erase(identifier);
@@ -65,14 +78,16 @@ void EntitySync::removeEntity(uint32_t identifier) {
 void EntitySync::think() {
     scoped_lock _(m_mapMutex);
 
-    for (auto& networkedEnt : m_networkEntities) {
-        auto ent = networkedEnt.second.getEntity();
+    for (auto& it : m_networkEntities) {
+        auto& networkedEntity = it.second;
+
+        auto ent = networkedEntity->getEntity();
 
         if (ent == nullptr) {
             continue;
         }
 
-        auto& packet = networkedEnt.second.getEntityData();
+        auto& packet = networkedEntity->getEntityData();
         auto npc = ent->entity;
 
         if (npc == nullptr) {
@@ -80,32 +95,32 @@ void EntitySync::think() {
         }
 
         if (AutomataMPMod::get()->isServer()) {
-            packet.position = *npc->getPosition();
+            /*packet.position = *npc->getPosition();
             packet.facing = *npc->getFacing();
             packet.facing2 = *npc->getFacing2();
-            packet.health = *npc->getHealth();
+            packet.health = *npc->getHealth();*/
 
-            AutomataMPMod::get()->sendPacket(packet.data(), sizeof(packet));
+            AutomataMPMod::get()->getClient()->sendEntityData(it.first, npc);
         }
         else {
-            *npc->getPosition() = packet.position;
-            *npc->getFacing() = packet.facing;
-            *npc->getFacing2() = packet.facing2;
-            *npc->getHealth() = packet.health;
+            *npc->getPosition() = *(Vector3f*)&packet.position();
+            *npc->getFacing() = packet.facing();
+            *npc->getFacing2() = packet.facing2();
+            *npc->getHealth() = packet.health();
         }
 
         npc->setSuspend(false);
     }
 }
 
-void EntitySync::processEntityData(nier_server::EntityData* data) {
-    spdlog::info("Processing {} entity data", data->guid);
+void EntitySync::processEntityData(uint32_t guid, const nier::EntityData* data) {
+    spdlog::info("Processing {} entity data", guid);
 
     scoped_lock _(m_mapMutex);
-    if (m_networkEntities.find(data->guid) != m_networkEntities.end()) {
-        auto ent = m_networkEntities[data->guid];
+    if (auto it = m_networkEntities.find(guid); it != m_networkEntities.end()) {
+        auto ent = it->second;
 
-        const auto cont = ent.getEntity();
+        const auto cont = ent->getEntity();
 
         if (cont == nullptr) {
             return;
@@ -117,11 +132,11 @@ void EntitySync::processEntityData(nier_server::EntityData* data) {
             return;
         }
 
-        *npc->getPosition() = data->position;
-        *npc->getFacing() = data->facing;
-        *npc->getFacing2() = data->facing2;
-        *npc->getHealth() = data->health;
+        *npc->getPosition() = *(Vector3f*)&data->position();
+        *npc->getFacing() = data->facing();
+        *npc->getFacing2() = data->facing2();
+        *npc->getHealth() = data->health();
 
-        ent.setEntityData(*data);
+        ent->setEntityData(*data);
     }
 }

@@ -2,13 +2,14 @@
 #include <mutex>
 
 #include <hde64.h>
+#include <spdlog/spdlog.h>
 
 #include "VehHook.hpp"
 
 using namespace std;
 
 vector<VehHook*> g_vehHooks;
-mutex g_vehHooksMutex;
+recursive_mutex g_vehHooksMutex;
 PVOID g_vehHandler = nullptr;
 
 bool write(Address address, const void* data, size_t size) {
@@ -34,26 +35,30 @@ static int hde(Address address) {
 VehHook::VehHook()
     : m_hooks()
 {
-    lock_guard<mutex> _(g_vehHooksMutex);
+    scoped_lock _(g_vehHooksMutex);
 
     g_vehHooks.push_back(this);
     create();
 }
 
 VehHook::~VehHook() {
-    lock_guard<mutex> _(g_vehHooksMutex);
+    scoped_lock _(g_vehHooksMutex);
 
     remove();
     g_vehHooks.erase(std::remove(g_vehHooks.begin(), g_vehHooks.end(), this), g_vehHooks.end());
 }
 
 void VehHook::create() {
+    scoped_lock _(g_vehHooksMutex);
+
     if (!g_vehHandler) {
         g_vehHandler = AddVectoredExceptionHandler(1, &VehHook::handler);
     }
 }
 
 void VehHook::remove() {
+    scoped_lock _(g_vehHooksMutex);
+
     // Remove the int3's.
     for (auto& hook : m_hooks) {
         write(hook.target, &hook.originalByte, 1);
@@ -68,6 +73,10 @@ bool VehHook::hook(Address target, CallbackFn cb) {
 }
 
 bool VehHook::hook(Address target, Address destination, CallbackFn cb) {
+    scoped_lock _(g_vehHooksMutex);
+
+    spdlog::info("[VehHook] Hooking {:x}", target.as<uintptr_t>());
+
     HookInfo ctx;
 
     ctx.target = target;
@@ -75,17 +84,22 @@ bool VehHook::hook(Address target, Address destination, CallbackFn cb) {
     ctx.destination = destination;
     ctx.cb = cb;
 
+    spdlog::info("[VehHook] Next instruction is {:x}", ctx.next.as<uintptr_t>());
+
     if (!read(ctx.target, &ctx.originalByte, 1)) {
+        spdlog::error("[VehHook] Failed to read original byte at {:x}", ctx.target.as<uintptr_t>());
         return false;
     }
     
     if (!read(ctx.next, &ctx.nextOriginalByte, 1)) {
+        spdlog::error("[VehHook] Failed to read original byte at {:x}", ctx.next.as<uintptr_t>());
         return false;
     }
 
     uint8_t int3 = 0xCC;
 
     if (!write(ctx.target, &int3, 1)) {
+        spdlog::error("[VehHook] Failed to write int3 at {:x}", ctx.target.as<uintptr_t>());
         return false;
     }
 
