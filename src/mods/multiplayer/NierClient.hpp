@@ -20,6 +20,7 @@ public:
 
     void think();
     void on_draw_ui();
+    void on_frame();
     bool isConnected() { return get_connection_state() == enetpp::CONNECT_CONNECTED; }
 
     void sendPacket(nier::PacketType id, const uint8_t* data = nullptr, size_t size = 0);
@@ -76,6 +77,7 @@ private:
     EntitySync m_networkEntities{};
 
     std::recursive_mutex m_mtx{};
+    std::recursive_mutex m_playersMtx{};
     std::string m_helloName{};
     std::string m_password{};
 

@@ -8,6 +8,7 @@
 #include <imgui.h>
 
 #include <utility/Address.hpp>
+#include <sdk/Math.hpp>
 
 class Mods;
 
@@ -93,6 +94,10 @@ public:
         } else {
             return nullptr;
         }
+    }
+
+    Vector2f get_d3d11_rt_size() const {
+        return Vector2f{(float)m_d3d11.rt_width, (float)m_d3d11.rt_height};
     }
 
 private:

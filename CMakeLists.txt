@@ -339,10 +339,12 @@ set(CMKR_TARGET sdk)
 set(sdk_SOURCES "")
 
 list(APPEND sdk_SOURCES
+	"shared/sdk/CameraGame.cpp"
 	"shared/sdk/Entity.cpp"
 	"shared/sdk/EntityList.cpp"
 	"shared/sdk/Game.cpp"
 	"shared/sdk/ScriptFunctions.cpp"
+	"shared/sdk/CameraGame.hpp"
 	"shared/sdk/Entity.hpp"
 	"shared/sdk/EntityList.hpp"
 	"shared/sdk/Game.hpp"

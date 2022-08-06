@@ -112,6 +112,10 @@ void AutomataMPMod::on_frame() {
         // Draw "Disconnected" at 0, 0 with red text.
         ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "Disconnected");
     }
+
+    if (m_client) {
+        m_client->on_frame();
+    }
 }
 
 void AutomataMPMod::on_think() {

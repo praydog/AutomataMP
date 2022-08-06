@@ -3,6 +3,10 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#include <sdk/CameraGame.hpp>
+
+#include "AutomataMP.hpp"
+
 #include "schema/Packets_generated.h"
 #include "Packets.hpp"
 #include "mods/AutomataMPMod.hpp"
@@ -83,7 +87,7 @@ void NierClient::think() {
 }
 
 void NierClient::on_draw_ui() {
-    //std::scoped_lock _{m_mtx};
+    std::scoped_lock _{m_playersMtx};
 
     for (auto& it : m_players) {
         if (it.second->getGuid() == m_guid) {
@@ -101,6 +105,58 @@ void NierClient::on_draw_ui() {
             }
 
             ImGui::TreePop();
+        }
+    }
+}
+
+void NierClient::on_frame() {
+    std::scoped_lock _{m_playersMtx};
+
+    const auto size = g_framework->get_d3d11_rt_size();
+    const auto camera = CameraGame::get();
+
+    for (auto& it : m_players) {
+        if (it.second->getGuid() == m_guid) {
+            continue;
+        }
+
+        const auto s = camera->worldToScreen(size, *it.second->getEntity()->getPosition());
+
+        if (s) {
+            ImGui::GetBackgroundDrawList()->AddText(
+                ImGui::GetFont(),
+                ImGui::GetFontSize(),
+                ImVec2{s->x, s->y + 1},
+                0xFF000000,
+                it.second->getName().c_str());
+
+            ImGui::GetBackgroundDrawList()->AddText(
+                ImGui::GetFont(),
+                ImGui::GetFontSize(),
+                ImVec2{s->x, s->y -1},
+                0xFF000000,
+                it.second->getName().c_str());
+
+            ImGui::GetBackgroundDrawList()->AddText(
+                ImGui::GetFont(),
+                ImGui::GetFontSize(),
+                ImVec2{s->x - 1, s->y},
+                0xFF000000,
+                it.second->getName().c_str());
+
+            ImGui::GetBackgroundDrawList()->AddText(
+                ImGui::GetFont(),
+                ImGui::GetFontSize(),
+                ImVec2{s->x + 1, s->y},
+                0xFF000000,
+                it.second->getName().c_str());
+
+            ImGui::GetBackgroundDrawList()->AddText(
+                ImGui::GetFont(),
+                ImGui::GetFontSize(),
+                *(ImVec2*)&*s,
+                ImGui::GetColorU32(ImGuiCol_Text),
+                it.second->getName().c_str());
         }
     }
 }
@@ -598,6 +654,8 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
     }
 
     {
+        std::scoped_lock _{m_playersMtx};
+
         auto newPlayer = std::make_unique<Player>();
         newPlayer->setGuid(createPlayer->guid());
         newPlayer->setName(createPlayer->name()->c_str());
@@ -614,6 +672,8 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
         MidHooks::s_ignoreSpawn = false;
 
         if (ent != nullptr) {
+            std::scoped_lock _{m_playersMtx};
+
             spdlog::info(" Player spawned");
 
             ent->entity->setBuddyHandle(localplayer->handle);
@@ -651,6 +711,8 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
     spdlog::info("Destroy player packet received");
 
     const auto destroyPlayer = flatbuffers::GetRoot<nier::DestroyPlayer>(packet->data()->data());
+
+    std::scoped_lock _{m_playersMtx};
 
     if (m_players.contains(destroyPlayer->guid()) && m_players[destroyPlayer->guid()] != nullptr) {
         auto entityList = EntityList::get();
