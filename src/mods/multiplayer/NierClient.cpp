@@ -633,22 +633,27 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
     auto entityList = EntityList::get();
 
     if (entityList != nullptr) {
-        /*EntitySpawnParams params{};
+        EntitySpawnParams params{};
         auto matrix = spawn->positional() != nullptr ? *(EntitySpawnParams::PositionalData*)spawn->positional() : EntitySpawnParams::PositionalData{};
         params.matrix = &matrix;
         params.model = spawn->model();
         params.model2 = spawn->model2();
-        params.name = spawn->name()->c_str();*/
+        params.name = spawn->name()->c_str();
 
         spdlog::info(" Spawning {}", spawn->name()->c_str());
 
-        const auto pos = spawn->positional() != nullptr ? *(Vector3f*)&spawn->positional()->position() : Vector3f{};
+        //const auto pos = spawn->positional() != nullptr ? *(Vector3f*)&spawn->positional()->position() : Vector3f{};
+        //auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
 
-        auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
+        auto ent = entityList->spawnEntity(params);
 
         if (ent != nullptr) {
             spdlog::info(" Entity spawned");
-            m_networkEntities.addEntity(ent, packet->guid());
+            auto newNetworkEnt = m_networkEntities.addEntity(ent, packet->guid());
+
+            if (newNetworkEnt != nullptr) {
+                spdlog::info(" Network entity created");
+            }
         } else {
             spdlog::error(" Failed to spawn entity");
         }

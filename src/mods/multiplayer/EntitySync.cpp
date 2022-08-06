@@ -63,6 +63,14 @@ std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, ui
     networkEntity->setGuid(guid);
     networkEntity->setEntity(entity);
 
+    nier::EntityData firstData(
+        *entity->entity->getFacing(),
+        *entity->entity->getFacing2(),
+        *entity->entity->getHealth(),
+        *(nier::Vector3f*)&*entity->entity->getPosition());
+
+    networkEntity->setEntityData(firstData);
+
     return networkEntity;
 }
 
