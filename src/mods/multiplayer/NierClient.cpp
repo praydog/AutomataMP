@@ -439,6 +439,7 @@ void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
     std::scoped_lock _{m_mtx};
 
     if (!m_isMasterClient) {
+        entity->entity->terminate(); // destroy the entity. only the server or the master client should create entities.
         return;
     }
 
@@ -698,7 +699,10 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
         //const auto pos = spawn->positional() != nullptr ? *(Vector3f*)&spawn->positional()->position() : Vector3f{};
         //auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
 
+        // Allows the client to spawn an entity.
+        MidHooks::s_ignoreSpawn = true;
         auto ent = entityList->spawnEntity(params);
+        MidHooks::s_ignoreSpawn = false;
 
         if (ent != nullptr) {
             //ent->entity->setSuspend(false);

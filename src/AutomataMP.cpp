@@ -21,6 +21,7 @@ extern "C" {
 #include "utility/Scan.hpp"
 #include "utility/Thread.hpp"
 #include "utility/String.hpp"
+#include "utility/Input.hpp"
 
 #include "Mods.hpp"
 
@@ -618,7 +619,17 @@ bool AutomataMP::on_message(HWND wnd, UINT message, WPARAM w_param, LPARAM l_par
     //case WM_KILLFOCUS:
     //case 0x14FD:
         //return false; // do not allow this message to be handled by the game so we can alt tab without pausing
+    case WM_KEYDOWN:
+        if (w_param == VK_INSERT) {
+            m_draw_ui = !m_draw_ui;
 
+            if (m_draw_ui) {
+                ShowCursor(TRUE);
+            } else {
+                ShowCursor(FALSE);
+            }
+            return false;
+        }
     case WM_ACTIVATE:
         if (LOWORD(w_param) == WA_INACTIVE) {
             return false;

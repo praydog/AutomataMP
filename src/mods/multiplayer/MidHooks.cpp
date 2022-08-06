@@ -11,6 +11,7 @@
 #include <utility/Scan.hpp>
 #include <utility/Module.hpp>
 #include <utility/Input.hpp>
+#include <utility/RTTI.hpp>
 
 #include "Mods.hpp"
 #include "mods/AutomataMPMod.hpp"
@@ -251,11 +252,19 @@ EntityContainer* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
     auto entity = m_entitySpawnHook->call<EntityContainer*, void*, void*>(rcx, rdx);
 
     if (entity) {
-        if (spawnParams->name != string("FreeEnemy")) {
+        if (s_ignoreSpawn) {
             return entity;
         }
 
-        AutomataMPMod::get()->onEntityCreated(entity, spawnParams);
+        // The only allowed types that should be networked.
+        // Other types are just too much for networking to handle
+        // or are just completely unnecessary, and should only be
+        // spawned client-side.
+        if (utility::rtti::derives_from(entity->entity, "class EmBase") ||
+            utility::rtti::derives_from(entity->entity, "class BaAnimal")) {
+            spdlog::info("[MidHooks] Spawned enemy: {}", spawnParams->name);
+            AutomataMPMod::get()->onEntityCreated(entity, spawnParams);
+        }
     }
 
     return entity;
