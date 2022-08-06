@@ -165,7 +165,7 @@ MidHooks::MidHooks() {
     addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);*/
 
     const auto [spawn_fn, spawn_this] = EntityList::getSpawnEntityFn();
-    addHook((uintptr_t)spawn_fn, (MemberInlineCallbackFn)&MidHooks::onEntitySpawn);
+    m_entitySpawnHook = addInlineHook((uintptr_t)spawn_fn, &MidHooks::entitySpawnHook);
     addHook(get_entity_terminate_fn(), &MidHooks::onEntityTerminate);
     // todo: hook the other version of the terminate function (the script function)
     addHook(get_on_update_function(), &MidHooks::onUpdate);
@@ -244,12 +244,11 @@ void MidHooks::onProcessedButtons(safetyhook::Context& context)
     }
 }
 
-EntityContainer* MidHooks::onEntitySpawn(HookAndParams& hookAndParams) {
+EntityContainer* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
     scoped_lock _(m_spawnMutex);
 
-    auto spawnParams = (EntitySpawnParams*)hookAndParams.rdx;
-    auto& hook = hookAndParams.hook;
-    auto entity = hook->call<EntityContainer*, void*, void*>(hookAndParams.rcx, hookAndParams.rdx);
+    auto spawnParams = (EntitySpawnParams*)rdx;
+    auto entity = m_entitySpawnHook->call<EntityContainer*, void*, void*>(rcx, rdx);
 
     if (entity) {
         if (spawnParams->name != string("FreeEnemy")) {
@@ -376,7 +375,7 @@ void MidHooks::addHook(uintptr_t address, MemberMidCallbackFn cb) {
     const void* realCb = (void*&)cb;
 
     a.mov(rdx, rcx);
-    a.mov(rcx, g_MidHooks);
+    a.mov(rcx, this);
     a.mov(rax, realCb);
     a.jmp(rax);
 
@@ -419,7 +418,7 @@ void MidHooks::addHook(uintptr_t address, MemberInlineCallbackFn cb) {
     a.mov(ptr(rax, 8), rdx);
     a.mov(ptr(rax, 0x10), r8);
     a.mov(ptr(rax, 0x18), r9);
-    a.mov(rcx, g_MidHooks);
+    a.mov(rcx, this);
     a.mov(rdx, result.get());
     a.mov(rax, realCb);
     a.jmp(rax);
@@ -428,5 +427,19 @@ void MidHooks::addHook(uintptr_t address, MemberInlineCallbackFn cb) {
     m_jit.add(&code_addr, &code);
 
     result->hook = builder.create_inline((void*)address, (void*)code_addr);
-    m_inlineHooks.emplace_back(std::move(result));
+    m_inlineHooksWithParams.emplace_back(std::move(result));
+}
+
+safetyhook::InlineHook* MidHooks::addInlineHook(uintptr_t address, void* cb) {
+    std::scoped_lock _{m_hookMutex};
+
+    auto factory = SafetyHookFactory::init();
+    auto builder = factory->acquire();
+
+    m_inlineHooks.emplace_back(builder.create_inline((void*)address, cb));
+    return m_inlineHooks.back().get();
+}
+
+EntityContainer* MidHooks::entitySpawnHook(void* rcx, void* rdx) {
+    return g_MidHooks->onEntitySpawn(rcx, rdx);
 }
