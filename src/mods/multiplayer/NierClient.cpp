@@ -168,6 +168,11 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
             break;
         }
 
+        case nier::PacketType_ID_SET_MASTER_CLIENT: {
+            m_isMasterClient = true;
+            break;
+        }
+
         case nier::PacketType_ID_CREATE_PLAYER: {
             if (!handleCreatePlayer(packet)) {
                 spdlog::error("Failed to create player");

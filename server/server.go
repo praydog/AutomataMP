@@ -242,6 +242,8 @@ func main() {
 		case enet.EventDisconnect: // A connected peer has disconnected
 			log.Info("Peer disconnected: %s", ev.GetPeer().GetAddress())
 			if connections[ev.GetPeer()] != nil {
+				isMasterClient := connections[ev.GetPeer()].client != nil && connections[ev.GetPeer()].client.isMasterClient
+
 				// Broadcast a destroy player packet to everyone except the disconnected peer
 				if connections[ev.GetPeer()].client != nil {
 					destroyPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -252,6 +254,17 @@ func main() {
 				}
 
 				delete(clients, connections[ev.GetPeer()])
+
+				if isMasterClient {
+					// we must find a new master client
+					for conn, client := range clients {
+						log.Info("Setting new master client: %s @ %s", client.name, conn.peer.GetAddress())
+
+						client.isMasterClient = true
+						conn.peer.SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_SET_MASTER_CLIENT), 0, enet.PacketFlagReliable)
+						break
+					}
+				}
 			}
 
 			delete(connections, ev.GetPeer())
