@@ -129,10 +129,31 @@ func makePlayerPacketBytes(connection *Connection, id nier.PacketType, data []ui
 	return makePacketBytes(id, playerPacketData)
 }
 
+func makeEntityPacketBytes(guid uint32, id nier.PacketType, data []uint8) []uint8 {
+	entityPacketData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+		dataoffs := makeVectorData(builder, data)
+
+		nier.EntityPacketStart(builder)
+		nier.EntityPacketAddGuid(builder, guid)
+		nier.EntityPacketAddData(builder, dataoffs)
+		return nier.EntityPacketEnd(builder)
+	})
+
+	return makePacketBytes(id, entityPacketData)
+}
+
 // client map
 var connections = make(map[enet.Peer]*Connection)
 var clients = make(map[*Connection]*Client)
 var connectionCount uint64 = 0
+
+type ActiveEntity struct {
+	guid      uint32
+	spawnInfo *nier.EntitySpawnParams
+	//lastEntityData *nier.EntityData // to be seen if it needs to be used.
+}
+
+var entities = make(map[uint32]*ActiveEntity)
 
 func broadcastPacketToAll(id nier.PacketType, data []uint8) {
 	broadcastData := makePacketBytes(id, data)
@@ -419,6 +440,41 @@ func main() {
 					log.Info("Sending create player packet for previous client %d to client %d", prevClient.guid, client.guid)
 					ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes), 0, enet.PacketFlagReliable)
 				}
+
+				// Broadcast previously spawned entities to the new client
+				for _, entity := range entities {
+					if entity == nil {
+						continue
+					}
+
+					spawnData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+						name := builder.CreateString(string(entity.spawnInfo.Name()))
+						posdata := entity.spawnInfo.Positional(nil)
+						nier.EntitySpawnParamsStart(builder)
+						nier.EntitySpawnParamsAddName(builder, name)
+						nier.EntitySpawnParamsAddModel(builder, entity.spawnInfo.Model())
+						nier.EntitySpawnParamsAddModel2(builder, entity.spawnInfo.Model2())
+						packetPosData := nier.CreateEntitySpawnPositionalData(
+							builder,
+							posdata.Forward(nil).X(), posdata.Forward(nil).Y(), posdata.Forward(nil).Z(), posdata.Forward(nil).W(),
+							posdata.Up(nil).X(), posdata.Up(nil).Y(), posdata.Up(nil).Z(), posdata.Up(nil).W(),
+							posdata.Right(nil).X(), posdata.Right(nil).Y(), posdata.Right(nil).Z(), posdata.Right(nil).W(),
+							posdata.W(nil).X(), posdata.W(nil).Y(), posdata.W(nil).Z(), posdata.W(nil).W(),
+							posdata.Position(nil).X(), posdata.Position(nil).Y(), posdata.Position(nil).Z(), posdata.Position(nil).W(),
+							posdata.Unknown(nil).X(), posdata.Unknown(nil).Y(), posdata.Unknown(nil).Z(), posdata.Unknown(nil).W(),
+							posdata.Unknown2(nil).X(), posdata.Unknown2(nil).Y(), posdata.Unknown2(nil).Z(), posdata.Unknown2(nil).W(),
+							posdata.Unk(), posdata.Unk2(), posdata.Unk3(), posdata.Unk4(),
+							posdata.Unk5(), posdata.Unk6(), posdata.Unk7(), posdata.Unk8(),
+						)
+						nier.EntitySpawnParamsAddPositional(builder, packetPosData)
+						return nier.EntitySpawnParamsEnd(builder)
+					})
+
+					spawnPacket := makeEntityPacketBytes(entity.guid, nier.PacketTypeID_SPAWN_ENTITY, spawnData)
+
+					log.Info("Sending spawn entity packet for entity %d to client %d", entity.guid, client.guid)
+					ev.GetPeer().SendBytes(spawnPacket, 0, enet.PacketFlagReliable)
+				}
 				break
 			case nier.PacketTypeID_PING:
 				log.Info("Ping received from %s", connection.client.name)
@@ -470,6 +526,17 @@ func main() {
 					break
 				}
 
+				// Cache the entity.
+				entityPkt := &nier.EntityPacket{}
+				flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
+
+				spawnInfo := &nier.EntitySpawnParams{}
+				flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, spawnInfo)
+
+				entities[entityPkt.Guid()] = new(ActiveEntity)
+				entities[entityPkt.Guid()].guid = entityPkt.Guid()
+				entities[entityPkt.Guid()].spawnInfo = spawnInfo
+
 				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_SPAWN_ENTITY, data.DataBytes())
 				break
 			case nier.PacketTypeID_DESTROY_ENTITY:
@@ -478,6 +545,12 @@ func main() {
 					log.Info(" Not a master client, ignoring")
 					break
 				}
+
+				// Destroy the entity.
+				entityPkt := &nier.EntityPacket{}
+				flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
+
+				delete(entities, entityPkt.Guid())
 
 				broadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_ENTITY, data.DataBytes())
 				break
