@@ -57,7 +57,7 @@ private:
 
 class EntitySync {
 public:
-    EntitySync();
+    EntitySync(uint32_t highestGuid = 0);
 
     void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
     void onEntityDeleted(EntityContainer* entity);

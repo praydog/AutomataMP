@@ -82,7 +82,7 @@ void NierClient::think() {
             //*npc->getPosition() = *(Vector3f*)&data.position();
         }
 
-        m_networkEntities.think();
+        m_networkEntities->think();
     }
 }
 
@@ -459,7 +459,7 @@ void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
 
     builder.Finish(builder.CreateStruct(newData));
 
-    m_networkEntities.processEntityData(guid, &newData);
+    m_networkEntities->processEntityData(guid, &newData);
     sendEntityPacket(nier::PacketType_ID_ENTITY_DATA, guid, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -482,11 +482,11 @@ void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
         return;
     }
 
-    m_networkEntities.onEntityCreated(entity, data);
+    m_networkEntities->onEntityCreated(entity, data);
 }
 
 void NierClient::onEntityDeleted(EntityContainer* entity) {
-    m_networkEntities.onEntityDeleted(entity);
+    m_networkEntities->onEntityDeleted(entity);
 }
 
 void NierClient::sendHello() {
@@ -597,10 +597,12 @@ bool NierClient::handleWelcome(const nier::Packet* packet) {
 
     m_isMasterClient = welcome->isMasterClient();
     m_guid = welcome->guid();
+    const auto highestGuid = welcome->highestEntityGuid();
 
     spdlog::info("Welcome packet received, isMasterClient: {}, guid: {}", m_isMasterClient, m_guid);
 
-    m_networkEntities.onEnterServer(m_isMasterClient);
+    m_networkEntities = std::make_unique<EntitySync>(highestGuid);
+    m_networkEntities->onEnterServer(m_isMasterClient);
 
     return true;
 }
@@ -754,7 +756,7 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
             //ent->entity->setSuspend(false);
 
             spdlog::info(" Entity spawned @ {:x}", (uintptr_t)ent);
-            auto newNetworkEnt = m_networkEntities.addEntity(ent, packet->guid());
+            auto newNetworkEnt = m_networkEntities->addEntity(ent, packet->guid());
 
             if (newNetworkEnt != nullptr) {
                 spdlog::info(" Network entity created");
@@ -770,7 +772,7 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
 bool NierClient::handleDestroyEntity(const nier::EntityPacket* packet) {
     spdlog::info("Destroy entity packet received");
 
-    m_networkEntities.removeEntity(packet->guid());
+    m_networkEntities->removeEntity(packet->guid());
 
     return true;
 }
@@ -779,7 +781,7 @@ bool NierClient::handleEntityData(const nier::EntityPacket* packet) {
     spdlog::info("Entity data packet received");
 
     const auto entityData = flatbuffers::GetRoot<nier::EntityData>(packet->data()->data());
-    m_networkEntities.processEntityData(packet->guid(), entityData);
+    m_networkEntities->processEntityData(packet->guid(), entityData);
 
     return true;
 }
@@ -788,7 +790,7 @@ bool NierClient::handleEntityAnimationStart(const nier::EntityPacket* packet) {
     spdlog::info("Entity animation start packet received");
 
     const auto guid = packet->guid();
-    auto entityNetworked = m_networkEntities.getNetworkEntityFromGuid(guid);
+    auto entityNetworked = m_networkEntities->getNetworkEntityFromGuid(guid);
 
     if (entityNetworked == nullptr) {
         spdlog::error(" (nullptr) Entity data packet received for unknown entity {}", guid);

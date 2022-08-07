@@ -146,6 +146,7 @@ func makeEntityPacketBytes(guid uint32, id nier.PacketType, data []uint8) []uint
 var connections = make(map[enet.Peer]*Connection)
 var clients = make(map[*Connection]*Client)
 var connectionCount uint64 = 0
+var highestEntityGuid uint32 = 0
 
 type ActiveEntity struct {
 	guid      uint32
@@ -403,6 +404,7 @@ func main() {
 					nier.WelcomeStart(builder)
 					nier.WelcomeAddGuid(builder, client.guid)
 					nier.WelcomeAddIsMasterClient(builder, client.isMasterClient)
+					nier.WelcomeAddHighestEntityGuid(builder, highestEntityGuid)
 					return nier.WelcomeEnd(builder)
 				})
 
@@ -532,6 +534,10 @@ func main() {
 
 				spawnInfo := &nier.EntitySpawnParams{}
 				flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, spawnInfo)
+
+				if entityPkt.Guid() > highestEntityGuid {
+					highestEntityGuid = entityPkt.Guid()
+				}
 
 				entities[entityPkt.Guid()] = new(ActiveEntity)
 				entities[entityPkt.Guid()].guid = entityPkt.Guid()

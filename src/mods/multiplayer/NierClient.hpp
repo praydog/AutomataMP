@@ -74,7 +74,7 @@ private:
     bool handleAnimationStart(const nier::PlayerPacket* packet);
     bool handleButtons(const nier::PlayerPacket* packet);
 
-    EntitySync m_networkEntities{};
+    std::unique_ptr<EntitySync> m_networkEntities{};
 
     std::recursive_mutex m_mtx{};
     std::recursive_mutex m_playersMtx{};

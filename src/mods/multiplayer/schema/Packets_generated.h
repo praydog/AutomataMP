@@ -764,7 +764,8 @@ struct Welcome FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef WelcomeBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_GUID = 4,
-    VT_ISMASTERCLIENT = 6
+    VT_ISMASTERCLIENT = 6,
+    VT_HIGHESTENTITYGUID = 8
   };
   uint64_t guid() const {
     return GetField<uint64_t>(VT_GUID, 0);
@@ -772,10 +773,14 @@ struct Welcome FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool isMasterClient() const {
     return GetField<uint8_t>(VT_ISMASTERCLIENT, 0) != 0;
   }
+  uint32_t highestEntityGuid() const {
+    return GetField<uint32_t>(VT_HIGHESTENTITYGUID, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_GUID) &&
            VerifyField<uint8_t>(verifier, VT_ISMASTERCLIENT) &&
+           VerifyField<uint32_t>(verifier, VT_HIGHESTENTITYGUID) &&
            verifier.EndTable();
   }
 };
@@ -789,6 +794,9 @@ struct WelcomeBuilder {
   }
   void add_isMasterClient(bool isMasterClient) {
     fbb_.AddElement<uint8_t>(Welcome::VT_ISMASTERCLIENT, static_cast<uint8_t>(isMasterClient), 0);
+  }
+  void add_highestEntityGuid(uint32_t highestEntityGuid) {
+    fbb_.AddElement<uint32_t>(Welcome::VT_HIGHESTENTITYGUID, highestEntityGuid, 0);
   }
   explicit WelcomeBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -804,9 +812,11 @@ struct WelcomeBuilder {
 inline flatbuffers::Offset<Welcome> CreateWelcome(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint64_t guid = 0,
-    bool isMasterClient = false) {
+    bool isMasterClient = false,
+    uint32_t highestEntityGuid = 0) {
   WelcomeBuilder builder_(_fbb);
   builder_.add_guid(guid);
+  builder_.add_highestEntityGuid(highestEntityGuid);
   builder_.add_isMasterClient(isMasterClient);
   return builder_.Finish();
 }

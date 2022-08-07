@@ -3,6 +3,7 @@ namespace nier;
 table Welcome {
     guid: ulong;
     isMasterClient: bool;
+    highestEntityGuid: uint;
 }
 
 root_type Welcome;

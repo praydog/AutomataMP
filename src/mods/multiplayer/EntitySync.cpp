@@ -42,7 +42,9 @@ void NetworkEntity::startAnimationHook(Entity* ent, uint32_t anim, uint32_t vari
     original(ent, anim, variant, a3, a4);
 }
 
-EntitySync::EntitySync() {
+EntitySync::EntitySync(uint32_t highestGuid)
+    : m_maxGuid{highestGuid}
+{
     g_entitySync = this;
 }
 
@@ -137,6 +139,13 @@ std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, ui
     spdlog::info("Adding entity {:x} with guid {}", (uintptr_t)entity, guid);
 
     scoped_lock _(m_mapMutex);
+
+    // This allows someone taking over as master client
+    // to not screw up any previously spawned entities.
+    if (guid > m_maxGuid) {
+        m_maxGuid = guid;
+    }
+
     auto& networkEntity = m_networkEntities[guid];
 
     if (networkEntity == nullptr || networkEntity->getEntity() != entity) {
