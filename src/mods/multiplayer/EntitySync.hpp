@@ -61,6 +61,7 @@ public:
 
     void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
     void onEntityDeleted(EntityContainer* entity);
+    void onEnterServer(bool isMasterClient); // Gather existing entities (if master client) and send them to server
 
     std::shared_ptr<NetworkEntity> addEntity(EntityContainer* entity, uint32_t guid);
     void removeEntity(uint32_t identifier);

@@ -599,6 +599,8 @@ bool NierClient::handleWelcome(const nier::Packet* packet) {
 
     spdlog::info("Welcome packet received, isMasterClient: {}, guid: {}", m_isMasterClient, m_guid);
 
+    m_networkEntities.onEnterServer(m_isMasterClient);
+
     return true;
 }
 

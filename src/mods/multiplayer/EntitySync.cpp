@@ -88,6 +88,51 @@ void EntitySync::onEntityDeleted(EntityContainer* entity) {
     AutomataMPMod::get()->getClient()->sendEntityDestroy(networkedEntity->getGuid());
 }
 
+void EntitySync::onEnterServer(bool isMasterClient) try {
+    scoped_lock _(m_mapMutex);
+
+    if (isMasterClient) {
+        auto entityList = EntityList::get();
+
+        if (entityList == nullptr) {
+            return;
+        }
+
+        for (auto i = 0; i < entityList->size(); ++i) {
+            auto container = entityList->get(i);
+
+            if (container == nullptr) {
+                continue;
+            }
+
+            auto entity = container->entity;
+
+            if (entity == nullptr) {
+                continue;
+            }
+
+            // Send any existing valid entities
+            // that are not currently networked to the server.
+            if (!m_handleMap.contains(container->handle) && entity->isNetworkable()) {
+                spdlog::info("Sending existing entity {}", container->name);
+
+                EntitySpawnParams spawnParams{};
+                EntitySpawnParams::PositionalData positionalData{};
+                spawnParams.name = container->name;
+                spawnParams.model = *entity->getModel();
+                spawnParams.model2 = *entity->getModel();
+
+                positionalData.position = Vector4f{*entity->getPosition(), 1.0f};
+                spawnParams.matrix = &positionalData;
+
+                onEntityCreated(container, &spawnParams);
+            }
+        }
+    }
+} catch(...) {
+
+}
+
 std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, uint32_t guid) {
     spdlog::info("Adding entity {:x} with guid {}", (uintptr_t)entity, guid);
 
