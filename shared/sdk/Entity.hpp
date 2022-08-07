@@ -147,7 +147,7 @@ public:
     };
 
 public:
-    bool isNetworkable() {
+    bool isNetworkable() const {
         return utility::rtti::derives_from(this, "class EmBase") ||
                utility::rtti::derives_from(this, "class BaAnimal");
     }

@@ -8,7 +8,6 @@
 #include "multiplayer/MidHooks.hpp"
 #include "multiplayer/PlayerHook.hpp"
 
-#include "multiplayer/NierServer.hpp"
 #include "multiplayer/NierClient.hpp"
 #include "multiplayer/Packets.hpp"
 #include "multiplayer/Player.hpp"
@@ -56,18 +55,6 @@ public:
     auto& getClient() const {
         return m_client;
     }
-
-public:
-    void synchronize();
-    void serverPacketProcess(const Packet* data, size_t size);
-    void sharedPacketProcess(const Packet* data, size_t size);
-
-private:
-    void processPlayerData(const nier_client_and_server::PlayerData* movement);
-    void processAnimationStart(const nier_client_and_server::AnimationStart* animation);
-    void processButtons(const nier_client_and_server::Buttons* buttons);
-    void processEntitySpawn(nier_server::EntitySpawn* spawn);
-    void processEntityData(nier_server::EntityData* data);
 
 private:
     std::chrono::high_resolution_clock::time_point m_nextThink;

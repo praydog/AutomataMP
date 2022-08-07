@@ -68,7 +68,7 @@ void NierClient::think() {
                 continue;
             }
 
-            spdlog::info("Synchronizing player {}", networkedPlayer->getGuid());
+            //spdlog::info("Synchronizing player {}", networkedPlayer->getGuid());
 
             auto& data = networkedPlayer->getPlayerData();
             *npc->getRunSpeedType() = SPEED_PLAYER;

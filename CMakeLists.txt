@@ -350,6 +350,15 @@ list(APPEND sdk_SOURCES
 	"shared/sdk/Game.hpp"
 	"shared/sdk/Math.hpp"
 	"shared/sdk/ScriptFunctions.hpp"
+	"shared/sdk/regenny/CameraData.hpp"
+	"shared/sdk/regenny/CameraGame.hpp"
+	"shared/sdk/regenny/CharacterController.hpp"
+	"shared/sdk/regenny/Entity.hpp"
+	"shared/sdk/regenny/EntityContainer.hpp"
+	"shared/sdk/regenny/Matrix4x4f.hpp"
+	"shared/sdk/regenny/UnkEntityData.hpp"
+	"shared/sdk/regenny/Vector3f.hpp"
+	"shared/sdk/regenny/Vector4f.hpp"
 )
 
 list(APPEND sdk_SOURCES
@@ -413,7 +422,6 @@ list(APPEND automatamp_SOURCES
 	"src/mods/multiplayer/EntitySync.cpp"
 	"src/mods/multiplayer/MidHooks.cpp"
 	"src/mods/multiplayer/NierClient.cpp"
-	"src/mods/multiplayer/NierServer.cpp"
 	"src/mods/multiplayer/Player.cpp"
 	"src/mods/multiplayer/PlayerHook.cpp"
 	"src/AutomataMP.hpp"
@@ -433,7 +441,6 @@ list(APPEND automatamp_SOURCES
 	"src/mods/multiplayer/EntitySync.hpp"
 	"src/mods/multiplayer/MidHooks.hpp"
 	"src/mods/multiplayer/NierClient.hpp"
-	"src/mods/multiplayer/NierServer.hpp"
 	"src/mods/multiplayer/Packets.hpp"
 	"src/mods/multiplayer/Player.hpp"
 	"src/mods/multiplayer/PlayerHook.hpp"

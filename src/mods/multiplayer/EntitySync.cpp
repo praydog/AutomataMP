@@ -95,6 +95,7 @@ std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, ui
     auto& networkEntity = m_networkEntities[guid];
 
     if (networkEntity == nullptr || networkEntity->getEntity() != entity) {
+        networkEntity.reset();
         networkEntity = std::make_shared<NetworkEntity>(entity, guid);
     }
 
@@ -160,7 +161,7 @@ void EntitySync::think() {
 
     // genius moment
     try {
-        auto isMasterClient = AutomataMPMod::get()->isServer();
+        const auto isMasterClient = AutomataMPMod::get()->isServer();
 
         // Delete any entities that are not supposed to be networked.
         if (!isMasterClient) {
@@ -196,7 +197,7 @@ void EntitySync::think() {
 }
 
 void EntitySync::processEntityData(uint32_t guid, const nier::EntityData* data) {
-    spdlog::info("Processing {} entity data", guid);
+    //spdlog::info("Processing {} entity data", guid);
 
     scoped_lock _(m_mapMutex);
     if (auto it = m_networkEntities.find(guid); it != m_networkEntities.end()) {
