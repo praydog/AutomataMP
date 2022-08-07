@@ -100,7 +100,8 @@ void NierClient::on_draw_ui() {
                 auto controlled = ents->getPossessedEntity();
 
                 if (controlled != nullptr) {
-                    *controlled->entity->getPosition() = *(Vector3f*)&it.second->getPlayerData().position();
+                    //*controlled->entity->getPosition() = *(Vector3f*)&it.second->getPlayerData().position();
+                    controlled->entity->setPosRotResetHap(Vector4f{*(Vector3f*)&it.second->getPlayerData().position(), 1.0f}, glm::identity<glm::quat>());
                 }
             }
 
