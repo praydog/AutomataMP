@@ -55,7 +55,7 @@ tag = "v1.34.10"
 
 [fetch-content.safetyhook]
 git = "https://github.com/cursey/safetyhook"
-tag = "209fb0190602d9360fb1865fd42c4f6d3801c1c4"
+tag = "e175896c67abf49360acafe8879205a138fe6b2b"
 
 [fetch-content.flatbuffers]
 git = "https://github.com/google/flatbuffers"
