@@ -13,6 +13,8 @@ NetworkEntity::NetworkEntity(EntityContainer* entity, uint32_t guid)
     : m_guid(guid)
     , m_entityHandle(entity->handle)
 {
+    scoped_lock _(g_entitySync->m_mapMutex);
+
     spdlog::info("Hooking entity {}", guid);
     m_hook = std::make_unique<VtableHook>();
     
@@ -154,6 +156,42 @@ void EntitySync::think() {
         }
 
         npc->setSuspend(false);
+    }
+
+    // genius moment
+    try {
+        auto isMasterClient = AutomataMPMod::get()->isServer();
+
+        // Delete any entities that are not supposed to be networked.
+        if (!isMasterClient) {
+            auto entityList = EntityList::get();
+
+            if (entityList == nullptr) {
+                return;
+            }
+
+            for (auto i = 0; i < entityList->size(); ++i) {
+                auto container = entityList->get(i);
+
+                if (container == nullptr) {
+                    continue;
+                }
+
+                auto entity = container->entity;
+
+                if (entity == nullptr) {
+                    continue;
+                }
+
+                // Delete any entities that are not supposed to be networked.
+                if (!m_handleMap.contains(container->handle) && entity->isNetworkable()) {
+                    spdlog::info("Deleting entity {:x} {}", (uintptr_t)container, container->name);
+                    entity->terminate();
+                }
+            }
+        }
+    } catch(...) {
+
     }
 }
 

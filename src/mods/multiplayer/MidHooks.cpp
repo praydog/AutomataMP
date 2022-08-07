@@ -260,8 +260,7 @@ EntityContainer* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
         // Other types are just too much for networking to handle
         // or are just completely unnecessary, and should only be
         // spawned client-side.
-        if (utility::rtti::derives_from(entity->entity, "class EmBase") ||
-            utility::rtti::derives_from(entity->entity, "class BaAnimal")) {
+        if (entity->entity->isNetworkable()) {
             spdlog::info("[MidHooks] Spawned enemy: {}", spawnParams->name);
             AutomataMPMod::get()->onEntityCreated(entity, spawnParams);
         }

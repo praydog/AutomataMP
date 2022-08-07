@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <utility/Address.hpp>
+#include <utility/RTTI.hpp>
 #include <sdk/Math.hpp>
 
 #include "ScriptFunctions.hpp"
@@ -146,6 +147,11 @@ public:
     };
 
 public:
+    bool isNetworkable() {
+        return utility::rtti::derives_from(this, "class EmBase") ||
+               utility::rtti::derives_from(this, "class BaAnimal");
+    }
+
     uint32_t* getModel() {
         return (uint32_t*)((uintptr_t)this + 0x5B8);
     }

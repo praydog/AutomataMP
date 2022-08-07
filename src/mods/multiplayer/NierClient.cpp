@@ -350,8 +350,6 @@ void NierClient::onEntityPacketReceived(nier::PacketType packetType, const nier:
 }
 
 void NierClient::sendPacket(nier::PacketType id, const uint8_t* data, size_t size) {
-    std::scoped_lock _{m_mtx};
-
     auto builder = flatbuffers::FlatBufferBuilder{};
 
     uint32_t dataoffs = 0;
@@ -379,8 +377,6 @@ void NierClient::sendPacket(nier::PacketType id, const uint8_t* data, size_t siz
 }
 
 void NierClient::sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
-    std::scoped_lock _{m_mtx};
-
     nier::AnimationStart data{anim, variant, a3, a4};
 
     flatbuffers::FlatBufferBuilder builder(0);
@@ -391,8 +387,6 @@ void NierClient::sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3
 }
 
 void NierClient::sendButtons(const uint32_t* buttons) {
-    std::scoped_lock _{m_mtx};
-
     flatbuffers::FlatBufferBuilder builder(0);
     const auto dataoffs = builder.CreateVector(buttons, Entity::CharacterController::EButtonIndex::INDEX_MAX);
 
@@ -404,8 +398,6 @@ void NierClient::sendButtons(const uint32_t* buttons) {
 }
 
 void NierClient::sendEntityPacket(nier::PacketType id, uint32_t guid, const uint8_t* data, size_t size) {
-    std::scoped_lock _{m_mtx};
-
     flatbuffers::FlatBufferBuilder builder(0);
     const auto dataoffs = builder.CreateVector(data, size);
 
@@ -418,8 +410,6 @@ void NierClient::sendEntityPacket(nier::PacketType id, uint32_t guid, const uint
 }
 
 void NierClient::sendEntityCreate(uint32_t guid, EntitySpawnParams* data) {
-    std::scoped_lock _{m_mtx};
-
     if (!m_isMasterClient) {
         spdlog::info("Not master client, not sending entity create");
         return;
@@ -444,8 +434,6 @@ void NierClient::sendEntityCreate(uint32_t guid, EntitySpawnParams* data) {
 }
 
 void NierClient::sendEntityDestroy(uint32_t guid) {
-    std::scoped_lock _{m_mtx};
-
     if (!m_isMasterClient) {
         spdlog::info("Not master client, not sending entity destroy");
         return;
@@ -455,8 +443,6 @@ void NierClient::sendEntityDestroy(uint32_t guid) {
 }
 
 void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
-    std::scoped_lock _{m_mtx};
-
     if (!m_isMasterClient) {
         spdlog::info("Not master client, not sending entity data");
         return;
@@ -477,8 +463,6 @@ void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
 }
 
 void NierClient::sendEntityAnimationStart(uint32_t guid, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
-    std::scoped_lock _{m_mtx};
-
     if (!m_isMasterClient) {
         spdlog::info("Not master client, not sending entity animation start");
         return;
@@ -492,8 +476,6 @@ void NierClient::sendEntityAnimationStart(uint32_t guid, uint32_t anim, uint32_t
 }
 
 void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
-    std::scoped_lock _{m_mtx};
-
     if (!m_isMasterClient) {
         entity->entity->terminate(); // destroy the entity. only the server or the master client should create entities.
         return;
@@ -503,7 +485,6 @@ void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
 }
 
 void NierClient::onEntityDeleted(EntityContainer* entity) {
-    std::scoped_lock _{m_mtx};
     m_networkEntities.onEntityDeleted(entity);
 }
 
