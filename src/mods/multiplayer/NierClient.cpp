@@ -8,7 +8,6 @@
 #include "AutomataMP.hpp"
 
 #include "schema/Packets_generated.h"
-#include "Packets.hpp"
 #include "mods/AutomataMPMod.hpp"
 #include "NierClient.hpp"
 
@@ -66,19 +65,19 @@ void NierClient::think() {
             if (npc == nullptr) {
                 spdlog::error("NPC for player {} not found", networkedPlayer->getGuid());
                 continue;
-            }
+            } 
 
             //spdlog::info("Synchronizing player {}", networkedPlayer->getGuid());
 
             auto& data = networkedPlayer->getPlayerData();
-            *npc->getRunSpeedType() = SPEED_PLAYER;
-            *npc->getFlashlightEnabled() = data.flashlight();
-            *npc->getSpeed() = data.speed();
-            *npc->getFacing() = data.facing();
-            *npc->getFacing2() = data.facing2();
-            *npc->getWeaponIndex() = data.weapon_index();
-            *npc->getPodIndex() = data.pod_index();
-            npc->getCharacterController()->heldFlags = data.held_button_flags();
+            npc->run_speed_type() = regenny::ERunSpeedType::SPEED_PLAYER;
+            npc->flashlight() = data.flashlight();
+            npc->speed() = data.speed();
+            npc->facing() = data.facing();
+            npc->facing2() = data.facing2();
+            npc->weapon_index() = data.weapon_index();
+            npc->pod_index() = data.pod_index();
+            npc->character_controller().held_flags = data.held_button_flags();
             //*npc->getPosition() = *(Vector3f*)&data.position();
         }
 
@@ -96,12 +95,15 @@ void NierClient::on_draw_ui() {
 
         if (ImGui::TreeNode(it.second->getName().c_str())) {
             if (ImGui::Button("Teleport To")) {
-                auto ents = EntityList::get();
+                auto ents = sdk::EntityList::get();
                 auto controlled = ents->getPossessedEntity();
 
-                if (controlled != nullptr) {
-                    //*controlled->entity->getPosition() = *(Vector3f*)&it.second->getPlayerData().position();
-                    controlled->entity->setPosRotResetHap(Vector4f{*(Vector3f*)&it.second->getPlayerData().position(), 1.0f}, glm::identity<glm::quat>());
+                if (controlled != nullptr && controlled->behavior != nullptr) {
+                    if (controlled->behavior->is_pl0000()) {
+                        controlled->behavior->as<sdk::Pl0000>()->setPosRotResetHap(Vector4f{*(Vector3f*)&it.second->getPlayerData().position(), 1.0f}, glm::identity<glm::quat>());
+                    } else {
+                        controlled->behavior->position() = *(Vector3f*)&it.second->getPlayerData().position();
+                    }
                 }
             }
 
@@ -114,14 +116,18 @@ void NierClient::on_frame() {
     std::scoped_lock _{m_playersMtx};
 
     const auto size = g_framework->get_d3d11_rt_size();
-    const auto camera = CameraGame::get();
+    const auto camera = sdk::CameraGame::get();
 
     for (auto& it : m_players) {
         if (it.second->getGuid() == m_guid) {
             continue;
         }
 
-        const auto s = camera->worldToScreen(size, *it.second->getEntity()->getPosition());
+        if (it.second->getEntity() == nullptr) {
+            continue;
+        }
+
+        const auto s = camera->worldToScreen(size, it.second->getEntity()->position());
 
         if (s) {
             ImGui::GetBackgroundDrawList()->AddText(
@@ -163,7 +169,7 @@ void NierClient::on_frame() {
 }
 
 void NierClient::onConnect() {
-    if (auto ents = EntityList::get(); ents == nullptr || ents->getPossessedEntity() == nullptr) {
+    if (auto ents = sdk::EntityList::get(); ents == nullptr || ents->getPossessedEntity() == nullptr) {
         AutomataMPMod::get()->signalDestroyClient();
         spdlog::error("Please spawn a player before connecting to the server.");
         return;
@@ -389,7 +395,7 @@ void NierClient::sendAnimationStart(uint32_t anim, uint32_t variant, uint32_t a3
 
 void NierClient::sendButtons(const uint32_t* buttons) {
     flatbuffers::FlatBufferBuilder builder(0);
-    const auto dataoffs = builder.CreateVector(buttons, Entity::CharacterController::EButtonIndex::INDEX_MAX);
+    const auto dataoffs = builder.CreateVector(buttons, sdk::Pl0000::EButtonIndex::INDEX_MAX);
 
     nier::Buttons::Builder dataBuilder(builder);
     dataBuilder.add_buttons(dataoffs);
@@ -410,7 +416,7 @@ void NierClient::sendEntityPacket(nier::PacketType id, uint32_t guid, const uint
     sendPacket(id, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void NierClient::sendEntityCreate(uint32_t guid, EntitySpawnParams* data) {
+void NierClient::sendEntityCreate(uint32_t guid, sdk::EntitySpawnParams* data) {
     if (!m_isMasterClient) {
         spdlog::info("Not master client, not sending entity create");
         return;
@@ -443,7 +449,7 @@ void NierClient::sendEntityDestroy(uint32_t guid) {
     sendEntityPacket(nier::PacketType_ID_DESTROY_ENTITY, guid);
 }
 
-void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
+void NierClient::sendEntityData(uint32_t guid, sdk::BehaviorAppBase* entity) {
     if (!m_isMasterClient) {
         spdlog::info("Not master client, not sending entity data");
         return;
@@ -451,10 +457,10 @@ void NierClient::sendEntityData(uint32_t guid, Entity* entity) {
 
     flatbuffers::FlatBufferBuilder builder(0);
     nier::EntityData newData(
-        *entity->getFacing(),
-        *entity->getFacing2(), 
-        *entity->getHealth(), 
-        *(nier::Vector3f*)&*entity->getPosition()
+        entity->facing(),
+        0.0f, // entity is not a player.
+        entity->health(),
+        *(nier::Vector3f*)&entity->position()
     );
 
     builder.Finish(builder.CreateStruct(newData));
@@ -476,24 +482,24 @@ void NierClient::sendEntityAnimationStart(uint32_t guid, uint32_t anim, uint32_t
     sendEntityPacket(nier::PacketType_ID_ENTITY_ANIMATION_START, guid, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void NierClient::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
+void NierClient::onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data) {
     if (!m_isMasterClient) {
-        entity->entity->terminate(); // destroy the entity. only the server or the master client should create entities.
+        entity->behavior->terminate(); // destroy the entity. only the server or the master client should create entities.
         return;
     }
 
     m_networkEntities->onEntityCreated(entity, data);
 }
 
-void NierClient::onEntityDeleted(EntityContainer* entity) {
+void NierClient::onEntityDeleted(sdk::Entity* entity) {
     m_networkEntities->onEntityDeleted(entity);
 }
 
 void NierClient::sendHello() {
-    auto ents = EntityList::get();
+    auto ents = sdk::EntityList::get();
     auto possessed = ents->getPossessedEntity();
 
-    if (possessed == nullptr || possessed->entity == nullptr) {
+    if (possessed == nullptr || possessed->behavior == nullptr) {
         spdlog::error("No possessed entity");
         return;
     }
@@ -509,7 +515,7 @@ void NierClient::sendHello() {
     helloBuilder.add_patch(nier::VersionPatch_Value);
     helloBuilder.add_name(name_pkt);
     helloBuilder.add_password(pwd_pkt);
-    helloBuilder.add_model(*possessed->entity->getModel());
+    helloBuilder.add_model(possessed->behavior->model_index());
 
     builder.Finish(helloBuilder.Finish());
 
@@ -529,7 +535,7 @@ void NierClient::updateLocalPlayerData() {
         return;
     }
 
-    auto entityList = EntityList::get();
+    auto entityList = sdk::EntityList::get();
 
     if (entityList == nullptr) {
         return;
@@ -567,14 +573,14 @@ void NierClient::sendPlayerData() {
     }
 
     nier::PlayerData playerData(
-        *entity->getFlashlightEnabled(),
-        *entity->getSpeed(),
-        *entity->getFacing(),
-        *entity->getFacing2(),
-        *entity->getWeaponIndex(),
-        *entity->getPodIndex(),
-        entity->getCharacterController()->heldFlags,
-        *(nier::Vector3f*)entity->getPosition()
+        entity->flashlight(),
+        entity->speed(),
+        entity->facing(),
+        entity->facing2(),
+        entity->weapon_index(),
+        entity->pod_index(),
+        entity->character_controller().held_flags,
+        *(nier::Vector3f*)&entity->position()
     );
 
     flatbuffers::FlatBufferBuilder builder{};
@@ -610,7 +616,7 @@ bool NierClient::handleWelcome(const nier::Packet* packet) {
 bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
     spdlog::info("Create player packet received");
 
-    auto entityList = EntityList::get();
+    auto entityList = sdk::EntityList::get();
 
     if (entityList == nullptr) {
         spdlog::error("Entity list not found while handling create player packet");
@@ -626,7 +632,7 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
 
     auto localplayer = entityList->getByName("Player");
 
-    if (localplayer == nullptr || localplayer->entity == nullptr) {
+    if (localplayer == nullptr || localplayer->behavior == nullptr) {
         spdlog::info("Player not found while handling create player packet");
         return false;
     }
@@ -654,7 +660,7 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
         spdlog::info("Spawning player {}, {}", createPlayer->guid(), createPlayer->name()->c_str());
 
         MidHooks::s_ignoreSpawn = true;
-        auto ent = entityList->spawnEntity("partner", createPlayer->model(), *possessed->entity->getPosition());
+        auto ent = entityList->spawnEntity("partner", createPlayer->model(), possessed->behavior->position());
         MidHooks::s_ignoreSpawn = false;
 
         if (ent != nullptr) {
@@ -662,24 +668,23 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
 
             spdlog::info(" Player spawned");
 
-            ent->entity->setBuddyHandle(localplayer->handle);
-            localplayer->entity->setBuddyHandle(ent->handle);
+            ent->behavior->as<sdk::Pl0000>()->buddy_handle() = localplayer->handle;
+            localplayer->behavior->as<sdk::Pl0000>()->buddy_handle() = ent->handle;
 
-            ent->entity->setSuspend(false);
+            ent->behavior->setSuspend(false);
 
             ent->assignAIRoutine("PLAYER");
             ent->assignAIRoutine("player");
 
             // alternate way of assigning AI/control to the entity easily.
-            localplayer->entity->changePlayer();
-            localplayer->entity->changePlayer();
+            localplayer->behavior->as<sdk::Pl0000>()->changePlayer();
+            localplayer->behavior->as<sdk::Pl0000>()->changePlayer();
 
-            const auto old_flags = ent->entity->getBuddyFlags();
-            ent->entity->setBuddyFlags(-1);
-            ent->entity->setBuddyFromNpc();
-            ent->entity->setBuddyFlags(0);
+            ent->behavior->obj_flags() = -1;
+            ent->behavior->as<sdk::Pl0000>()->setBuddyFromNpc();
+            ent->behavior->obj_flags() = 0;
 
-            m_players[createPlayer->guid()]->setStartTick(*ent->entity->getTickCount());
+            m_players[createPlayer->guid()]->setStartTick(ent->behavior->tick_count());
             m_players[createPlayer->guid()]->setHandle(ent->handle);
 
             spdlog::info(" player assigned handle {:x}", ent->handle);
@@ -701,7 +706,7 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
     std::scoped_lock _{m_playersMtx};
 
     if (m_players.contains(destroyPlayer->guid()) && m_players[destroyPlayer->guid()] != nullptr) {
-        auto entityList = EntityList::get();
+        auto entityList = sdk::EntityList::get();
 
         if (entityList == nullptr) {
             // not an error, we just won't actually delete any entity from the entity list
@@ -710,7 +715,7 @@ bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
             auto localplayer = entityList->getByName("Player");
             auto ent = entityList->getByHandle(m_players[destroyPlayer->guid()]->getHandle());
             if (ent != nullptr && ent != localplayer) {
-                ent->entity->terminate();
+                ent->behavior->terminate();
             }
         }
     }
@@ -732,11 +737,11 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
         return false;
     }
 
-    auto entityList = EntityList::get();
+    auto entityList = sdk::EntityList::get();
 
     if (entityList != nullptr) {
-        EntitySpawnParams params{};
-        auto matrix = spawn->positional() != nullptr ? *(EntitySpawnParams::PositionalData*)spawn->positional() : EntitySpawnParams::PositionalData{};
+        sdk::EntitySpawnParams params{};
+        auto matrix = spawn->positional() != nullptr ? *(sdk::EntitySpawnParams::PositionalData*)spawn->positional() : sdk::EntitySpawnParams::PositionalData{};
         params.matrix = &matrix;
         params.model = spawn->model();
         params.model2 = spawn->model2();
@@ -798,18 +803,18 @@ bool NierClient::handleEntityAnimationStart(const nier::EntityPacket* packet) {
     }
 
     auto animationData = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
-    auto npc = entityNetworked->getEntity() != nullptr ? entityNetworked->getEntity()->entity : nullptr;
+    auto npc = entityNetworked->getEntity() != nullptr ? entityNetworked->getEntity()->behavior : nullptr;
 
     if (npc != nullptr) {
         switch (animationData->anim()) {
-        case INVALID_CRASHES_GAME:
-        case INVALID_CRASHES_GAME2:
-        case INVALID_CRASHES_GAME3:
-        case INVALID_CRASHES_GAME4:
+        case sdk::EAnimation::INVALID_CRASHES_GAME:
+        case sdk::EAnimation::INVALID_CRASHES_GAME2:
+        case sdk::EAnimation::INVALID_CRASHES_GAME3:
+        case sdk::EAnimation::INVALID_CRASHES_GAME4:
             return true;
         default:
             if (npc) {
-                npc->startAnimation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
+                npc->start_animation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
             } else {
                 spdlog::error(" Cannot start animation, npc is null");
             }
@@ -843,7 +848,7 @@ bool NierClient::handlePlayerData(const nier::PlayerPacket* packet) {
     auto npc = playerNetworked->getEntity();
     
     if (npc != nullptr) {
-        *npc->getPosition() = *(Vector3f*)&playerData->position();
+        npc->position() = *(Vector3f*)&playerData->position();
     }
 
     playerNetworked->setPlayerData(*playerData);
@@ -876,15 +881,15 @@ bool NierClient::handleAnimationStart(const nier::PlayerPacket* packet) {
 
     if (npc != nullptr) {
         switch (animationData->anim()) {
-        case INVALID_CRASHES_GAME:
-        case INVALID_CRASHES_GAME2:
-        case INVALID_CRASHES_GAME3:
-        case INVALID_CRASHES_GAME4:
-        case Light_Attack:
+        case sdk::EAnimation::INVALID_CRASHES_GAME:
+        case sdk::EAnimation::INVALID_CRASHES_GAME2:
+        case sdk::EAnimation::INVALID_CRASHES_GAME3:
+        case sdk::EAnimation::INVALID_CRASHES_GAME4:
+        case sdk::EAnimation::Light_Attack:
             return true;
         default:
             if (npc) {
-                npc->startAnimation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
+                npc->start_animation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
             } else {
                 spdlog::error("Cannot start animation, npc is null");
             }
@@ -919,14 +924,14 @@ bool NierClient::handleButtons(const nier::PlayerPacket* packet) {
 
     if (npc != nullptr) {
         const auto buttonsData = buttons->buttons()->data();
-        const auto sizeButtons = sizeof(Entity::CharacterController::buttons);
-        memcpy(&npc->getCharacterController()->buttons, buttonsData, sizeButtons);
+        const auto sizeButtons = sizeof(regenny::CharacterController::buttons);
+        memcpy(&npc->character_controller().buttons, buttonsData, sizeButtons);
 
-        for (uint32_t i = 0; i < Entity::CharacterController::EButtonIndex::INDEX_MAX; ++i) {
-            auto controller = npc->getCharacterController();
+        for (uint32_t i = 0; i < sdk::Pl0000::EButtonIndex::INDEX_MAX; ++i) {
+            auto& controller = npc->character_controller();
 
             if (buttonsData[i] > 0) {
-                controller->heldFlags |= (1 << i);
+                controller.held_flags |= (1 << i);
             }
         }
     }

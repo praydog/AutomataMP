@@ -9,7 +9,6 @@
 #include "multiplayer/PlayerHook.hpp"
 
 #include "multiplayer/NierClient.hpp"
-#include "multiplayer/Packets.hpp"
 #include "multiplayer/Player.hpp"
 #include "multiplayer/EntitySync.hpp"
 
@@ -32,13 +31,13 @@ public:
         return m_client != nullptr && m_client->isMasterClient();
     }
 
-    void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
+    void onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data) {
         if (m_client != nullptr) {
             m_client->onEntityCreated(entity, data);
         }
     }
     
-    void onEntityDeleted(EntityContainer* entity) {
+    void onEntityDeleted(sdk::Entity* entity) {
         if (m_client != nullptr) {
             m_client->onEntityDeleted(entity);
         }

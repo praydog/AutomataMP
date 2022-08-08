@@ -8,9 +8,13 @@
 
 #include "ScriptFunctions.hpp"
 
+#include "Behavior.hpp"
+#include "Pl0000.hpp"
+
+namespace sdk {
 class Entity;
 
-struct EntityContainer {
+struct Entity {
     void assignAIRoutine(const std::string& name);
 
     void* unknown;
@@ -19,14 +23,13 @@ struct EntityContainer {
     uint32_t handle;
     void* unknown2;
     void* unknown3;
-    Entity* entity;
+    sdk::Behavior* behavior;
     void* unknown4;
     char poop[0x8];
-    Entity* entity2;
+    sdk::Behavior* behavior2;
 };
 
-enum EAnimation
-{
+enum EAnimation {
     Walk = 1,
     Run = 2,
     Sprint = 3,
@@ -101,31 +104,7 @@ enum ERunSpeedType {
     SPEED_BUDDY
 };
 
-class Entity {
-public:
-    virtual void pad0() = 0;
-    virtual void pad1() = 0;
-    virtual void pad2() = 0;
-    virtual void pad3() = 0;
-    virtual void pad4() = 0;
-    virtual void pad5() = 0;
-    virtual void pad6() = 0;
-    virtual void pad7() = 0;
-    virtual void pad8() = 0;
-    virtual void pad9() = 0;
-    virtual void pad10() = 0;
-    virtual void pad11() = 0;
-    virtual void pad12() = 0;
-    virtual void pad13() = 0;
-    virtual void pad14() = 0;
-    virtual void pad15() = 0;
-    virtual void pad16() = 0;
-    virtual void pad17() = 0;
-    virtual void startAnimation(uint32_t animType, uint32_t variant, uint32_t a3 = 0, uint32_t a4 = 0) = 0;
-
-    // Vtable indices
-    static constexpr uint8_t s_startAnimationIndex = 18;
-
+class Entity_ {
 public:
     struct CharacterController {
         enum EButtonIndex {
@@ -156,8 +135,8 @@ public:
         return (uint32_t*)((uintptr_t)this + 0x5B8);
     }
 
-    EntityContainer* getContainer() {
-        return *(EntityContainer**)((uintptr_t)this + 0x610);
+    Entity* getContainer() {
+        return *(Entity**)((uintptr_t)this + 0x610);
     }
 
     uint32_t* getHealth() {
@@ -255,3 +234,4 @@ public:
 
 private:
 };
+}

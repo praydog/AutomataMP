@@ -11,9 +11,11 @@
 #include <safetyhook/InlineHook.hpp>
 #include <utility/VehHook.hpp>
 
+namespace sdk {
 class Entity;
+class Behavior;
 struct EntitySpawnParams;
-struct EntityContainer;
+}
 
 struct HookAndParams {
     void* rcx;
@@ -27,16 +29,14 @@ class MidHooks {
 public:
     MidHooks();
 
-    void onLightAttack(const VehHook::RuntimeInfo& info);
-    void onHeavyAttack(const VehHook::RuntimeInfo& info);
     void onProcessedButtons(safetyhook::Context& info);
     void onPreEntitySpawn(safetyhook::Context& info);
     void onPostEntitySpawn(safetyhook::Context& info);
-    EntityContainer* onEntitySpawn(void* rcx, void* rdx);
+    sdk::Entity* onEntitySpawn(void* rcx, void* rdx);
     void onEntityTerminate(safetyhook::Context& info);
     void onUpdate(safetyhook::Context& info);
 
-    void addOverridenEntity(Entity* ent);
+    void addOverridenEntity(sdk::Behavior* ent);
 
     typedef void (MidHooks::*MemberMidCallbackFn)(safetyhook::Context&);
     typedef void (MidHooks::*MemberInlineCallbackFn)(HookAndParams&);
@@ -58,11 +58,11 @@ private:
     std::vector<std::unique_ptr<HookAndParams>> m_inlineHooksWithParams;
     std::vector<std::unique_ptr<safetyhook::InlineHook>> m_inlineHooks;
 
-    static EntityContainer* entitySpawnHook(void* rcx, void* rdx);
+    static sdk::Entity* entitySpawnHook(void* rcx, void* rdx);
     safetyhook::InlineHook* m_entitySpawnHook{};
 
-    std::unordered_set<Entity*> m_overridenEntities;
+    std::unordered_set<sdk::Behavior*> m_overridenEntities;
 
     std::recursive_mutex m_spawnMutex;
-    std::unordered_map<uint32_t, EntitySpawnParams*> m_threadIdToSpawnParams;
+    std::unordered_map<uint32_t, sdk::EntitySpawnParams*> m_threadIdToSpawnParams;
 };

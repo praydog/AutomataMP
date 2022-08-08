@@ -6,7 +6,8 @@
 #include "ScriptFunctions.hpp"
 #include <sdk/Entity.hpp>
 
-void EntityContainer::assignAIRoutine(const std::string& name) {
+namespace sdk {
+void Entity::assignAIRoutine(const std::string& name) {
     //auto realName = findExactString(GetModuleHandle(0), name);
 
     //if (realName) {
@@ -16,7 +17,7 @@ void EntityContainer::assignAIRoutine(const std::string& name) {
 
         *Address(this->entity).get(0x16478).as<uint32_t*>() = 1;*/
 
-       static void(*assignRoutine)(const char* name, EntityContainer*) = []() -> decltype(assignRoutine) {
+       static void(*assignRoutine)(const char* name, sdk::Entity*) = []() -> decltype(assignRoutine) {
             spdlog::info("[EntityContainer] Searching for assignRoutine...");
 
             const auto str = utility::scan_string(utility::get_executable(), "buddy_pascal");
@@ -48,6 +49,7 @@ void EntityContainer::assignAIRoutine(const std::string& name) {
        }();
 
        assignRoutine(name.c_str(), this);
-       *Address(this->entity).get(0x16488).as<uint32_t*>() = 1;
+       *Address(this->behavior).get(0x16488).as<uint32_t*>() = 1;
     //}
+}
 }

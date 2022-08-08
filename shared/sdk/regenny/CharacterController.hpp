@@ -9,7 +9,9 @@ struct CharacterController {
     uint32_t buttons[8]; // 0x770
     char pad_790[0x4];
     float speed; // 0x794
-    char pad_798[0x868];
+    char pad_798[0x4];
+    float facing; // 0x79c
+    char pad_7a0[0x860];
 }; // Size: 0x1000
 #pragma pack(pop)
 }

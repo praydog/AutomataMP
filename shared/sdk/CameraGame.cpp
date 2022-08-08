@@ -30,6 +30,7 @@
 7FF710B72891 - 0x15 CurrentNode
 7FF710E6E570 - 0x14 COLLIDE!
 */
+namespace sdk {
 CameraGame* CameraGame::get() {
     static auto instance = []() -> CameraGame* {
         spdlog::info("[CameraGame] Finding CameraGame...");
@@ -71,7 +72,7 @@ CameraGame* CameraGame::get() {
 }
 
 std::optional<Vector2f> CameraGame::worldToScreen(const Vector2f& screenSize, const Vector3f& pos) const {
-    if (!this->data) {
+    if (this->data == nullptr) {
         return std::nullopt;
     }
 
@@ -99,4 +100,5 @@ std::optional<Vector2f> CameraGame::worldToScreen(const Vector2f& screenSize, co
     const auto y = glm::dot(delta, up) * (1.0f / z) * y_scale;
 
     return Vector2f{ ((1.0f + x) * width * 0.5f), ((1.0f - y) * height * 0.5f) };
+}
 }

@@ -9,7 +9,7 @@ void AnimTester::on_draw_ui() {
     }
 
     if (ImGui::Button("Start Animation")) {
-        auto entityList = EntityList::get();
+        auto entityList = sdk::EntityList::get();
 
         if (!entityList) {
             return;
@@ -18,12 +18,12 @@ void AnimTester::on_draw_ui() {
         auto player = entityList->getByName("Player");
         auto partner = entityList->getByName("partner");
 
-        if (player && player->entity) {
-            player->entity->startAnimation(m_anim->value(), m_variant->value(), m_a3->value(), m_a4->value());
+        if (player && player->behavior) {
+            player->behavior->start_animation(m_anim->value(), m_variant->value(), m_a3->value(), m_a4->value());
         }
 
-        if (partner && partner->entity) {
-            partner->entity->startAnimation(m_anim->value(), m_variant->value(), m_a3->value(), m_a4->value());
+        if (partner && partner->behavior) {
+            partner->behavior->start_animation(m_anim->value(), m_variant->value(), m_a3->value(), m_a4->value());
         }
     }
 

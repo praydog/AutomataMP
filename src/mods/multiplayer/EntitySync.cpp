@@ -9,7 +9,7 @@ using namespace std;
 
 EntitySync* g_entitySync = nullptr;
 
-NetworkEntity::NetworkEntity(EntityContainer* entity, uint32_t guid) 
+NetworkEntity::NetworkEntity(sdk::Entity* entity, uint32_t guid) 
     : m_guid(guid)
     , m_entityHandle(entity->handle)
 {
@@ -18,13 +18,13 @@ NetworkEntity::NetworkEntity(EntityContainer* entity, uint32_t guid)
     spdlog::info("Hooking entity {}", guid);
     m_hook = std::make_unique<VtableHook>();
     
-    if (m_hook->create(entity->entity)) {
-        m_hook->hookMethod(Entity::s_startAnimationIndex, &startAnimationHook);
+    if (m_hook->create(entity->behavior)) {
+        m_hook->hookMethod(sdk::Behavior::s_start_animation_index, &startAnimationHook);
         spdlog::info("Hooked entity {}", guid);
     }
 }
 
-void NetworkEntity::startAnimationHook(Entity* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
+void NetworkEntity::startAnimationHook(sdk::Behavior* behavior, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
     scoped_lock _(g_entitySync->m_mapMutex);
 
     spdlog::info("NETWORKENTITY anim: {}, variant: {}, a3: {}, return: {:x}", anim, variant, a3, (uintptr_t)_ReturnAddress());
@@ -32,14 +32,14 @@ void NetworkEntity::startAnimationHook(Entity* ent, uint32_t anim, uint32_t vari
     auto amp = AutomataMPMod::get();
     auto& client = amp->getClient();
 
-    auto networkEntity = g_entitySync->getNetworkEntityFromHandle(ent->getContainer()->handle);
+    auto networkEntity = g_entitySync->getNetworkEntityFromHandle(behavior->get_entity()->handle);
 
     if (client != nullptr) {
         client->sendEntityAnimationStart(networkEntity->getGuid(), anim, variant, a3, a4);
     }
 
-    auto original = networkEntity->m_hook->getMethod<decltype(startAnimationHook)*>(Entity::s_startAnimationIndex);
-    original(ent, anim, variant, a3, a4);
+    auto original = networkEntity->m_hook->getMethod<decltype(startAnimationHook)*>(sdk::Behavior::s_start_animation_index);
+    original(behavior, anim, variant, a3, a4);
 }
 
 EntitySync::EntitySync(uint32_t highestGuid)
@@ -48,7 +48,7 @@ EntitySync::EntitySync(uint32_t highestGuid)
     g_entitySync = this;
 }
 
-void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* data) {
+void EntitySync::onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data) {
     scoped_lock _(m_mapMutex);
 
     auto guid = m_maxGuid++;
@@ -75,7 +75,7 @@ void EntitySync::onEntityCreated(EntityContainer* entity, EntitySpawnParams* dat
     AutomataMPMod::get()->sendPacket(packet.data(), sizeof(packet));*/
 }
 
-void EntitySync::onEntityDeleted(EntityContainer* entity) {
+void EntitySync::onEntityDeleted(sdk::Entity* entity) {
     scoped_lock _(m_mapMutex);
 
     auto networkedEntity = getNetworkEntityFromHandle(entity->handle);
@@ -94,7 +94,7 @@ void EntitySync::onEnterServer(bool isMasterClient) try {
     scoped_lock _(m_mapMutex);
 
     if (isMasterClient) {
-        auto entityList = EntityList::get();
+        auto entityList = sdk::EntityList::get();
 
         if (entityList == nullptr) {
             return;
@@ -107,24 +107,24 @@ void EntitySync::onEnterServer(bool isMasterClient) try {
                 continue;
             }
 
-            auto entity = container->entity;
+            auto behavior = container->behavior;
 
-            if (entity == nullptr) {
+            if (behavior == nullptr) {
                 continue;
             }
 
             // Send any existing valid entities
             // that are not currently networked to the server.
-            if (!m_handleMap.contains(container->handle) && entity->isNetworkable()) {
+            if (!m_handleMap.contains(container->handle) && behavior->is_networkable()) {
                 spdlog::info("Sending existing entity {}", container->name);
 
-                EntitySpawnParams spawnParams{};
-                EntitySpawnParams::PositionalData positionalData{};
+                sdk::EntitySpawnParams spawnParams{};
+                sdk::EntitySpawnParams::PositionalData positionalData{};
                 spawnParams.name = container->name;
-                spawnParams.model = *entity->getModel();
-                spawnParams.model2 = *entity->getModel();
+                spawnParams.model = behavior->model_index();
+                spawnParams.model2 = behavior->model_index();
 
-                positionalData.position = Vector4f{*entity->getPosition(), 1.0f};
+                positionalData.position = Vector4f{behavior->position(), 1.0f};
                 spawnParams.matrix = &positionalData;
 
                 onEntityCreated(container, &spawnParams);
@@ -135,7 +135,7 @@ void EntitySync::onEnterServer(bool isMasterClient) try {
 
 }
 
-std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, uint32_t guid) {
+std::shared_ptr<NetworkEntity> EntitySync::addEntity(sdk::Entity* entity, uint32_t guid) {
     spdlog::info("Adding entity {:x} with guid {}", (uintptr_t)entity, guid);
 
     scoped_lock _(m_mapMutex);
@@ -158,10 +158,11 @@ std::shared_ptr<NetworkEntity> EntitySync::addEntity(EntityContainer* entity, ui
     networkEntity->setEntity(entity);
 
     nier::EntityData firstData(
-        *entity->entity->getFacing(),
-        *entity->entity->getFacing2(),
-        *entity->entity->getHealth(),
-        *(nier::Vector3f*)&*entity->entity->getPosition());
+        entity->behavior->facing(),
+        entity->behavior->as<sdk::Pl0000>()->character_controller().facing,
+        entity->behavior->as<sdk::BehaviorAppBase>()->health(),
+        *(nier::Vector3f*)&entity->behavior->position()
+    );
 
     networkEntity->setEntityData(firstData);
 
@@ -189,7 +190,7 @@ void EntitySync::think() {
         }
 
         auto& packet = networkedEntity->getEntityData();
-        auto npc = ent->entity;
+        auto npc = ent->behavior->as<sdk::BehaviorAppBase>();
 
         if (npc == nullptr) {
             continue;
@@ -204,10 +205,10 @@ void EntitySync::think() {
             AutomataMPMod::get()->getClient()->sendEntityData(it.first, npc);
         }
         else {
-            *npc->getPosition() = *(Vector3f*)&packet.position();
-            *npc->getFacing() = packet.facing();
-            *npc->getFacing2() = packet.facing2();
-            *npc->getHealth() = packet.health();
+            npc->position() = *(Vector3f*)&packet.position();
+            npc->facing() = packet.facing();
+            //npc->getFacing2() = packet.facing2();
+            npc->health() = packet.health();
         }
 
         npc->setSuspend(false);
@@ -219,7 +220,7 @@ void EntitySync::think() {
 
         // Delete any entities that are not supposed to be networked.
         if (!isMasterClient) {
-            auto entityList = EntityList::get();
+            auto entityList = sdk::EntityList::get();
 
             if (entityList == nullptr) {
                 return;
@@ -232,16 +233,16 @@ void EntitySync::think() {
                     continue;
                 }
 
-                auto entity = container->entity;
+                auto behavior = container->behavior;
 
-                if (entity == nullptr) {
+                if (behavior == nullptr) {
                     continue;
                 }
 
                 // Delete any entities that are not supposed to be networked.
-                if (!m_handleMap.contains(container->handle) && entity->isNetworkable()) {
+                if (!m_handleMap.contains(container->handle) && behavior->is_networkable()) {
                     spdlog::info("Deleting entity {:x} {}", (uintptr_t)container, container->name);
-                    entity->terminate();
+                    behavior->terminate();
                 }
             }
         }
@@ -263,16 +264,16 @@ void EntitySync::processEntityData(uint32_t guid, const nier::EntityData* data) 
             return;
         }
 
-        auto npc = cont->entity;
+        auto npc = cont->behavior->as<sdk::BehaviorAppBase>();
 
         if (npc == nullptr) {
             return;
         }
 
-        *npc->getPosition() = *(Vector3f*)&data->position();
-        *npc->getFacing() = data->facing();
-        *npc->getFacing2() = data->facing2();
-        *npc->getHealth() = data->health();
+        npc->position() = *(Vector3f*)&data->position();
+        npc->facing() = data->facing();
+        //*npc->getFacing2() = data->facing2();
+        npc->health() = data->health();
 
         ent->setEntityData(*data);
     }

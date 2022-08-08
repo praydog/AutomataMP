@@ -28,13 +28,13 @@ public:
     void sendButtons(const uint32_t* buttons);
 
     void sendEntityPacket(nier::PacketType id, uint32_t guid, const uint8_t* data = nullptr, size_t size = 0);
-    void sendEntityCreate(uint32_t guid, EntitySpawnParams* data);
+    void sendEntityCreate(uint32_t guid, sdk::EntitySpawnParams* data);
     void sendEntityDestroy(uint32_t guid);
-    void sendEntityData(uint32_t guid, Entity* entity);
+    void sendEntityData(uint32_t guid, sdk::BehaviorAppBase* entity);
     void sendEntityAnimationStart(uint32_t guid, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
 
-    void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
-    void onEntityDeleted(EntityContainer* entity);
+    void onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data);
+    void onEntityDeleted(sdk::Entity* entity);
     
     const auto getGuid() const {
         return m_guid;

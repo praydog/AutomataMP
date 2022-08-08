@@ -109,7 +109,7 @@ uintptr_t get_entity_terminate_fn() {
     static uintptr_t entity_terminate_fn = []() -> uintptr_t {
         spdlog::info("[MidHooks] Finding entity_terminate_fn...");
 
-        const auto terminate = ScriptFunctions::get().find("Behavior.terminate");
+        const auto terminate = sdk::ScriptFunctions::get().find("Behavior.terminate");
 
         if (!terminate) {
             spdlog::error("[MidHooks] Failed to find entity_terminate_fn.");
@@ -165,7 +165,7 @@ MidHooks::MidHooks() {
     addHook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
     addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);*/
 
-    const auto [spawn_fn, spawn_this] = EntityList::getSpawnEntityFn();
+    const auto [spawn_fn, spawn_this] = sdk::EntityList::getSpawnEntityFn();
     m_entitySpawnHook = addInlineHook((uintptr_t)spawn_fn, &MidHooks::entitySpawnHook);
     addHook(get_entity_terminate_fn(), &MidHooks::onEntityTerminate);
     // todo: hook the other version of the terminate function (the script function)
@@ -173,7 +173,7 @@ MidHooks::MidHooks() {
     addHook(get_on_processed_buttons(), &MidHooks::onProcessedButtons);
 
     addHook(get_on_set_held_flags(), [](safetyhook::Context& context) {
-        auto entity = Address(context.rcx).get(-0xCA0).as<Entity*>();
+        auto entity = Address(context.rcx).get(-0xCA0).as<sdk::Pl0000*>();
 
         const auto& amp = AutomataMPMod::get();
         const auto& client = amp->getClient();
@@ -193,40 +193,17 @@ MidHooks::MidHooks() {
         }
 
         if (entity == it->second->getEntity()) {
-            entity->getCharacterController()->heldFlags = it->second->getPlayerData().held_button_flags();
+            entity->character_controller().held_flags = it->second->getPlayerData().held_button_flags();
         }
     });
 
     spdlog::info("[MidHooks] Initialized.");
 }
 
-void MidHooks::onLightAttack(const VehHook::RuntimeInfo& info) {
-    auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
-
-    if (m_overridenEntities.count(entity) != 0) {
-        nier_client_and_server::Buttons buttons;
-        buttons.buttons[Entity::CharacterController::INDEX_ATTACK_LIGHT] = (uint32_t)info.context->Rax;
-        buttons.buttons[Entity::CharacterController::INDEX_ATTACK_HEAVY] = (uint32_t)info.context->Rdx;
-        AutomataMPMod::get()->sendPacket(buttons.data(), sizeof(buttons));
-    }
-}
-
-void MidHooks::onHeavyAttack(const VehHook::RuntimeInfo & info) {
-    auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
-
-    if (m_overridenEntities.count(entity) != 0) {
-        nier_client_and_server::Buttons buttons;
-        buttons.buttons[Entity::CharacterController::INDEX_ATTACK_LIGHT] = (uint32_t)info.context->Rdx;
-        buttons.buttons[Entity::CharacterController::INDEX_ATTACK_HEAVY] = (uint32_t)info.context->Rax;
-        AutomataMPMod::get()->sendPacket(buttons.data(), sizeof(buttons));
-    }
-}
-
-void MidHooks::onProcessedButtons(safetyhook::Context& context)
-{   
+void MidHooks::onProcessedButtons(safetyhook::Context& context) {   
     // OLD VERSION USES R8. THE REGISTER IS THE CHARACTER CONTROLLER OF THE ENTITY.
     //auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
-    auto entity = Address(context.rbx).get(-0xCA0).as<Entity*>();
+    auto entity = Address(context.rbx).get(-0xCA0).as<sdk::Pl0000*>();
 
     if (m_overridenEntities.count(entity) != 0) {
         const auto amp = AutomataMPMod::get();
@@ -236,20 +213,20 @@ void MidHooks::onProcessedButtons(safetyhook::Context& context)
             return;
         }
 
-        for (auto button : entity->getCharacterController()->buttons) {
+        for (auto button : entity->character_controller().buttons) {
             if (button != 0) {
-                client->sendButtons(entity->getCharacterController()->buttons);
+                client->sendButtons(entity->character_controller().buttons);
                 break;
             }
         }
     }
 }
 
-EntityContainer* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
+sdk::Entity* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
     scoped_lock _(m_spawnMutex);
 
-    auto spawnParams = (EntitySpawnParams*)rdx;
-    auto entity = m_entitySpawnHook->call<EntityContainer*, void*, void*>(rcx, rdx);
+    auto spawnParams = (sdk::EntitySpawnParams*)rdx;
+    auto entity = m_entitySpawnHook->call<sdk::Entity*, void*, void*>(rcx, rdx);
 
     if (entity) {
         if (s_ignoreSpawn) {
@@ -260,7 +237,7 @@ EntityContainer* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
         // Other types are just too much for networking to handle
         // or are just completely unnecessary, and should only be
         // spawned client-side.
-        if (entity->entity->isNetworkable()) {
+        if (entity->behavior->is_networkable()) {
             spdlog::info("[MidHooks] Spawned enemy: {}", spawnParams->name);
             AutomataMPMod::get()->onEntityCreated(entity, spawnParams);
         }
@@ -272,7 +249,7 @@ EntityContainer* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
 void MidHooks::onEntityTerminate(safetyhook::Context& context) {
     scoped_lock _(m_spawnMutex);
 
-    auto ent = (EntityContainer*)context.rcx;
+    auto ent = (sdk::Entity*)context.rcx;
 
     AutomataMPMod::get()->onEntityDeleted(ent);
 }
@@ -304,7 +281,7 @@ Function calls:
 */
 
 void MidHooks::onUpdate(safetyhook::Context& info) {
-    auto entityList = EntityList::get();
+    auto entityList = sdk::EntityList::get();
     auto player = entityList->getByName("Player");
 
     if (!player) {
@@ -330,10 +307,10 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
             player->entity->changePlayer();
         }*/
 
-        EntitySpawnParams params;
-        EntitySpawnParams::PositionalData matrix;
-        matrix.position = Vector4f{*player->entity->getPosition(), 1.0f};
-        matrix.unknown = *Address(player->entity).get(0x90).as<Vector4f*>();
+        sdk::EntitySpawnParams params;
+        sdk::EntitySpawnParams::PositionalData matrix;
+        matrix.position = Vector4f{player->behavior->position(), 1.0f};
+        matrix.unknown = *Address(player->behavior).get(0x90).as<Vector4f*>();
         params.name = "FreeEnemy";
         params.matrix = &matrix;
         params.model = 0x21020;
@@ -342,7 +319,7 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
         auto test = entityList->spawnEntity(params);
 
         if (test) {
-            test->entity->setSuspend(false);
+            test->behavior->setSuspend(false);
         }
 
         return;
@@ -352,16 +329,16 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
         auto enemies = entityList->getAllByName("FreeEnemy");
 
         for (auto i : enemies) {
-            if (!i->entity) {
+            if (!i->behavior) {
                 continue;
             }
 
-            i->entity->terminate();
+            i->behavior->terminate();
         }
     }
 }
 
-void MidHooks::addOverridenEntity(Entity* ent) {
+void MidHooks::addOverridenEntity(sdk::Behavior* ent) {
     m_overridenEntities.insert(ent);
 }
 
@@ -448,6 +425,6 @@ safetyhook::InlineHook* MidHooks::addInlineHook(uintptr_t address, void* cb) {
     return m_inlineHooks.back().get();
 }
 
-EntityContainer* MidHooks::entitySpawnHook(void* rcx, void* rdx) {
+sdk::Entity* MidHooks::entitySpawnHook(void* rcx, void* rdx) {
     return g_MidHooks->onEntitySpawn(rcx, rdx);
 }

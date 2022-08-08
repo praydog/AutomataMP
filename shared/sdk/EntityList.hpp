@@ -6,11 +6,12 @@
 #include <tuple>
 #include <sdk/Math.hpp>
 
-struct EntityContainer;
+namespace sdk {
+class Entity;
 
 struct EntityDescriptor {
     uint32_t handle;
-    EntityContainer* ent;
+    Entity* ent;
 };
 
 struct EntitySpawnParams {
@@ -50,20 +51,20 @@ public:
     static EntityList* get();
 
 public:
-    EntityContainer* get(uint32_t i);
-    EntityContainer* getByName(const std::string& name);
-    EntityContainer* getByHandle(uint32_t handle);
-    EntityContainer* getPossessedEntity();
+    Entity* get(uint32_t i);
+    Entity* getByName(const std::string& name);
+    Entity* getByHandle(uint32_t handle);
+    Entity* getPossessedEntity();
 
-    using SpawnFunction = EntityContainer* (*)(void*, const EntitySpawnParams&);
+    using SpawnFunction = Entity* (*)(void*, const EntitySpawnParams&);
     using SpawnThis = void*;
     static std::tuple<SpawnFunction, SpawnThis> getSpawnEntityFn();
     static void* getPostSpawnEntityFn();
 
-    EntityContainer* spawnEntity(const EntitySpawnParams& params);
-    EntityContainer* spawnEntity(const std::string& name, uint32_t model, const Vector3f& position);
+    Entity* spawnEntity(const EntitySpawnParams& params);
+    Entity* spawnEntity(const std::string& name, uint32_t model, const Vector3f& position);
 
-    std::vector<EntityContainer*> getAllByName(const std::string& name);
+    std::vector<Entity*> getAllByName(const std::string& name);
 
 public:
     size_t size();
@@ -79,3 +80,4 @@ public:
 private:
     EntityDescriptor m_entities[1];
 };
+}

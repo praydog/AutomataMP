@@ -13,14 +13,14 @@ class EntitySync;
 
 class NetworkEntity {
 public:
-    NetworkEntity(EntityContainer* entity, uint32_t guid);
+    NetworkEntity(sdk::Entity* entity, uint32_t guid);
 
-    void setEntity(EntityContainer* entity) {
+    void setEntity(sdk::Entity* entity) {
         m_entityHandle = entity->handle;
     }
 
-    EntityContainer* getEntity() {
-        auto entityList = EntityList::get();
+    sdk::Entity* getEntity() {
+        auto entityList = sdk::EntityList::get();
 
         if (entityList == nullptr) {
             return nullptr;
@@ -47,7 +47,7 @@ public:
 
 private:
     friend class EntitySync;
-    static void startAnimationHook(Entity* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
+    static void startAnimationHook(sdk::Behavior* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
 
     std::unique_ptr<VtableHook> m_hook{};
     uint32_t m_guid{};
@@ -59,11 +59,11 @@ class EntitySync {
 public:
     EntitySync(uint32_t highestGuid = 0);
 
-    void onEntityCreated(EntityContainer* entity, EntitySpawnParams* data);
-    void onEntityDeleted(EntityContainer* entity);
+    void onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data);
+    void onEntityDeleted(sdk::Entity* entity);
     void onEnterServer(bool isMasterClient); // Gather existing entities (if master client) and send them to server
 
-    std::shared_ptr<NetworkEntity> addEntity(EntityContainer* entity, uint32_t guid);
+    std::shared_ptr<NetworkEntity> addEntity(sdk::Entity* entity, uint32_t guid);
     void removeEntity(uint32_t identifier);
 
     void think();

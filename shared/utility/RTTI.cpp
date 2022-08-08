@@ -9,7 +9,7 @@
 
 namespace utility {
 namespace rtti {
-bool derives_from(const void* obj, const std::string& type_name) {
+bool derives_from(const void* obj, std::string_view type_name) {
     if (obj == nullptr) {
         return false;
     }

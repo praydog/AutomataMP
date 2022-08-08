@@ -1,0 +1,140 @@
+type uint64_t 8 [[u64]]
+type int32_t 4 [[i32]]
+type uint32_t 4 [[u32]]
+type int16_t 2 [[i16]]
+type uint16_t 2 [[u16]]
+type uint8_t 1 [[u8]]
+type float 4 [[f32]]
+type char 1
+type void 0
+type wchar_t 2 [[u16]]
+type bool 1 [[u8]]
+
+namespace regenny{
+struct UnkEntityData 0x1000 {
+};
+
+struct Vector3f {
+	float x; 
+	float y; 
+	float z;
+};
+
+struct Vector4f {
+	float x; 
+	float y; 
+	float z;
+	float w;
+};
+
+struct Matrix4x4f {
+	Vector4f x;
+	Vector4f y;
+	Vector4f z;
+	Vector4f w;
+};
+
+enum EModel : uint32_t {
+    MODEL_2B = 0x10000,
+    MODEL_A2 = 0x10100,
+    MODEL_9S = 0x10200,
+};
+
+enum ERunSpeedType : uint32_t {
+    SPEED_PLAYER = 0,
+    SPEED_BUDDY = 1,
+};
+
+struct CharacterController 0x1000 {
+	uint32_t held_flags @ 0x738;
+	uint32_t flags;
+	uint32_t buttons[8] + 0x30;
+	float speed @ 0x794
+	float facing @ 0x79C
+};
+
+struct Xml 8 {
+	virtual void destructor();
+	virtual void lastVirtual() @ 80
+};
+
+struct XmlBinary : Xml 0x40 {
+};
+
+struct Entity{};
+struct Parts 8 {
+	virtual void destructor();
+};
+
+struct Model : Parts 0x590 {
+	Vector4f position @ 0x50;
+
+	float facing @ 0x94;
+	float tick_count @ 0x9C;
+};
+
+struct Obj : Model 0x670 {
+	uint32_t obj_flags @ 0x598;
+	EModel model_index @ 0x5b8;
+	Entity* entity @ 0x610;
+	//XmlBinary xml @ 0x618;
+	// this is a XmlBinary.
+	char xmlbinary_data[0x40] @ 0x618
+};
+
+struct Behavior : Obj 0x830 {
+	virtual void start_animation(uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) @ 18
+};
+
+struct BehaviorAppBase : Behavior 0xC50 {
+	uint32_t health @ 0x858;
+};
+
+struct Pl0000 : BehaviorAppBase 0x17920 {
+	CharacterController controller @ 0xCa0
+	uint32_t weapon_index @ 0x107d8
+	uint32_t pod_index @ 0x10820
+	uint32_t buddy_handle @ 0x1647c
+	ERunSpeedType run_speed_type @ 0x16488
+	bool shorts_torn @ 0x16ce4
+	bool wearing_mask @ 0x16cEC
+	bool flashlight @ 0x174b0
+};
+
+struct Entity 0x1000 {
+	UnkEntityData* unknown;
+	char name[0x20] [[utf8*]]
+	uint64_t flags;
+	uint32_t handle;
+	void* unknown2 + 4
+	void* raw_file_data;
+	Behavior* behavior;
+};
+
+struct CameraData 0x1000 {
+	Matrix4x4f viewproj @ 0x80
+	Matrix4x4f view;
+};
+
+struct CameraTransform 0x60 {
+	virtual void destructor();
+	Vector3f pos @ 0x10;
+	Vector3f pos2;
+	Vector3f pos3;
+};
+
+struct CameraBase : CameraTransform 0x70 {
+	CameraData* data @ 0x60
+};
+
+struct Camera : CameraBase 0x70 {
+};
+
+struct CameraApp : Camera 0x370 {
+	virtual void cameraAppLastVirtual() @ 2
+	float fov @ 0x138
+};
+
+struct CameraGame : CameraApp 0x8c20 {
+};
+}

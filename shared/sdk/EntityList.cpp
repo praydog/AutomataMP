@@ -10,6 +10,7 @@
 
 using namespace std;
 
+namespace sdk {
 EntityList** get_entity_list_base() {
     // old version ~2017
     /*static EntityList** entList = nullptr;
@@ -49,12 +50,12 @@ EntityList* EntityList::get() {
     return *get_entity_list_base();
 }
 
-EntityContainer* EntityList::get(uint32_t i)
+Entity* EntityList::get(uint32_t i)
 {
     return m_entities[i].ent;
 }
 
-EntityContainer* EntityList::getByName(const std::string& name) {
+Entity* EntityList::getByName(const std::string& name) {
     for (auto& i : *this) {
         if (!i.ent)
             continue;
@@ -66,12 +67,12 @@ EntityContainer* EntityList::getByName(const std::string& name) {
     return nullptr;
 }
 
-EntityContainer* EntityList::getByHandle(uint32_t handle) {
+Entity* EntityList::getByHandle(uint32_t handle) {
     auto index = (uint16_t)(handle >> 8);
     return m_entities[index].ent;
 }
 
-EntityContainer* EntityList::getPossessedEntity() {
+Entity* EntityList::getPossessedEntity() {
     //static uint32_t* currentHandle = Address(0x14158A6EC).as<uint32_t*>(); // old 2017
     
     /*
@@ -225,12 +226,12 @@ void* EntityList::getPostSpawnEntityFn() {
     return out;
 }
 
-EntityContainer* EntityList::spawnEntity(const EntitySpawnParams& params) {
+Entity* EntityList::spawnEntity(const EntitySpawnParams& params) {
     auto [spawn, thisptr] = getSpawnEntityFn();
     return spawn(thisptr, params);
 }
 
-EntityContainer* EntityList::spawnEntity(const std::string& name, uint32_t model, const Vector3f& position) {
+Entity* EntityList::spawnEntity(const std::string& name, uint32_t model, const Vector3f& position) {
     EntitySpawnParams params;
     EntitySpawnParams::PositionalData matrix;
     matrix.position = Vector4f{position, 1.0f};
@@ -238,14 +239,14 @@ EntityContainer* EntityList::spawnEntity(const std::string& name, uint32_t model
     params.matrix = &matrix;
     params.model = model;
     params.model2 = model;
-    matrix.unknown = *Address(getByName("Player")->entity).get(0x90).as<Vector4f*>();
+    matrix.unknown = *Address(getByName("Player")->behavior).get(0x90).as<Vector4f*>();
 
     auto ret = spawnEntity(params);
     return ret;
 }
 
-std::vector<EntityContainer*> EntityList::getAllByName(const std::string& name) {
-    std::vector<EntityContainer*> vec;
+std::vector<Entity*> EntityList::getAllByName(const std::string& name) {
+    std::vector<Entity*> vec;
 
     for (auto& i : *this) {
         if (!i.ent)
@@ -270,4 +271,5 @@ size_t EntityList::size() {
     }
 
     return *s;
+}
 }

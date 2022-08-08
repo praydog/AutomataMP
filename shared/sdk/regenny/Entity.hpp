@@ -1,22 +1,23 @@
 #pragma once
-#include "CharacterController.hpp"
+namespace regenny {
+struct UnkEntityData;
+}
+namespace regenny {
+struct Behavior;
+}
 namespace regenny {
 #pragma pack(push, 1)
 struct Entity {
-    char pad_0[0xca0];
-    regenny::CharacterController controller; // 0xca0
-    char pad_1ca0[0xeb38];
-    uint32_t weapon_index; // 0x107d8
-    char pad_107dc[0x44];
-    uint32_t pod_index; // 0x10820
-    char pad_10824[0x5c58];
-    uint32_t buddy_handle; // 0x1647c
-    char pad_16480[0x864];
-    bool shorts_torn; // 0x16ce4
-    char pad_16ce5[0x7];
-    bool wearing_mask; // 0x16cec
-    char pad_16ced[0x7c3];
-    bool flashlight; // 0x174b0
-}; // Size: 0x174b1
+    regenny::UnkEntityData* unknown; // 0x0
+    // Metadata: utf8*
+    char name[32]; // 0x8
+    uint64_t flags; // 0x28
+    uint32_t handle; // 0x30
+    char pad_34[0x4];
+    void* unknown2; // 0x38
+    void* raw_file_data; // 0x40
+    regenny::Behavior* behavior; // 0x48
+    char pad_50[0xfb0];
+}; // Size: 0x1000
 #pragma pack(pop)
 }

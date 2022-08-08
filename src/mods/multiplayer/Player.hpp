@@ -1,9 +1,10 @@
 #pragma once
 
 #include "schema/Packets_generated.h"
-#include "Packets.hpp"
 
-class Entity;
+namespace sdk {
+class Pl0000;
+}
 
 class Player {
 public:
@@ -47,7 +48,7 @@ public:
         m_startTick = tick;
     }
 
-    Entity* getEntity();
+    sdk::Pl0000* getEntity();
 
 private:
     std::string m_name{};

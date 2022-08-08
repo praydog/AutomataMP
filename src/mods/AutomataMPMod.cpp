@@ -129,7 +129,7 @@ void AutomataMPMod::on_think() {
         return;
     }
 
-    auto entityList = EntityList::get();
+    auto entityList = sdk::EntityList::get();
 
     if (!entityList) {
         return;
@@ -148,14 +148,14 @@ void AutomataMPMod::on_think() {
 
     if (partner) {
         if (utility::was_key_down(VK_F4)) {
-            Vector3f* myPos = Address(player->entity).get(0x50).as<Vector3f*>();
+            Vector3f* myPos = Address(player->behavior).get(0x50).as<Vector3f*>();
 
             for (auto i : partners) {
-                if (!i->entity) {
+                if (!i->behavior) {
                     continue;
                 }
 
-                Vector3f* vec = Address(i->entity).get(0x50).as<Vector3f*>();
+                Vector3f* vec = Address(i->behavior).get(0x50).as<Vector3f*>();
                 *vec = *myPos;
             }
         }
@@ -191,8 +191,8 @@ void AutomataMPMod::on_think() {
     //spdlog::info("Partner: 0x%p, handle: 0x%X", partner, partner->handle);
     //spdlog::info(" partner real ent: 0x%p", partner->entity);
 
-    static uint32_t(*possessEntity)(Entity* player, uint32_t* handle, bool a3) = (decltype(possessEntity))0x1402118D0;
-    static uint32_t(*unpossessEntity)(Entity* player, bool a2) = (decltype(unpossessEntity))0x140211AE0;
+    //static uint32_t(*possessEntity)(Entity* player, uint32_t* handle, bool a3) = (decltype(possessEntity))0x1402118D0;
+    //static uint32_t(*unpossessEntity)(Entity* player, bool a2) = (decltype(unpossessEntity))0x140211AE0;
 
     /*if (utility::was_key_down(VK_F5)) {
         auto curHandle = Address(0x1416053E0).as<uint32_t*>();
@@ -237,7 +237,7 @@ void AutomataMPMod::on_think() {
     }*/
 
     if (utility::was_key_down(VK_F6)) {
-        player->entity->changePlayer();
+        player->behavior->as<sdk::Pl0000>()->changePlayer();
         //nier_client_and_server::ChangePlayer change;
         //sendPacket(change.data(), sizeof(change));
     }
@@ -247,28 +247,31 @@ void AutomataMPMod::on_think() {
             if (!i.ent || !i.handle)
                 continue;
 
-            if (!i.ent->entity)
+            if (!i.ent->behavior)
                 continue;
 
-            if (i.ent->entity->getHealth() == 0)
+            if (i.ent->behavior->as<sdk::BehaviorAppBase>()->health() == 0){
                 continue;
+            }
 
-            i.ent->entity->setBuddyFlags(-1);
-            i.ent->entity->setBuddyFromNpc();
-            i.ent->entity->setBuddyFlags(8);
-            i.ent->entity->setBuddyFromNpc();
-            i.ent->entity->setBuddyFlags(1);
+            auto pl0000 = i.ent->behavior->as<sdk::Pl0000>();
+
+            pl0000->obj_flags() = -1;
+            pl0000->setBuddyFromNpc();
+            pl0000->obj_flags() = 8;
+            pl0000->setBuddyFromNpc();
+            pl0000->obj_flags() = 1;
         }
     }
 
-    auto prevPlayer = player;
+    /*auto prevPlayer = player;
 
     // generates a linked list of players pretty much
     // so we can swap between all of them instead of just two.
     for (uint32_t index = 0; index < entityList->size(); ++index) {
         auto ent = entityList->get(index);
 
-        if (!ent || !ent->entity) {
+        if (!ent || !ent->behavior) {
             continue;
         }
         
@@ -278,15 +281,15 @@ void AutomataMPMod::on_think() {
         if (prevPlayer == ent)
             continue;
 
-        prevPlayer->entity->setBuddyHandle(ent->handle);
+        prevPlayer->behavior->as<sdk::Pl0000>()->setBuddyHandle(ent->handle);
         prevPlayer = ent;
     }
 
     if (prevPlayer != player) {
-        prevPlayer->entity->setBuddyHandle(player->handle);
-    }
+        prevPlayer->behavior->as<sdk::Pl0000>()->setBuddyHandle(player->handle);
+    }*/
 
-    static uint32_t(*spawnBuddy)(Entity* player) = (decltype(spawnBuddy))0x140245C30;
+    //static uint32_t(*spawnBuddy)(Entity* player) = (decltype(spawnBuddy))0x140245C30;
 
     sharedThink();
 
@@ -296,24 +299,24 @@ void AutomataMPMod::on_think() {
         spawnBuddy(player->entity);
         player->entity->setBuddyHandle(old);*/
 
-        auto ent = entityList->spawnEntity("partner", EModel::MODEL_2B, *player->entity->getPosition());
+        auto ent = entityList->spawnEntity("partner", sdk::EModel::MODEL_2B, player->behavior->position());
 
         if (ent) {
             ent->assignAIRoutine("buddy_2B");
             ent->assignAIRoutine("buddy");
 
-            ent->entity->setBuddyHandle(player->handle);
-            player->entity->setBuddyHandle(ent->handle);
+            ent->behavior->as<sdk::Pl0000>()->buddy_handle() = player->handle;
+            player->behavior->as<sdk::Pl0000>()->buddy_handle() = ent->handle;
 
             // alternate way of assigning AI to the entity easily.
             //changePlayer(player->entity);
             //changePlayer(player->entity);
 
-            ent->entity->setSuspend(false);
+            ent->behavior->setSuspend(false);
 
-            ent->entity->setBuddyFlags(-1);
-            ent->entity->setBuddyFromNpc();
-            ent->entity->setBuddyFlags(1);
+            ent->behavior->obj_flags() = -1;
+            ent->behavior->as<sdk::Pl0000>()->setBuddyFromNpc();
+            ent->behavior->obj_flags() = 1;
 
             //ent->entity->setPosRotResetHap(Vector4f{*player->entity->getPosition(), 1.0f}, glm::identity<glm::quat>());
         }
@@ -323,7 +326,7 @@ void AutomataMPMod::on_think() {
 
     if (utility::was_key_down(VK_F10) && partner) {
         for (auto p : partners) {
-            p->entity->terminate();
+            p->behavior->terminate();
         }
     }
 
@@ -334,7 +337,7 @@ void AutomataMPMod::on_think() {
     }*/
 
     if (utility::was_key_down(VK_F3)) {
-        player->entity->setSuspend(!player->entity->isSuspend());
+        player->behavior->setSuspend(!player->behavior->isSuspend());
     }
 }
 
@@ -343,7 +346,7 @@ void AutomataMPMod::sharedThink() {
 
     //static uint32_t(*changePlayer)(Entity* player) = (decltype(changePlayer))0x1401ED500;
 
-    auto entityList = EntityList::get();
+    auto entityList = sdk::EntityList::get();
 
     if (!entityList) {
         return;
@@ -359,7 +362,7 @@ void AutomataMPMod::sharedThink() {
 
     auto controlledEntity = entityList->getPossessedEntity();
 
-    if (!controlledEntity || !controlledEntity->entity) {
+    if (!controlledEntity || !controlledEntity->behavior) {
         spdlog::info("Controlled entity invalid");
         return;
     }
@@ -377,11 +380,13 @@ void AutomataMPMod::sharedThink() {
         return;
     }*/
 
-    m_midHooks.addOverridenEntity(controlledEntity->entity);
-    m_playerHook.reHook(controlledEntity->entity);
-    controlledEntity->entity->setBuddyFlags(0);
+    if (controlledEntity->behavior->is_pl0000()) {
+        m_midHooks.addOverridenEntity(controlledEntity->behavior);
+        m_playerHook.reHook(controlledEntity->behavior->as<sdk::Pl0000>());
+        controlledEntity->behavior->obj_flags() = 0;
 
-    auto realBuddy = entityList->getByHandle(controlledEntity->entity->getBuddyHandle());
+        auto realBuddy = entityList->getByHandle(controlledEntity->behavior->as<sdk::Pl0000>()->buddy_handle());
+    }
 
     if (m_client) {
         m_client->think();

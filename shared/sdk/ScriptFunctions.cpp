@@ -6,6 +6,7 @@
 
 #include "ScriptFunctions.hpp"
 
+namespace sdk {
 ScriptFunctions& ScriptFunctions::get() {
     static ScriptFunctions scripts;
     return scripts;
@@ -71,4 +72,5 @@ ScriptFunction* ScriptFunctions::find(const std::string& name) {
     }
 
     return nullptr;
+}
 }
