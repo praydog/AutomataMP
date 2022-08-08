@@ -11,8 +11,8 @@ struct Pl0000 : public BehaviorAppBase {
     uint32_t weapon_index; // 0x107d8
     char pad_107dc[0x44];
     uint32_t pod_index; // 0x10820
-    uint32_t buddy_handle; // 0x1647c
     char pad_10824[0x5c58];
+    uint32_t buddy_handle; // 0x1647c
     char pad_16480[0x8];
     regenny::ERunSpeedType run_speed_type; // 0x16488
     char pad_1648c[0x858];
