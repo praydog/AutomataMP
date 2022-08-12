@@ -1,12 +1,38 @@
 # AutomataMP
 NieR: Automata Multiplayer Mod
 
-## About
+## Features
+### Standalone server
+* Server coded in Go that can run on either Linux or Windows
+
+### Player Sync
+* Position
+* Rotation
+* Animations
+* Pod firing
+* Pod programs
+* Pod flashlight
+* Weapon/loadout selection (but not the actual weapon types themselves)
+
+### Enemy Sync
+* Replicates enemy spawns as the MasterClient spawns them
+* Deletes enemies on normal client's ends that are not supposed to be networked
+* Position
+* Rotation
+* Health/alive state
+* Some animations
+
+## Planned/Wanted Features
+* Model changer
+* PvP
+* Room/lobby system
+* Ghost system when not connected to a room/lobby
+
+## History
 Mod that was developed back in 2017 and had a very short development before I moved on to other things. This was not open sourced and released sooner as the libraries behind the original version were not open source friendly.
 
 Because this is fairly old code originally not meant to be released publicly, the coding standards are not up to my current set. Please forgive this. It may be fixed over time.
 
-## History
 ### Late August 2017
 * Development began
 * Lots of reverse engineering
