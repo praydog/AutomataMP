@@ -1,7 +1,7 @@
-package main
+package automatamp
 
 import (
-	nier "automatampserver/nier"
+	nier "automatamp/automatamp/nier"
 	"math/rand"
 	"time"
 
@@ -10,97 +10,29 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type Player struct {
+type MockPlayer struct {
 	guid           uint64
 	name           string
 	model          uint32
 	lastPlayerData *nier.PlayerData
 }
 
-// create guid->player map
-var players = make(map[uint64]*Player)
-
-type LocalPlayer struct {
+type MockLocalPlayer struct {
 	isMasterClient bool
 	guid           uint64
-	player         *Player
+	player         *MockPlayer
 }
 
-var localPlayer *LocalPlayer = nil
-
-func checkValidPacket(data *nier.Packet) bool {
-	if data.Magic() != 1347240270 {
-		log.Error("Invalid magic number: %d", data.Magic())
-		return false
-	}
-
-	if data.Id() == 0 {
-		log.Error("Invalid packet type: %d", data.Id())
-		return false
-	}
-
-	return true
+type MockClient struct {
+	players     map[uint64]*MockPlayer
+	localPlayer *MockLocalPlayer
 }
 
-func packetStart(id nier.PacketType) *flatbuffers.Builder {
-	builder := flatbuffers.NewBuilder(0)
-	nier.PacketStart(builder)
-	nier.PacketAddMagic(builder, 1347240270)
-	nier.PacketAddId(builder, id)
-	//nier.PacketEnd(builder)
-
-	return builder
-}
-
-func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder {
-	builder := flatbuffers.NewBuilder(0)
-
-	dataoffs := flatbuffers.UOffsetT(0)
-
-	if len(data) > 0 {
-		nier.PacketStartDataVector(builder, len(data))
-		for i := len(data) - 1; i >= 0; i-- {
-			builder.PrependUint8(data[i])
-		}
-		dataoffs = builder.EndVector(len(data))
-	}
-
-	nier.PacketStart(builder)
-	nier.PacketAddMagic(builder, 1347240270)
-	nier.PacketAddId(builder, id)
-
-	if (len(data)) > 0 {
-		nier.PacketAddData(builder, dataoffs)
-	}
-	//nier.PacketEnd(builder)
-
-	return builder
-}
-
-func makePacketBytes(id nier.PacketType, data []uint8) []uint8 {
-	builder := packetStartWithData(id, data)
-	builder.Finish(nier.PacketEnd(builder))
-	return builder.FinishedBytes()
-}
-
-func makeEmptyPacketBytes(id nier.PacketType) []uint8 {
-	builder := packetStart(id)
-	builder.Finish(nier.PacketEnd(builder))
-	return builder.FinishedBytes()
-}
-
-func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8 {
-	builder := flatbuffers.NewBuilder(0)
-	offs := cb(builder)
-	builder.Finish(offs)
-	return builder.FinishedBytes()
-}
-
-func sendPing(peer enet.Peer) {
+func (mock *MockClient) sendPing(peer enet.Peer) {
 	peer.SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
 }
 
-func sendHello(peer enet.Peer, name string, password string) {
+func (mock *MockClient) sendHello(peer enet.Peer, name string, password string) {
 	helloBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		name_pkt := builder.CreateString(name)
 		pwd_pkt := builder.CreateString(password)
@@ -110,6 +42,7 @@ func sendHello(peer enet.Peer, name string, password string) {
 		nier.HelloAddPatch(builder, uint32(nier.VersionPatchValue))
 		nier.HelloAddName(builder, name_pkt)
 		nier.HelloAddPassword(builder, pwd_pkt)
+		nier.HelloAddModel(builder, uint32(nier.ModelTypeMODEL_2B))
 
 		return nier.HelloEnd(builder)
 	})
@@ -118,7 +51,7 @@ func sendHello(peer enet.Peer, name string, password string) {
 	peer.SendBytes(pkt, 0, enet.PacketFlagReliable)
 }
 
-func getNextPacket(ev enet.Event) *nier.Packet {
+func (mock *MockClient) getNextPacket(ev enet.Event) *nier.Packet {
 	if ev.GetType() == enet.EventReceive {
 		packet := ev.GetPacket()
 		defer packet.Destroy()
@@ -140,12 +73,12 @@ func getNextPacket(ev enet.Event) *nier.Packet {
 	return nil
 }
 
-func sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
-	sendHello(peer, "", "test")
+func (mock *MockClient) sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
+	mock.sendHello(peer, "", "test")
 
 	for i := 0; i < 20; i++ {
 		ev := client.Service(100)
-		data := getNextPacket(ev)
+		data := mock.getNextPacket(ev)
 
 		if data == nil {
 			continue
@@ -155,9 +88,9 @@ func sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
 			log.Info("Hello acknowledged")
 			welcome := nier.GetRootAsWelcome(data.DataBytes(), 0)
 
-			localPlayer = new(LocalPlayer)
-			localPlayer.isMasterClient = welcome.IsMasterClient()
-			localPlayer.guid = welcome.Guid()
+			mock.localPlayer = new(MockLocalPlayer)
+			mock.localPlayer.isMasterClient = welcome.IsMasterClient()
+			mock.localPlayer.guid = welcome.Guid()
 
 			log.Info("Welcome: %d", welcome.Guid())
 			log.Info("Is master client: %t", welcome.IsMasterClient())
@@ -169,7 +102,7 @@ func sendHelloAndWait(client enet.Host, peer enet.Peer) bool {
 	return false
 }
 
-func performStartupHandshake(client enet.Host, peer enet.Peer) bool {
+func (mock *MockClient) performStartupHandshake(client enet.Host, peer enet.Peer) bool {
 	log.Info("Performing startup handshake")
 
 	hasConnection := false
@@ -195,7 +128,7 @@ func performStartupHandshake(client enet.Host, peer enet.Peer) bool {
 	}
 
 	log.Info("Sending initial hello...")
-	if !sendHelloAndWait(client, peer) {
+	if !mock.sendHelloAndWait(client, peer) {
 		log.Error("Failed to receive hello response from server")
 		return false
 	}
@@ -205,21 +138,21 @@ func performStartupHandshake(client enet.Host, peer enet.Peer) bool {
 	return true
 }
 
-func spawnPlayer(player *Player) {
-	if player.guid == localPlayer.guid {
-		localPlayer.player = player
+func (mock *MockClient) spawnPlayer(player *MockPlayer) {
+	if player.guid == mock.localPlayer.guid {
+		mock.localPlayer.player = player
 	}
 
 	log.Info(" Spawning player %d", player.guid)
-	log.Info(" Is local player: %t", player.guid == localPlayer.guid)
-	log.Info(" Is master client: %t", player.guid == localPlayer.guid && localPlayer.isMasterClient)
+	log.Info(" Is local player: %t", player.guid == mock.localPlayer.guid)
+	log.Info(" Is master client: %t", player.guid == mock.localPlayer.guid && mock.localPlayer.isMasterClient)
 	log.Info(" Model: %d", player.model)
 
 	// Doesn't actually do anything, this is just mock code.
 	// Implement it in the actual game.
 }
 
-func main() {
+func (mock *MockClient) Run() {
 	// Initialize enet
 	enet.Initialize()
 
@@ -237,7 +170,7 @@ func main() {
 		return
 	}
 
-	if !performStartupHandshake(client, peer) {
+	if !mock.performStartupHandshake(client, peer) {
 		return
 	}
 
@@ -269,7 +202,7 @@ func main() {
 			if now.Sub(pingTime) > time.Second {
 				log.Info("Sending ping")
 
-				sendPing(peer)
+				mock.sendPing(peer)
 				pingTime = now
 				continue
 			}
@@ -328,14 +261,14 @@ func main() {
 
 				playerCreationPacket := nier.GetRootAsCreatePlayer(data.DataBytes(), 0)
 
-				players[playerCreationPacket.Guid()] = new(Player)
-				players[playerCreationPacket.Guid()].guid = playerCreationPacket.Guid()
-				players[playerCreationPacket.Guid()].name = string(playerCreationPacket.Name())
-				players[playerCreationPacket.Guid()].model = playerCreationPacket.Model()
+				mock.players[playerCreationPacket.Guid()] = new(MockPlayer)
+				mock.players[playerCreationPacket.Guid()].guid = playerCreationPacket.Guid()
+				mock.players[playerCreationPacket.Guid()].name = string(playerCreationPacket.Name())
+				mock.players[playerCreationPacket.Guid()].model = playerCreationPacket.Model()
 
 				// Doesn't actually do anything, this is just mock code.
 				// implement it in the actual game.
-				spawnPlayer(players[playerCreationPacket.Guid()])
+				mock.spawnPlayer(mock.players[playerCreationPacket.Guid()])
 
 				break
 			case nier.PacketTypeID_DESTROY_PLAYER:
@@ -346,14 +279,14 @@ func main() {
 
 				log.Info(" Destroying player %d", playerDestructionPacket.Guid())
 
-				players[playerDestructionPacket.Guid()] = nil // ezpz
+				mock.players[playerDestructionPacket.Guid()] = nil // ezpz
 
 				break
 			// Bounced packets from server
 			case nier.PacketTypeID_ANIMATION_START:
 				log.Info("Animation start received from client %d", playerPacket.Guid())
 
-				if players[playerPacket.Guid()] == nil {
+				if mock.players[playerPacket.Guid()] == nil {
 					log.Error(" Player %d not found", playerPacket.Guid())
 					continue
 				}
@@ -370,7 +303,7 @@ func main() {
 			case nier.PacketTypeID_PLAYER_DATA:
 				log.Info("Player data received from client %d", playerPacket.Guid())
 
-				if players[playerPacket.Guid()] == nil {
+				if mock.players[playerPacket.Guid()] == nil {
 					log.Error(" Player %d not found", playerPacket.Guid())
 					continue
 				}
@@ -396,4 +329,13 @@ func main() {
 
 	// Uninitialize enet
 	enet.Deinitialize()
+}
+
+func CreateMockClient() *MockClient {
+	mock := &MockClient{}
+
+	mock.players = make(map[uint64]*MockPlayer)
+	mock.localPlayer = nil
+
+	return mock
 }

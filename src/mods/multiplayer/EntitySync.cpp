@@ -159,7 +159,8 @@ std::shared_ptr<NetworkEntity> EntitySync::addEntity(sdk::Entity* entity, uint32
 
     nier::EntityData firstData(
         entity->behavior->facing(),
-        entity->behavior->as<sdk::Pl0000>()->character_controller().facing,
+        //entity->behavior->as<sdk::Pl0000>()->character_controller().facing,
+        0.0f,
         entity->behavior->as<sdk::BehaviorAppBase>()->health(),
         *(nier::Vector3f*)&entity->behavior->position()
     );

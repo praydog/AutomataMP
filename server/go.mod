@@ -1,4 +1,4 @@
-module automatampserver
+module automatamp
 
 go 1.18
 
