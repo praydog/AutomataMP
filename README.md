@@ -4,6 +4,7 @@ NieR: Automata Multiplayer Mod
 ## Features
 ### Standalone server
 * Server coded in Go that can run on either Linux or Windows
+* MasterClient system to allow a "host" that controls the game world (enemies and other world state)
 
 ### Player Sync
 * Position
