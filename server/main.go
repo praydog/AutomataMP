@@ -1,8 +1,9 @@
 package main
 
 import (
-	"automatamp/automatamp"
 	"flag"
+
+	"github.com/praydog/AutomataMP/server/automatamp"
 )
 
 func main() {

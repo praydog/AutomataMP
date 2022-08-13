@@ -1,7 +1,7 @@
 package automatamp
 
 import (
-	nier "automatamp/automatamp/nier"
+	nier "github.com/praydog/AutomataMP/server/automatamp/nier"
 
 	"github.com/codecat/go-libs/log"
 	flatbuffers "github.com/google/flatbuffers/go"

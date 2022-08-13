@@ -1,6 +1,6 @@
-module automatamp
+module github.com/praydog/AutomataMP/server
 
-go 1.18
+go 1.19
 
 require (
 	github.com/codecat/go-enet v0.0.0-20201213053919-8c1bf6ac65fa

@@ -1,6 +1,6 @@
 package automatamp
 
-import nier "automatamp/automatamp/nier"
+import nier "github.com/praydog/AutomataMP/server/automatamp/nier"
 
 type Client struct {
 	guid           uint64

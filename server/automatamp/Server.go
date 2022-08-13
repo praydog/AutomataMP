@@ -1,10 +1,11 @@
 package automatamp
 
 import (
-	nier "automatamp/automatamp/nier"
 	"encoding/json"
 	"os"
 	"strconv"
+
+	nier "github.com/praydog/AutomataMP/server/automatamp/nier"
 
 	"github.com/codecat/go-enet"
 	"github.com/codecat/go-libs/log"
@@ -493,7 +494,7 @@ func CreateServer() *Server {
 		log.Error("Server requires a server.json file to be present")
 		panic(err)
 	}
-
+	
 	server := &Server{}
 	server.connections = make(map[enet.Peer]*Connection)
 	server.clients = make(map[*Connection]*Client)

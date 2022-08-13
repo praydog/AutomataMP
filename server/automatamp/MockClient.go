@@ -1,9 +1,10 @@
 package automatamp
 
 import (
-	nier "automatamp/automatamp/nier"
 	"math/rand"
 	"time"
+
+	nier "github.com/praydog/AutomataMP/server/automatamp/nier"
 
 	"github.com/codecat/go-enet"
 	"github.com/codecat/go-libs/log"
