@@ -13,6 +13,9 @@ func main() {
 	if *mode == "server" {
 		server := automatamp.CreateServer()
 		server.Run()
+	} else if *mode == "masterserver" {
+		server := automatamp.CreateMasterServer()
+		server.Run()
 	} else if *mode == "client" {
 		mock := automatamp.CreateMockClient()
 		mock.Run()
