@@ -556,6 +556,8 @@ func (server *Server) heartbeatGoroutine() {
 		if time.Since(server.lastHeartbeat) >= 30*time.Second {
 			server.sendHeartbeatToMasterServer()
 		}
+
+		time.Sleep(time.Second)
 	}
 }
 
