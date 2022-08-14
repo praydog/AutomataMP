@@ -89,7 +89,268 @@ func (server *Server) GetFilteredPlayerName(input []uint8) string {
 	return out
 }
 
-// dafgsiodfjggoisdfjgoisdfjg
+func (server *Server) handleHello(ev enet.Event, connection *Connection, data *nier.Packet) {
+	log.Info("Hello packet received")
+
+	if connection.client != nil {
+		log.Error("Received hello packet from client that already has a client, discarding")
+		return
+	}
+
+	helloData := nier.GetRootAsHello(data.DataBytes(), 0)
+
+	if helloData.Major() != uint32(nier.VersionMajorValue) {
+		log.Error("Invalid major version: %d", helloData.Major())
+		ev.GetPeer().DisconnectNow(0)
+		return
+	}
+
+	if helloData.Minor() > uint32(nier.VersionMinorValue) {
+		log.Error("Client is newer than server, disconnecting")
+		ev.GetPeer().DisconnectNow(0)
+		return
+	}
+
+	if helloData.Patch() != uint32(nier.VersionPatchValue) {
+		log.Info("Minor version mismatch, this is okay")
+	}
+
+	log.Info("Version check passed")
+
+	if server.config["password"].(string) != "" {
+		if string(helloData.Password()) != server.config["password"].(string) {
+			log.Error("Invalid password, client sent: \"%s\"", string(helloData.Password()))
+			ev.GetPeer().DisconnectNow(0)
+			return
+		}
+	}
+
+	log.Info("Password check passed")
+
+	if _, ok := nier.EnumNamesModelType[nier.ModelType(helloData.Model())]; !ok {
+		log.Error("Invalid model type: %d", helloData.Model())
+		ev.GetPeer().DisconnectNow(0)
+		return
+	}
+
+	log.Info("Model type check passed")
+
+	clientName := server.GetFilteredPlayerName(helloData.Name())
+
+	server.connectionCount++
+
+	// Create a new client for the peer
+	client := &Client{
+		guid:  server.connectionCount,
+		name:  clientName,
+		model: helloData.Model(),
+
+		// Allows the first person that connects to be the master client
+		// In an ideal world, the server would run all of the simulation logic
+		// like movement, physics, enemy AI & movement, but this would be
+		// a monumental task because this is a mod, not a game where we have the source code.
+		// So we let the master client control the simulation.
+		isMasterClient: len(server.clients) == 0,
+	}
+
+	log.Info("Client name: %s", clientName)
+	log.Info("Client GUID: %d", client.guid)
+	log.Info("Client is master client: %t", client.isMasterClient)
+
+	// Add the client to the map
+	connection.client = client
+	server.clients[connection] = client
+
+	// Send a welcome packet
+	welcomeBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+		nier.WelcomeStart(builder)
+		nier.WelcomeAddGuid(builder, client.guid)
+		nier.WelcomeAddIsMasterClient(builder, client.isMasterClient)
+		nier.WelcomeAddHighestEntityGuid(builder, server.highestEntityGuid)
+		return nier.WelcomeEnd(builder)
+	})
+
+	log.Info("Sending welcome packet")
+	ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_WELCOME, welcomeBytes), 0, enet.PacketFlagReliable)
+
+	// Send the player creation packet
+	createPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+		playerName := builder.CreateString(client.name)
+		nier.CreatePlayerStart(builder)
+		nier.CreatePlayerAddGuid(builder, client.guid)
+		nier.CreatePlayerAddName(builder, playerName)
+		nier.CreatePlayerAddModel(builder, client.model)
+		return nier.CreatePlayerEnd(builder)
+	})
+
+	log.Info("Sending create player packet to everyone")
+	server.BroadcastPacketToAll(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes)
+
+	// Broadcast previously connected clients to the new client
+	for _, prevClient := range server.clients {
+		if prevClient == nil || prevClient == client { // Skip the new client
+			continue
+		}
+
+		createPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+			playerName := builder.CreateString(prevClient.name)
+			nier.CreatePlayerStart(builder)
+			nier.CreatePlayerAddGuid(builder, prevClient.guid)
+			nier.CreatePlayerAddName(builder, playerName)
+			nier.CreatePlayerAddModel(builder, prevClient.model)
+			return nier.CreatePlayerEnd(builder)
+		})
+
+		log.Info("Sending create player packet for previous client %d to client %d", prevClient.guid, client.guid)
+		ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes), 0, enet.PacketFlagReliable)
+	}
+
+	// Broadcast previously spawned entities to the new client
+	for _, entity := range server.entities {
+		if entity == nil {
+			continue
+		}
+
+		spawnData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+			name := builder.CreateString(string(entity.spawnInfo.Name()))
+			posdata := entity.spawnInfo.Positional(nil)
+			nier.EntitySpawnParamsStart(builder)
+			nier.EntitySpawnParamsAddName(builder, name)
+			nier.EntitySpawnParamsAddModel(builder, entity.spawnInfo.Model())
+			nier.EntitySpawnParamsAddModel2(builder, entity.spawnInfo.Model2())
+			packetPosData := nier.CreateEntitySpawnPositionalData(
+				builder,
+				posdata.Forward(nil).X(), posdata.Forward(nil).Y(), posdata.Forward(nil).Z(), posdata.Forward(nil).W(),
+				posdata.Up(nil).X(), posdata.Up(nil).Y(), posdata.Up(nil).Z(), posdata.Up(nil).W(),
+				posdata.Right(nil).X(), posdata.Right(nil).Y(), posdata.Right(nil).Z(), posdata.Right(nil).W(),
+				posdata.W(nil).X(), posdata.W(nil).Y(), posdata.W(nil).Z(), posdata.W(nil).W(),
+				posdata.Position(nil).X(), posdata.Position(nil).Y(), posdata.Position(nil).Z(), posdata.Position(nil).W(),
+				posdata.Unknown(nil).X(), posdata.Unknown(nil).Y(), posdata.Unknown(nil).Z(), posdata.Unknown(nil).W(),
+				posdata.Unknown2(nil).X(), posdata.Unknown2(nil).Y(), posdata.Unknown2(nil).Z(), posdata.Unknown2(nil).W(),
+				posdata.Unk(), posdata.Unk2(), posdata.Unk3(), posdata.Unk4(),
+				posdata.Unk5(), posdata.Unk6(), posdata.Unk7(), posdata.Unk8(),
+			)
+			nier.EntitySpawnParamsAddPositional(builder, packetPosData)
+			return nier.EntitySpawnParamsEnd(builder)
+		})
+
+		spawnPacket := makeEntityPacketBytes(entity.guid, nier.PacketTypeID_SPAWN_ENTITY, spawnData)
+
+		log.Info("Sending spawn entity packet for entity %d to client %d", entity.guid, client.guid)
+		ev.GetPeer().SendBytes(spawnPacket, 0, enet.PacketFlagReliable)
+	}
+}
+
+func (server *Server) handlePlayerData(ev enet.Event, connection *Connection, data *nier.Packet) {
+	playerData := &nier.PlayerData{}
+	flatbuffers.GetRootAs(data.DataBytes(), 0, playerData)
+
+	connection.client.lastPlayerData = playerData
+
+	// Broadcast the packet back to all valid clients (except the sender)
+	server.BroadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_PLAYER_DATA, data.DataBytes())
+}
+
+func (server *Server) handleAnimationStart(ev enet.Event, connection *Connection, data *nier.Packet) {
+	log.Info("Animation start received")
+
+	animationData := &nier.AnimationStart{}
+	flatbuffers.GetRootAs(data.DataBytes(), 0, animationData)
+
+	log.Info(" Animation: %d", animationData.Anim())
+	log.Info(" Variant: %d", animationData.Variant())
+	log.Info(" a3: %d", animationData.A3())
+	log.Info(" a4: %d", animationData.A4())
+
+	// TODO: sanitize the data
+
+	// Broadcast the packet back to all valid clients (except the sender)
+	server.BroadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_ANIMATION_START, data.DataBytes())
+}
+
+func (server *Server) handleButtons(ev enet.Event, connection *Connection, data *nier.Packet) {
+	log.Info("Buttons received")
+
+	// Broadcast the packet back to all valid clients (except the sender)
+	server.BroadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_BUTTONS, data.DataBytes())
+}
+
+func (server *Server) handleSpawnEntity(ev enet.Event, connection *Connection, data *nier.Packet) {
+	log.Info("Spawn entity received")
+	if !connection.client.isMasterClient {
+		log.Info(" Not a master client, ignoring")
+		return
+	}
+
+	// Cache the entity.
+	entityPkt := &nier.EntityPacket{}
+	flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
+
+	spawnInfo := &nier.EntitySpawnParams{}
+	flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, spawnInfo)
+
+	if entityPkt.Guid() > server.highestEntityGuid {
+		server.highestEntityGuid = entityPkt.Guid()
+	}
+
+	server.entities[entityPkt.Guid()] = new(ActiveEntity)
+	server.entities[entityPkt.Guid()].guid = entityPkt.Guid()
+	server.entities[entityPkt.Guid()].spawnInfo = spawnInfo
+
+	server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_SPAWN_ENTITY, data.DataBytes())
+}
+
+func (server *Server) handleDestroyEntity(ev enet.Event, connection *Connection, data *nier.Packet) {
+	log.Info("Destroy entity received")
+	if !connection.client.isMasterClient {
+		log.Info(" Not a master client, ignoring")
+		return
+	}
+
+	// Destroy the entity.
+	entityPkt := &nier.EntityPacket{}
+	flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
+
+	delete(server.entities, entityPkt.Guid())
+
+	server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_ENTITY, data.DataBytes())
+}
+
+func (server *Server) handleEntityData(ev enet.Event, connection *Connection, data *nier.Packet) {
+	//log.Info("Entity data received")
+	if !connection.client.isMasterClient {
+		log.Info(" Not a master client, ignoring")
+		return
+	}
+
+	server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_DATA, data.DataBytes())
+}
+
+func (server *Server) handleEntityAnimationStart(ev enet.Event, connection *Connection, data *nier.Packet) {
+	log.Info("ENTITY Animation start received")
+
+	if !connection.client.isMasterClient {
+		log.Info(" Not a master client, ignoring")
+		return
+	}
+
+	entityPkt := &nier.EntityPacket{}
+	flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
+
+	animationData := &nier.AnimationStart{}
+	flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, animationData)
+
+	log.Info(" Animation: %d", animationData.Anim())
+	log.Info(" Variant: %d", animationData.Variant())
+	log.Info(" a3: %d", animationData.A3())
+	log.Info(" a4: %d", animationData.A4())
+
+	// TODO: sanitize the data
+
+	// Broadcast the packet back to all valid clients (except the sender)
+	server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_ANIMATION_START, data.DataBytes())
+}
+
 func (server *Server) handleEvent(ev enet.Event) {
 	switch ev.GetType() {
 	case enet.EventConnect: // A new peer has connected
@@ -167,155 +428,7 @@ func (server *Server) handleEvent(ev enet.Event) {
 
 		switch data.Id() {
 		case nier.PacketTypeID_HELLO:
-			log.Info("Hello packet received")
-
-			if connection.client != nil {
-				log.Error("Received hello packet from client that already has a client, discarding")
-				break
-			}
-
-			helloData := nier.GetRootAsHello(data.DataBytes(), 0)
-
-			if helloData.Major() != uint32(nier.VersionMajorValue) {
-				log.Error("Invalid major version: %d", helloData.Major())
-				ev.GetPeer().DisconnectNow(0)
-				break
-			}
-
-			if helloData.Minor() > uint32(nier.VersionMinorValue) {
-				log.Error("Client is newer than server, disconnecting")
-				ev.GetPeer().DisconnectNow(0)
-				break
-			}
-
-			if helloData.Patch() != uint32(nier.VersionPatchValue) {
-				log.Info("Minor version mismatch, this is okay")
-			}
-
-			log.Info("Version check passed")
-
-			if server.config["password"].(string) != "" {
-				if string(helloData.Password()) != server.config["password"].(string) {
-					log.Error("Invalid password, client sent: \"%s\"", string(helloData.Password()))
-					ev.GetPeer().DisconnectNow(0)
-					break
-				}
-			}
-
-			log.Info("Password check passed")
-
-			if _, ok := nier.EnumNamesModelType[nier.ModelType(helloData.Model())]; !ok {
-				log.Error("Invalid model type: %d", helloData.Model())
-				ev.GetPeer().DisconnectNow(0)
-				break
-			}
-
-			log.Info("Model type check passed")
-
-			clientName := server.GetFilteredPlayerName(helloData.Name())
-
-			server.connectionCount++
-
-			// Create a new client for the peer
-			client := &Client{
-				guid:  server.connectionCount,
-				name:  clientName,
-				model: helloData.Model(),
-
-				// Allows the first person that connects to be the master client
-				// In an ideal world, the server would run all of the simulation logic
-				// like movement, physics, enemy AI & movement, but this would be
-				// a monumental task because this is a mod, not a game where we have the source code.
-				// So we let the master client control the simulation.
-				isMasterClient: len(server.clients) == 0,
-			}
-
-			log.Info("Client name: %s", clientName)
-			log.Info("Client GUID: %d", client.guid)
-			log.Info("Client is master client: %t", client.isMasterClient)
-
-			// Add the client to the map
-			connection.client = client
-			server.clients[connection] = client
-
-			// Send a welcome packet
-			welcomeBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-				nier.WelcomeStart(builder)
-				nier.WelcomeAddGuid(builder, client.guid)
-				nier.WelcomeAddIsMasterClient(builder, client.isMasterClient)
-				nier.WelcomeAddHighestEntityGuid(builder, server.highestEntityGuid)
-				return nier.WelcomeEnd(builder)
-			})
-
-			log.Info("Sending welcome packet")
-			ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_WELCOME, welcomeBytes), 0, enet.PacketFlagReliable)
-
-			// Send the player creation packet
-			createPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-				playerName := builder.CreateString(client.name)
-				nier.CreatePlayerStart(builder)
-				nier.CreatePlayerAddGuid(builder, client.guid)
-				nier.CreatePlayerAddName(builder, playerName)
-				nier.CreatePlayerAddModel(builder, client.model)
-				return nier.CreatePlayerEnd(builder)
-			})
-
-			log.Info("Sending create player packet to everyone")
-			server.BroadcastPacketToAll(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes)
-
-			// Broadcast previously connected clients to the new client
-			for _, prevClient := range server.clients {
-				if prevClient == nil || prevClient == client { // Skip the new client
-					continue
-				}
-
-				createPlayerBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-					playerName := builder.CreateString(prevClient.name)
-					nier.CreatePlayerStart(builder)
-					nier.CreatePlayerAddGuid(builder, prevClient.guid)
-					nier.CreatePlayerAddName(builder, playerName)
-					nier.CreatePlayerAddModel(builder, prevClient.model)
-					return nier.CreatePlayerEnd(builder)
-				})
-
-				log.Info("Sending create player packet for previous client %d to client %d", prevClient.guid, client.guid)
-				ev.GetPeer().SendBytes(makePacketBytes(nier.PacketTypeID_CREATE_PLAYER, createPlayerBytes), 0, enet.PacketFlagReliable)
-			}
-
-			// Broadcast previously spawned entities to the new client
-			for _, entity := range server.entities {
-				if entity == nil {
-					continue
-				}
-
-				spawnData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-					name := builder.CreateString(string(entity.spawnInfo.Name()))
-					posdata := entity.spawnInfo.Positional(nil)
-					nier.EntitySpawnParamsStart(builder)
-					nier.EntitySpawnParamsAddName(builder, name)
-					nier.EntitySpawnParamsAddModel(builder, entity.spawnInfo.Model())
-					nier.EntitySpawnParamsAddModel2(builder, entity.spawnInfo.Model2())
-					packetPosData := nier.CreateEntitySpawnPositionalData(
-						builder,
-						posdata.Forward(nil).X(), posdata.Forward(nil).Y(), posdata.Forward(nil).Z(), posdata.Forward(nil).W(),
-						posdata.Up(nil).X(), posdata.Up(nil).Y(), posdata.Up(nil).Z(), posdata.Up(nil).W(),
-						posdata.Right(nil).X(), posdata.Right(nil).Y(), posdata.Right(nil).Z(), posdata.Right(nil).W(),
-						posdata.W(nil).X(), posdata.W(nil).Y(), posdata.W(nil).Z(), posdata.W(nil).W(),
-						posdata.Position(nil).X(), posdata.Position(nil).Y(), posdata.Position(nil).Z(), posdata.Position(nil).W(),
-						posdata.Unknown(nil).X(), posdata.Unknown(nil).Y(), posdata.Unknown(nil).Z(), posdata.Unknown(nil).W(),
-						posdata.Unknown2(nil).X(), posdata.Unknown2(nil).Y(), posdata.Unknown2(nil).Z(), posdata.Unknown2(nil).W(),
-						posdata.Unk(), posdata.Unk2(), posdata.Unk3(), posdata.Unk4(),
-						posdata.Unk5(), posdata.Unk6(), posdata.Unk7(), posdata.Unk8(),
-					)
-					nier.EntitySpawnParamsAddPositional(builder, packetPosData)
-					return nier.EntitySpawnParamsEnd(builder)
-				})
-
-				spawnPacket := makeEntityPacketBytes(entity.guid, nier.PacketTypeID_SPAWN_ENTITY, spawnData)
-
-				log.Info("Sending spawn entity packet for entity %d to client %d", entity.guid, client.guid)
-				ev.GetPeer().SendBytes(spawnPacket, 0, enet.PacketFlagReliable)
-			}
+			server.handleHello(ev, connection, data)
 			break
 		case nier.PacketTypeID_PING:
 			log.Info("Ping received from %s", connection.client.name)
@@ -323,108 +436,25 @@ func (server *Server) handleEvent(ev enet.Event) {
 			ev.GetPeer().SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PONG), 0, enet.PacketFlagReliable)
 			break
 		case nier.PacketTypeID_PLAYER_DATA:
-			//log.Info("Player data received")
-			playerData := &nier.PlayerData{}
-			flatbuffers.GetRootAs(data.DataBytes(), 0, playerData)
-
-			connection.client.lastPlayerData = playerData
-
-			// Broadcast the packet back to all valid clients (except the sender)
-			server.BroadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_PLAYER_DATA, data.DataBytes())
+			server.handlePlayerData(ev, connection, data)
 			break
 		case nier.PacketTypeID_ANIMATION_START:
-			log.Info("Animation start received")
-
-			animationData := &nier.AnimationStart{}
-			flatbuffers.GetRootAs(data.DataBytes(), 0, animationData)
-
-			log.Info(" Animation: %d", animationData.Anim())
-			log.Info(" Variant: %d", animationData.Variant())
-			log.Info(" a3: %d", animationData.A3())
-			log.Info(" a4: %d", animationData.A4())
-
-			// TODO: sanitize the data
-
-			// Broadcast the packet back to all valid clients (except the sender)
-			server.BroadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_ANIMATION_START, data.DataBytes())
+			server.handleAnimationStart(ev, connection, data)
 			break
 		case nier.PacketTypeID_BUTTONS:
-			log.Info("Buttons received")
-
-			// Broadcast the packet back to all valid clients (except the sender)
-			server.BroadcastPlayerPacketToAllExceptSender(ev.GetPeer(), connection, nier.PacketTypeID_BUTTONS, data.DataBytes())
+			server.handleButtons(ev, connection, data)
 			break
 		case nier.PacketTypeID_SPAWN_ENTITY:
-			log.Info("Spawn entity received")
-			if !connection.client.isMasterClient {
-				log.Info(" Not a master client, ignoring")
-				break
-			}
-
-			// Cache the entity.
-			entityPkt := &nier.EntityPacket{}
-			flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
-
-			spawnInfo := &nier.EntitySpawnParams{}
-			flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, spawnInfo)
-
-			if entityPkt.Guid() > server.highestEntityGuid {
-				server.highestEntityGuid = entityPkt.Guid()
-			}
-
-			server.entities[entityPkt.Guid()] = new(ActiveEntity)
-			server.entities[entityPkt.Guid()].guid = entityPkt.Guid()
-			server.entities[entityPkt.Guid()].spawnInfo = spawnInfo
-
-			server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_SPAWN_ENTITY, data.DataBytes())
+			server.handleSpawnEntity(ev, connection, data)
 			break
 		case nier.PacketTypeID_DESTROY_ENTITY:
-			log.Info("Destroy entity received")
-			if !connection.client.isMasterClient {
-				log.Info(" Not a master client, ignoring")
-				break
-			}
-
-			// Destroy the entity.
-			entityPkt := &nier.EntityPacket{}
-			flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
-
-			delete(server.entities, entityPkt.Guid())
-
-			server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_DESTROY_ENTITY, data.DataBytes())
+			server.handleDestroyEntity(ev, connection, data)
 			break
 		case nier.PacketTypeID_ENTITY_DATA:
-			//log.Info("Entity data received")
-			if !connection.client.isMasterClient {
-				log.Info(" Not a master client, ignoring")
-				break
-			}
-
-			server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_DATA, data.DataBytes())
+			server.handleEntityData(ev, connection, data)
 			break
 		case nier.PacketTypeID_ENTITY_ANIMATION_START:
-			log.Info("ENTITY Animation start received")
-
-			if !connection.client.isMasterClient {
-				log.Info(" Not a master client, ignoring")
-				break
-			}
-
-			entityPkt := &nier.EntityPacket{}
-			flatbuffers.GetRootAs(data.DataBytes(), 0, entityPkt)
-
-			animationData := &nier.AnimationStart{}
-			flatbuffers.GetRootAs(entityPkt.DataBytes(), 0, animationData)
-
-			log.Info(" Animation: %d", animationData.Anim())
-			log.Info(" Variant: %d", animationData.Variant())
-			log.Info(" a3: %d", animationData.A3())
-			log.Info(" a4: %d", animationData.A4())
-
-			// TODO: sanitize the data
-
-			// Broadcast the packet back to all valid clients (except the sender)
-			server.BroadcastPacketToAllExceptSender(ev.GetPeer(), nier.PacketTypeID_ENTITY_ANIMATION_START, data.DataBytes())
+			server.handleEntityAnimationStart(ev, connection, data)
 			break
 		default:
 			log.Error("Unknown packet type: %d", data.Id())
@@ -494,7 +524,7 @@ func CreateServer() *Server {
 		log.Error("Server requires a server.json file to be present")
 		panic(err)
 	}
-	
+
 	server := &Server{}
 	server.connections = make(map[enet.Peer]*Connection)
 	server.clients = make(map[*Connection]*Client)
