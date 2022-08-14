@@ -2,7 +2,9 @@ package automatamp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -525,7 +527,15 @@ func (server *Server) sendHeartbeatToMasterServer() {
 		return
 	}
 
+	var zeroDialer net.Dialer
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return zeroDialer.DialContext(ctx, "tcp4", addr)
+	}
+
 	client := &http.Client{}
+	client.Transport = transport
 	resp, err := client.Do(r)
 
 	if err != nil {
