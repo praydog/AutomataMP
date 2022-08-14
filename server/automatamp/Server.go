@@ -1,9 +1,12 @@
 package automatamp
 
 import (
+	"bytes"
 	"encoding/json"
+	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	nier "github.com/praydog/AutomataMP/server/automatamp/nier"
 
@@ -26,6 +29,7 @@ type Server struct {
 	connectionCount   uint64
 	highestEntityGuid uint32
 	config            map[string]interface{}
+	lastHeartbeat     time.Time
 }
 
 func (server *Server) BroadcastPacketToAll(id nier.PacketType, data []uint8) {
@@ -494,6 +498,57 @@ func (server *Server) cleanup() {
 	enet.Deinitialize()
 }
 
+func (server *Server) sendHeartbeatToMasterServer() {
+	log.Info("Sending heartbeat to master server")
+	server.lastHeartbeat = time.Now()
+
+	jsonValues := make(map[string]interface{})
+	jsonValues["Name"] = server.config["name"].(string)
+	jsonValues["NumPlayers"] = len(server.clients)
+
+	jsonBytes, err := json.Marshal(jsonValues)
+
+	if err != nil {
+		log.Error("Error marshalling heartbeat json: %s", err)
+		return
+	}
+
+	log.Info(string(jsonBytes))
+
+	url := "http://" + server.config["masterServer"].(string) + "/heartbeat"
+	log.Info("Sending heartbeat to %s", url)
+
+	r, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
+
+	if err != nil {
+		log.Error("Error creating heartbeat request: %s", err)
+		return
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(r)
+
+	if err != nil {
+		log.Error("Error creating heartbeat request: %s", err)
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error("Error sending heartbeat: %s", resp.Status)
+		return
+	}
+}
+
+func (server *Server) heartbeatGoroutine() {
+	for {
+		// every 30 seconds, send a heartbeat to the master server
+		// containing the server name and how many players are connected
+		if time.Since(server.lastHeartbeat) >= 30*time.Second {
+			server.sendHeartbeatToMasterServer()
+		}
+	}
+}
+
 // server start
 func (server *Server) Run() {
 	// Initialize enet
@@ -512,8 +567,10 @@ func (server *Server) Run() {
 
 	log.Info("Created host")
 
+	go server.heartbeatGoroutine()
+
 	// The event loop
-	for true {
+	for {
 		server.service()
 	}
 }
@@ -533,6 +590,8 @@ func CreateServer() *Server {
 	server.connectionCount = 0
 	server.highestEntityGuid = 0
 	server.config["password"] = ""
+	server.config["masterServer"] = "niermaster.praydog.com:80"
+	server.config["name"] = "AutomataMP Server"
 
 	json.Unmarshal(serverJson, &server.config)
 	log.Info("Server password: %s", server.config["password"].(string))

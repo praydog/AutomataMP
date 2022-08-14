@@ -1,3 +1,5 @@
 {
-    "password": ""
+    "password": "",
+    "masterServer": "niermaster.praydog.com",
+    "name": "AutomataMP Server"
 }

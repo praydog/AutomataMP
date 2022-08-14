@@ -1,3 +1,5 @@
+// This is the master server. A simple HTTP server that listens for heartbeats from the servers.
+// The clients can send a /servers request to obtain the list of servers in JSON format.
 package automatamp
 
 import (
@@ -10,37 +12,37 @@ import (
 )
 
 type ServerData struct {
-	Name       string `json:"name" binding:"required"`
-	NumPlayers int    `json:"numPlayers" binding:"required"`
+	Name       string `json:"Name" binding:"required"`
+	NumPlayers *int   `json:"NumPlayers" binding:"required"`
 }
 
 type ActiveServer struct {
 	ip       string
-	lastBeat int64
-	Data     ServerData `json:"data"`
+	lastBeat time.Time
+	Data     ServerData `json:"Data"`
 }
 
 type MasterServer struct {
 	mtx           sync.Mutex
 	servers       map[string]*ActiveServer // ip -> server
-	lastCleanTime int64
+	lastCleanTime time.Time
 }
 
 func (server *MasterServer) cleanDeadServers() {
 	// so the server doesn't get spammed with requests
-	if time.Now().Unix()-server.lastCleanTime < 5 {
+	if time.Since(server.lastCleanTime) < time.Second*5 {
 		return
 	}
 
 	for ip, activeServer := range server.servers {
-		if time.Now().Unix()-activeServer.lastBeat > 5 {
-			fmt.Printf("Deleting server: %s", ip)
+		if time.Since(activeServer.lastBeat) > time.Second*60 {
+			fmt.Printf("Deleting server: %s\n", ip)
 			delete(server.servers, ip)
 			continue
 		}
 	}
 
-	server.lastCleanTime = time.Now().Unix()
+	server.lastCleanTime = time.Now()
 }
 
 func (server *MasterServer) listen() {
@@ -59,13 +61,18 @@ func (server *MasterServer) listen() {
 
 		// create new entry in map if it doesn't exist
 		if _, ok := server.servers[ip]; !ok {
-			fmt.Printf("Creating new server: %s", ip)
+			fmt.Printf("Creating new server: %s\n", ip)
 			server.servers[ip] = &ActiveServer{ip: ip}
+		}
+
+		// Trim the name to 64 characters
+		if len(json.Name) > 64 {
+			json.Name = json.Name[:64]
 		}
 
 		server.servers[ip].Data.Name = json.Name
 		server.servers[ip].Data.NumPlayers = json.NumPlayers
-		server.servers[ip].lastBeat = time.Now().Unix()
+		server.servers[ip].lastBeat = time.Now()
 		server.cleanDeadServers()
 
 		c.String(http.StatusOK, "OK")
@@ -81,10 +88,10 @@ func (server *MasterServer) listen() {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "Welcome to the NieR: Automata MP Master Server!")
+		c.Redirect(http.StatusMovedPermanently, "https://github.com/praydog/AutomataMP")
 	})
 
-	r.Run()
+	r.Run(":80")
 }
 
 func (server *MasterServer) Run() {
