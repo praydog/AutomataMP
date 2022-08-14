@@ -57,7 +57,7 @@ func (server *MasterServer) listen() {
 		server.mtx.Lock()
 		defer server.mtx.Unlock()
 
-		ip := c.RemoteIP()
+		ip := c.ClientIP()
 
 		// create new entry in map if it doesn't exist
 		if _, ok := server.servers[ip]; !ok {

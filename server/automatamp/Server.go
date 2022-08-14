@@ -515,7 +515,7 @@ func (server *Server) sendHeartbeatToMasterServer() {
 
 	log.Info(string(jsonBytes))
 
-	url := "http://" + server.config["masterServer"].(string) + "/heartbeat"
+	url := server.config["masterServer"].(string) + "/heartbeat"
 	log.Info("Sending heartbeat to %s", url)
 
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
@@ -590,7 +590,7 @@ func CreateServer() *Server {
 	server.connectionCount = 0
 	server.highestEntityGuid = 0
 	server.config["password"] = ""
-	server.config["masterServer"] = "niermaster.praydog.com:80"
+	server.config["masterServer"] = "https://niermaster.praydog.com"
 	server.config["name"] = "AutomataMP Server"
 
 	json.Unmarshal(serverJson, &server.config)
