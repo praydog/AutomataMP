@@ -5,6 +5,8 @@
 #include <spdlog/spdlog.h>
 
 #include <utility/Input.hpp>
+#include <utility/HttpClient.hpp>
+#include <json.hpp>
 
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
@@ -30,6 +32,8 @@ AutomataMPMod::~AutomataMPMod() {
 std::optional<std::string> AutomataMPMod::on_initialize() try {
     spdlog::info("Entering AutomataMPMod.");
 
+    std::strcpy(m_master_server_input.data(), "https://niermaster.praydog.com");
+
     // Do it later.
     enetpp::global_state::get().initialize();
 
@@ -44,25 +48,99 @@ std::optional<std::string> AutomataMPMod::on_initialize() try {
     return "Unknown exception";
 }
 
-bool AutomataMPMod::clientConnect() {
-    m_client = make_unique<NierClient>("127.0.0.1");
-
-    if (m_client->isConnected()) {
-        return true;
-    }
-    else {
-        m_client.reset();
-        return false;
-    }
-}
-
-void AutomataMPMod::serverStart() {
-}
-
 void AutomataMPMod::sendPacket(const enet_uint8* data, size_t size) {
     if (m_client) {
         m_client->send_packet(0, data, size, ENET_PACKET_FLAG_RELIABLE);
     }
+}
+
+void AutomataMPMod::display_servers() {
+    const auto now = std::chrono::steady_clock::now();
+
+    // Check if server future is ready and parse it into our internal server list.
+    if (m_serverFuture.valid() && m_serverFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        m_servers.clear();
+
+        const auto response = m_serverFuture.get();
+        spdlog::info("Got response: {}", response);
+        const auto response_json = nlohmann::json::parse(response);
+
+        try {
+            for (const auto& [ip, jsondata] : response_json.items()) {
+                auto new_server_data = std::make_unique<AutomataMPMod::ServerData>();
+
+                const auto data = jsondata["Data"];
+
+                new_server_data->ip = ip;
+                new_server_data->name = data["Name"];
+                new_server_data->numPlayers = data["NumPlayers"];
+
+                m_servers.push_back(std::move(new_server_data));
+            }
+        } catch (const std::exception& e) {
+            spdlog::error("Error parsing server response: {}", e.what());
+        } catch (...) {
+            spdlog::error("Unknown Error parsing server response");
+        }
+    }
+
+    // Render the actual server list.
+    for (auto& server : m_servers) {
+        ImGui::PushID(server->ip.c_str());
+
+        if (ImGui::Button("Connect")) {
+            m_client.reset();
+            m_client = make_unique<NierClient>(server->ip.data(), m_name_input.data(), m_password_input.data());
+
+            if (!m_client->isConnected()) {
+                m_client.reset();
+            }
+
+            return;
+        }
+
+        ImGui::SameLine();
+
+        const auto made = ImGui::TreeNode((server->name + " (" + std::to_string(server->numPlayers) + " players)").c_str());
+
+        if (made) {
+            ImGui::Text("IP: %s", server->ip.c_str());
+            ImGui::Text("Name: %s", server->name.c_str());
+            ImGui::Text("Players: %s", std::to_string(server->numPlayers).c_str());
+            ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+    }
+
+    if (now - m_lastServerUpdate < std::chrono::seconds(5)) {
+        return;
+    }
+
+    if (m_serverFuture.valid()) {
+        if (m_serverFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+            return;
+        }
+
+        m_serverFuture.wait();
+    }
+
+    m_serverFuture = std::async(std::launch::async, [this]() -> std::string {
+        try {
+            HttpClient http{};
+
+            const auto servers_url = std::string{m_master_server_input.data()} + "/servers";
+            http.get(servers_url, "", "");
+
+            const auto response = http.response();     
+            m_lastServerUpdate = std::chrono::steady_clock::now();
+
+            return response;
+        } catch (...) {
+            m_lastServerUpdate = std::chrono::steady_clock::now();
+            return "";
+        }
+    });
 }
 
 void AutomataMPMod::on_draw_ui() {
@@ -76,10 +154,6 @@ void AutomataMPMod::on_draw_ui() {
         ImGui::Text("State: Disconnected");
     }
 
-    /*if (ImGui::Button("Start Server")) {
-        serverStart();
-    }*/
-    
     if (ImGui::InputText("Connect IP", m_ip_connect_input.data(), m_ip_connect_input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
         m_client.reset();
 
@@ -92,6 +166,12 @@ void AutomataMPMod::on_draw_ui() {
 
     ImGui::InputText("Name", m_name_input.data(), m_name_input.size());
     ImGui::InputText("Password", m_password_input.data(), m_password_input.size());
+
+    ImGui::InputText("Master Server", m_master_server_input.data(), m_master_server_input.size());
+    if (ImGui::TreeNode("Servers")) {
+        display_servers();
+        ImGui::TreePop();
+    }
     
     if (m_client) {
         m_client->on_draw_ui();

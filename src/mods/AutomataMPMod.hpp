@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <array>
+#include <future>
 
 #include "../Mod.hpp"
 
@@ -23,8 +24,6 @@ public:
     std::optional<std::string> on_initialize() override;
 
 public:
-    bool clientConnect();
-    void serverStart();
     void sendPacket(const enet_uint8* data, size_t size);
 
     bool isServer() {
@@ -69,8 +68,20 @@ private:
     std::unique_ptr<NierClient> m_client;
 
 private:
+    void display_servers();
+    struct ServerData {
+        std::string ip;
+        std::string name;
+        uint32_t numPlayers;
+    };
+
+    std::vector<std::unique_ptr<ServerData>> m_servers;
+    std::chrono::steady_clock::time_point m_lastServerUpdate{};
+    std::future<std::string> m_serverFuture;
+
     // imgui stuff
     std::array<char, 256> m_ip_connect_input{};
     std::array<char, 256> m_password_input{};
     std::array<char, 256> m_name_input{};
+    std::array<char, 256> m_master_server_input{};
 };

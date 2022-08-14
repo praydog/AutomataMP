@@ -107,7 +107,7 @@ private-link-libraries = [
 type = "shared"
 sources = ["src/**.cpp", "src/**.c"]
 headers = ["src/**.hpp", "src/**.h"]
-include-directories = ["shared/", "src/", "include/", "dependencies/enetpp/include"]
+include-directories = ["shared/", "src/", "include/", "dependencies/enetpp/include", "dependencies/nlohmann"]
 compile-options = ["/GS-", "/bigobj", "/EHa", "/MP"]
 compile-features = ["cxx_std_20"]
 compile-definitions = ["_WINSOCKAPI_"]
@@ -120,7 +120,8 @@ link-libraries = [
     "d3d11",
     "flatbuffers",
     "safetyhook",
-    "asmjit"
+    "asmjit",
+    "winhttp"
 ]
 
 [target.automatamp.properties]

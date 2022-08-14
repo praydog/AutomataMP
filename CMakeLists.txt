@@ -239,6 +239,7 @@ list(APPEND utility_SOURCES
 	"shared/utility/Config.cpp"
 	"shared/utility/Crc32.cpp"
 	"shared/utility/FunctionHook.cpp"
+	"shared/utility/HttpClient.cpp"
 	"shared/utility/Input.cpp"
 	"shared/utility/Memory.cpp"
 	"shared/utility/Module.cpp"
@@ -256,6 +257,7 @@ list(APPEND utility_SOURCES
 	"shared/utility/Config.hpp"
 	"shared/utility/Crc32.hpp"
 	"shared/utility/FunctionHook.hpp"
+	"shared/utility/HttpClient.hpp"
 	"shared/utility/Input.hpp"
 	"shared/utility/Memory.hpp"
 	"shared/utility/Module.hpp"
@@ -503,6 +505,7 @@ target_include_directories(automatamp PUBLIC
 	"src/"
 	"include/"
 	"dependencies/enetpp/include"
+	"dependencies/nlohmann"
 )
 
 target_link_libraries(automatamp PUBLIC
@@ -515,6 +518,7 @@ target_link_libraries(automatamp PUBLIC
 	flatbuffers
 	safetyhook
 	asmjit
+	winhttp
 )
 
 set_target_properties(automatamp PROPERTIES
