@@ -7,6 +7,8 @@
 
 #include "regenny/Behavior.hpp"
 #include "Obj.hpp"
+#include "lib/HashedString.hpp"
+#include "hap/State.hpp"
 #include "ScriptFunctions.hpp"
 
 namespace sdk {
@@ -45,24 +47,18 @@ public:
     }
 
 public:
-    struct Signal {
-        uint32_t signal;
-        uint32_t unk{ 0 };
-        uintptr_t unk2{ 0 };
-        uint32_t unk3{ 0 };
-    };
-
-    OBJECT_SCRIPT_FUNCTION(Behavior, terminate, void)
-    OBJECT_SCRIPT_FUNCTION(Behavior, isSuspend, bool);
-    OBJECT_SCRIPT_FUNCTION(Behavior, setSuspend, void, bool);
-    OBJECT_SCRIPT_FUNCTION(Behavior, signal, void, const Signal&);
-    OBJECT_SCRIPT_FUNCTION(Behavior, offCollision, void);
-    OBJECT_SCRIPT_FUNCTION(Behavior, onCollision, void);
-    OBJECT_SCRIPT_FUNCTION(Behavior, onTrans, void);
-    OBJECT_SCRIPT_FUNCTION(Behavior, offTrans, void);
-    OBJECT_SCRIPT_FUNCTION(Behavior, isTrans, bool);
-    OBJECT_SCRIPT_FUNCTION(Behavior, clearHackingStageLabel, void);
-    OBJECT_SCRIPT_FUNCTION(Behavior, setHackingStageLabelByHap, void, void*);
+    OBJECT_SCRIPT_FUNCTION(Behavior, clearHackingStageLabel, void) // base + 0x480190
+    OBJECT_SCRIPT_FUNCTION(Behavior, eraseSave, bool) // base + 0x48a2a0
+    OBJECT_SCRIPT_FUNCTION(Behavior, isSuspend, int) // base + 0x20e170
+    OBJECT_SCRIPT_FUNCTION(Behavior, isTrans, int) // base + 0x20e160
+    OBJECT_SCRIPT_FUNCTION(Behavior, offCollision, void) // base + 0x464300
+    OBJECT_SCRIPT_FUNCTION(Behavior, offTrans, void) // base + 0x20e180
+    OBJECT_SCRIPT_FUNCTION(Behavior, onCollision, void) // base + 0x46430c
+    OBJECT_SCRIPT_FUNCTION(Behavior, onTrans, void) // base + 0x20e0c0
+    OBJECT_SCRIPT_FUNCTION(Behavior, setHackingStageLabelByHap, void, class lib::HashedString<struct sys::StringSystem::Allocator> const &) // base + 0x4eedb0
+    OBJECT_SCRIPT_FUNCTION(Behavior, setSuspend, void, int) // base + 0x464318
+    OBJECT_SCRIPT_FUNCTION(Behavior, signal, bool, class hap::State const &) // base + 0x4f6e80
+    OBJECT_SCRIPT_FUNCTION(Behavior, terminate, void) // base + 0x4f5fd0
 
     // Vtable indices
     static constexpr uint8_t s_start_animation_index = 18;
