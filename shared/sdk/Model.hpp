@@ -12,20 +12,20 @@ public:
     virtual void model1(...) = 0;
     virtual void model2(...) = 0;
 
-    ::regenny::Model* as_model() const {
+    ::regenny::Model* regenny() const {
         return (regenny::Model*)this;
     }
 
     Vector3f& position() {
-        return *(Vector3f*)&as_model()->position;
+        return *(Vector3f*)&regenny()->position;
     }
 
     float& facing() {
-        return as_model()->facing;
+        return regenny()->facing;
     }
 
     auto& tick_count() {
-        return as_model()->tick_count;
+        return regenny()->tick_count;
     }
 
 

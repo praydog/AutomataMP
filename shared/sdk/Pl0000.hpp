@@ -21,16 +21,16 @@ public:
         INDEX_MAX = INDEX_DASH + 1,
     };
 
-    __forceinline ::regenny::Pl0000* as_pl0000() const {
+    __forceinline ::regenny::Pl0000* regenny() const {
         return (::regenny::Pl0000*)this;
     }
 
     __forceinline uint32_t& buddy_handle() {
-        return as_pl0000()->buddy_handle;
+        return regenny()->buddy_handle;
     }
 
     __forceinline regenny::CharacterController& character_controller() {
-        return as_pl0000()->controller;
+        return regenny()->controller;
     }
 
     __forceinline float& facing2() {
@@ -38,19 +38,19 @@ public:
     }
 
     __forceinline uint32_t& weapon_index() {
-        return as_pl0000()->weapon_index;
+        return regenny()->weapon_index;
     }
 
     __forceinline uint32_t& pod_index() {
-        return as_pl0000()->pod_index;
+        return regenny()->pod_index;
     }
 
     __forceinline bool& flashlight() {
-        return as_pl0000()->flashlight;
+        return regenny()->flashlight;
     }
 
     __forceinline auto& run_speed_type() {
-        return as_pl0000()->run_speed_type;
+        return regenny()->run_speed_type;
     }
 
     __forceinline float& speed() {

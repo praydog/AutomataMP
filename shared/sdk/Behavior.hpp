@@ -31,12 +31,12 @@ public:
     virtual void start_animation(uint32_t animType, uint32_t variant, uint32_t a3 = 0, uint32_t a4 = 0) = 0;
 
 public:
-    ::regenny::Behavior* as_behavior() const {
+    ::regenny::Behavior* regenny() const {
         return (::regenny::Behavior*)this;
     }
 
     Entity* get_entity() const {
-        return (Entity*)this->as_behavior()->entity;
+        return (Entity*)regenny()->entity;
     }
 
     bool is_networkable() const {

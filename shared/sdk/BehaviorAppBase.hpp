@@ -7,12 +7,12 @@
 namespace sdk {
 class BehaviorAppBase : public sdk::Behavior {
 public:
-    __forceinline ::regenny::BehaviorAppBase* as_behavior_app_base() const {
+    __forceinline ::regenny::BehaviorAppBase* regenny() const {
         return (::regenny::BehaviorAppBase*)this;
     }
 
     __forceinline uint32_t& health() {
-        return as_behavior_app_base()->health;
+        return regenny()->health;
     }
 
 public:

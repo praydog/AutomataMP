@@ -13,7 +13,7 @@ public:
     // Vtable starts at index 3
     virtual void obj3() = 0;
 
-    __forceinline regenny::Obj* as_obj() const {
+    __forceinline regenny::Obj* regenny() const {
         return (regenny::Obj*)this;
     }
 
@@ -39,11 +39,11 @@ public:
     }
 
     auto& obj_flags() {
-        return as_obj()->obj_flags;
+        return regenny()->obj_flags;
     }
     
     auto& model_index() {
-        return as_obj()->model_index;
+        return regenny()->model_index;
     }
 private:
     uint8_t detail_obj_data[sizeof(::regenny::Obj) - sizeof(Model)];
