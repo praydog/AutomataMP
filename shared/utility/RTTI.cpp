@@ -9,6 +9,33 @@
 
 namespace utility {
 namespace rtti {
+_s_RTTICompleteObjectLocator* get_locator(const void* obj) {
+    if (obj == nullptr || *(void**)obj == nullptr) {
+        return nullptr;
+    }
+
+    return *(_s_RTTICompleteObjectLocator**)(*(uintptr_t*)obj - sizeof(void*));
+}
+
+std::type_info* get_type_info(const void* obj) {
+    const auto locator = get_locator(obj);
+
+    if (locator == nullptr) {
+        return nullptr;
+    }
+
+    const auto module_within = ::utility::get_module_within(locator);
+
+    if (!module_within) {
+        return nullptr;
+    }
+
+    const auto module = (uintptr_t)*module_within;
+    const auto ti = (std::type_info*)(module + locator->pTypeDescriptor);
+
+    return ti;
+}
+
 bool derives_from(const void* obj, std::string_view type_name) {
     if (obj == nullptr) {
         return false;
