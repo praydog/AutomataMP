@@ -360,6 +360,8 @@ list(APPEND sdk_SOURCES
 	"shared/sdk/ScriptFunctions.hpp"
 	"shared/sdk/Xml.hpp"
 	"shared/sdk/XmlBinary.hpp"
+	"shared/sdk/app/Puid.hpp"
+	"shared/sdk/lib/HashedString.hpp"
 	"shared/sdk/regenny/Behavior.hpp"
 	"shared/sdk/regenny/BehaviorAppBase.hpp"
 	"shared/sdk/regenny/Camera.hpp"
@@ -382,6 +384,7 @@ list(APPEND sdk_SOURCES
 	"shared/sdk/regenny/Vector4f.hpp"
 	"shared/sdk/regenny/Xml.hpp"
 	"shared/sdk/regenny/XmlBinary.hpp"
+	"shared/sdk/sys/StringSystem.hpp"
 )
 
 list(APPEND sdk_SOURCES

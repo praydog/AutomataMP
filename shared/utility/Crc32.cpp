@@ -15,3 +15,6 @@ uint32_t crc32(uint8_t* data, size_t len)
     return ~crc;
 }
 
+uint32_t crc32(std::string_view str) {
+    return crc32((uint8_t*)str.data(), str.size());
+}

@@ -6,11 +6,10 @@
 #include "regenny/Pl0000.hpp"
 #include "BehaviorAppBase.hpp"
 
-#include "ScriptFunctions.hpp"
+#include "app/Puid.hpp"
+#include "hw/cVec4.hpp"
 
-namespace app {
-class Puid;
-}
+#include "ScriptFunctions.hpp"
 
 namespace sdk {
 class Pl0000 : public sdk::BehaviorAppBase {
@@ -113,7 +112,7 @@ public:
     OBJECT_SCRIPT_FUNCTION(Pl0000, endVirusMode, void) // base + 0x489b20
     OBJECT_SCRIPT_FUNCTION(Pl0000, endWeakMode, void) // base + 0x489b30
     OBJECT_SCRIPT_FUNCTION(Pl0000, enemyDestroyed, void) // base + 0x489b40
-    OBJECT_SCRIPT_FUNCTION(Pl0000, enemyDestroyedLocation, void, const Vector4f&) // base + 0x489d60
+    OBJECT_SCRIPT_FUNCTION(Pl0000, enemyDestroyedLocation, void, Hw::cVec4 const &) // base + 0x489d60
     OBJECT_SCRIPT_FUNCTION(Pl0000, hasBuddy, bool) // base + 0x495a10
     OBJECT_SCRIPT_FUNCTION(Pl0000, initBehindFreeShooting, void) // base + 0x497ff0
     OBJECT_SCRIPT_FUNCTION(Pl0000, initEm1100FinalFlightBattle, void) // base + 0x4985d0
@@ -189,7 +188,7 @@ public:
     OBJECT_SCRIPT_FUNCTION(Pl0000, setCamReset, void) // base + 0x4ea640
     OBJECT_SCRIPT_FUNCTION(Pl0000, setCameraHokanSpd, void, int) // base + 0x4ea650
     OBJECT_SCRIPT_FUNCTION(Pl0000, setChipPreset, void, int) // base + 0x4ea730
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setControlHackReturnPos, void, const Vector4f&) // base + 0x4eab40
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setControlHackReturnPos, void, Hw::cVec4 const &) // base + 0x4eab40
     OBJECT_SCRIPT_FUNCTION(Pl0000, setCorpse, void) // base + 0x4eab50
     OBJECT_SCRIPT_FUNCTION(Pl0000, setDownEmp, void) // base + 0x4ec1a0
     OBJECT_SCRIPT_FUNCTION(Pl0000, setDownVirus, void) // base + 0x4ec1e0
@@ -222,7 +221,7 @@ public:
     OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingLightL, void) // base + 0x4ee6d0
     OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingLightM, void) // base + 0x4ee7f0
     OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingLightS, void) // base + 0x4ee910
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingLocation, void, const Vector4f&) // base + 0x4eea30
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingLocation, void, Hw::cVec4 const &) // base + 0x4eea30
     OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingSound_Access_1, void) // base + 0x4eece0
     OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingSound_Access_2, void) // base + 0x4eed10
     OBJECT_SCRIPT_FUNCTION(Pl0000, setHackingSound_Access_3, void) // base + 0x4eed40
@@ -238,12 +237,12 @@ public:
     OBJECT_SCRIPT_FUNCTION(Pl0000, setNpcBattle, void) // base + 0x4efe30
     OBJECT_SCRIPT_FUNCTION(Pl0000, setNpcFromBuddy, void) // base + 0x4f0160
     OBJECT_SCRIPT_FUNCTION(Pl0000, setPlayerFromNPC, void) // base + 0x4f0ca0
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setPosResetHap, void, const Vector4f&) // base + 0x4f15b0
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setPosRotResetHap, void, const Vector4f&, const glm::quat&) // base + 0x4f1620
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setPosResetHap, void, Hw::cVec4 const &) // base + 0x4f15b0
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setPosRotResetHap, void, Hw::cVec4 const &, glm::quat const &) // base + 0x4f1620
     OBJECT_SCRIPT_FUNCTION(Pl0000, setPosTowerLift, void) // base + 0x4f1640
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setRobotRescueStartLocation, void, const Vector4f&, float const &) // base + 0x4f25a0
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setRobotRescueStartLocation, void, Hw::cVec4 const &, float const &) // base + 0x4f25a0
     OBJECT_SCRIPT_FUNCTION(Pl0000, setRobotRescueWakeUp, void) // base + 0x4f25d0
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setRunTarget, void, const Vector4f&) // base + 0x4f2650
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setRunTarget, void, Hw::cVec4 const &) // base + 0x4f2650
     OBJECT_SCRIPT_FUNCTION(Pl0000, setSelfHacking, void) // base + 0x4f2930
     OBJECT_SCRIPT_FUNCTION(Pl0000, setSelfHackingDamage, void) // base + 0x4f2970
     OBJECT_SCRIPT_FUNCTION(Pl0000, setShootingCamBehind, void) // base + 0x4f4ac0
@@ -258,8 +257,8 @@ public:
     OBJECT_SCRIPT_FUNCTION(Pl0000, setShootingSideOverSlow, void) // base + 0x4f5320
     OBJECT_SCRIPT_FUNCTION(Pl0000, setSleepBed, void) // base + 0x4f5680
     OBJECT_SCRIPT_FUNCTION(Pl0000, setStateMosaic, void) // base + 0x4f5df0
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setTowerShooting, void, const Vector4f&) // base + 0x4f5ff0
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setTurnTarget, void, const Vector4f&) // base + 0x4f6210
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setTowerShooting, void, Hw::cVec4 const &) // base + 0x4f5ff0
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setTurnTarget, void, Hw::cVec4 const &) // base + 0x4f6210
     OBJECT_SCRIPT_FUNCTION(Pl0000, setUINoiseFilterLv0, void) // base + 0x4f6250
     OBJECT_SCRIPT_FUNCTION(Pl0000, setUINoiseFilterLv1, void) // base + 0x4f6280
     OBJECT_SCRIPT_FUNCTION(Pl0000, setUINoiseFilterLv2, void) // base + 0x4f62b0
@@ -276,20 +275,20 @@ public:
     OBJECT_SCRIPT_FUNCTION(Pl0000, setVirusMode, void) // base + 0x4f65f0
     OBJECT_SCRIPT_FUNCTION(Pl0000, setWait, void) // base + 0x4f6620
     OBJECT_SCRIPT_FUNCTION(Pl0000, setWakeUpBed, void) // base + 0x4f6640
-    OBJECT_SCRIPT_FUNCTION(Pl0000, setWalkTarget, void, const Vector4f&) // base + 0x4f6670
+    OBJECT_SCRIPT_FUNCTION(Pl0000, setWalkTarget, void, Hw::cVec4 const &) // base + 0x4f6670
     OBJECT_SCRIPT_FUNCTION(Pl0000, setYorhaBackFoot, void) // base + 0x4f66a0
     OBJECT_SCRIPT_FUNCTION(Pl0000, shotNPC2BArtillery, void) // base + 0x4f6d40
     OBJECT_SCRIPT_FUNCTION(Pl0000, start2BDefence, void) // base + 0x4f6fa0
     OBJECT_SCRIPT_FUNCTION(Pl0000, start2BDefenceSuffer, void) // base + 0x4f6fe0
     OBJECT_SCRIPT_FUNCTION(Pl0000, start2BMoveTo9S, void) // base + 0x4f7010
-    OBJECT_SCRIPT_FUNCTION(Pl0000, start9SDefence, void, const Vector4f&) // base + 0x4f7040
+    OBJECT_SCRIPT_FUNCTION(Pl0000, start9SDefence, void, Hw::cVec4 const &) // base + 0x4f7040
     OBJECT_SCRIPT_FUNCTION(Pl0000, start9SDefenceUpload, void) // base + 0x4f7070
     OBJECT_SCRIPT_FUNCTION(Pl0000, start9SEm3000Hacking, void) // base + 0x4f7080
     OBJECT_SCRIPT_FUNCTION(Pl0000, start9SEveHacking, void) // base + 0x4f70c0
     OBJECT_SCRIPT_FUNCTION(Pl0000, start9sLast, void) // base + 0x4f7110
     OBJECT_SCRIPT_FUNCTION(Pl0000, start9sMoveTo2B, void) // base + 0x4f7210
     OBJECT_SCRIPT_FUNCTION(Pl0000, start9sRuinedCityGoOff, void) // base + 0x4f7270
-    OBJECT_SCRIPT_FUNCTION(Pl0000, start9sRuinedCityWarp, void, const Vector4f&) // base + 0x4f7280
+    OBJECT_SCRIPT_FUNCTION(Pl0000, start9sRuinedCityWarp, void, Hw::cVec4 const &) // base + 0x4f7280
     OBJECT_SCRIPT_FUNCTION(Pl0000, startA2Tired, void) // base + 0x4f73c0
     OBJECT_SCRIPT_FUNCTION(Pl0000, startAirShipBoss, void) // base + 0x4f7410
     OBJECT_SCRIPT_FUNCTION(Pl0000, startChangePLNoise, void) // base + 0x4f7430

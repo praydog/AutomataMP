@@ -4,6 +4,8 @@
 #include "ScriptFunctions.hpp"
 #include "Behavior.hpp"
 
+#include "lib/HashedString.hpp"
+
 namespace sdk {
 class BehaviorAppBase : public sdk::Behavior {
 public:
@@ -16,28 +18,28 @@ public:
     }
 
 public:
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, getHp, uint32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, getHpMax, uint32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, getHpRate100, uint32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnim, void, uint32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimTable, void, uint32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimOp, void, uint64_t, uint64_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestMove, void, Vector4f&, int32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestTurn, void, void*); // app::Puid const &
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPath, void, int32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPathWait, void);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPathBlockStop, void);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestRoute, void, void*, int32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestRouteOp, void, void*, void*); // app::Puid const &,hap::VariantMap const &
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestTalk, void, int32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestWait, void);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimSpdRate, void, float);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, searchOn, bool, bool);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, pullout, bool);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, setLevel, bool, int32_t);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, talkDisable, int);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, setTalkEnable, void);
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, setTalkDisable, void);
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, getHp, int) // base + 0x4643d8
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, getHpMax, int) // base + 0x4643cc
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, getHpRate100, float) // base + 0x491430
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, pullout, bool) // base + 0x464348
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnim, void, int) // base + 0x464360
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimOp, void, class lib::HashedString<struct sys::StringSystem::Allocator> const &, class hap::VariantMap const &) // base + 0x464378
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimSpdRate, void, float) // base + 0x4e62a0
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimTable, void, class lib::HashedString<struct sys::StringSystem::Allocator> const &) // base + 0x46436c
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestMove, void, class Hw::cVec4 const &, int) // base + 0x464384
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPath, void, int) // base + 0x464390
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPathBlockStop, void) // base + 0x4643a8
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPathWait, void) // base + 0x46439c
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestRoute, void, class app::Puid const &, int) // base + 0x4643b4
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestRouteOp, void, class app::Puid const &, class hap::VariantMap const &) // base + 0x464324
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestTalk, void, int) // base + 0x464330
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestTurn, void, class app::Puid const &) // base + 0x4643c0
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestWait, void) // base + 0x4e6610
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, searchOn, bool, bool) // base + 0x46433c
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, setLevel, bool, int) // base + 0x464354
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, setTalkDisable, void) // base + 0x4f5ec0
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, setTalkEnable, void) // base + 0x4f5ed0
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, talkDisable, int const) // base + 0x4fe300
     
 public:
     static constexpr uint8_t s_request_route_op_index = 100;

@@ -3,6 +3,7 @@
 
 #include <utility/Scan.hpp>
 #include <utility/Module.hpp>
+#include <utility/RTTI.hpp>
 
 #include "ScriptFunctions.hpp"
 
@@ -55,6 +56,16 @@ ScriptFunctions::ScriptFunctions()
 
         return (decltype(m_scriptFunctions))result;
    }();
+   
+   for (auto script = *m_scriptFunctions; script != nullptr; script = script->next) {
+        const auto ti = utility::rtti::get_type_info(script);
+
+        if (ti == nullptr) {
+            continue;
+        }
+
+        spdlog::info("{}: {:x} {:x}", ti->name(), script->crc, script->function);
+   }
 }
 
 ScriptFunction* ScriptFunctions::find(const std::string& name) {
