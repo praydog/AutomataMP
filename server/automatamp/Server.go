@@ -501,6 +501,11 @@ func (server *Server) cleanup() {
 }
 
 func (server *Server) sendHeartbeatToMasterServer() {
+	if !server.config["masterServerNotify"].(bool) {
+		log.Info("Not sending heartbeats to master server. If you want this then set masterServerNotify to true in server.json")
+		return
+	}
+
 	log.Info("Sending heartbeat to master server")
 	server.lastHeartbeat = time.Now()
 
@@ -550,6 +555,11 @@ func (server *Server) sendHeartbeatToMasterServer() {
 }
 
 func (server *Server) heartbeatGoroutine() {
+	if !server.config["masterServerNotify"].(bool) {
+		log.Info("Not sending heartbeats to master server. If you want this then set masterServerNotify to true in server.json")
+		return
+	}
+
 	for {
 		// every 30 seconds, send a heartbeat to the master server
 		// containing the server name and how many players are connected
@@ -603,6 +613,7 @@ func CreateServer() *Server {
 	server.highestEntityGuid = 0
 	server.config["password"] = ""
 	server.config["masterServer"] = "https://niermaster.praydog.com"
+	server.config["masterServerNotify"] = true
 	server.config["name"] = "AutomataMP Server"
 
 	json.Unmarshal(serverJson, &server.config)

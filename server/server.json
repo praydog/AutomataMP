@@ -1,5 +1,6 @@
 {
     "password": "",
     "masterServer": "https://niermaster.praydog.com",
+    "masterServerNotify": true,
     "name": "AutomataMP Server"
 }
