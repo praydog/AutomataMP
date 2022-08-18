@@ -14,6 +14,10 @@
 namespace sdk {
 class Pl0000 : public sdk::BehaviorAppBase {
 public:
+    static constexpr std::string_view class_name() {
+        return "class Pl0000";
+    }
+
     enum EButtonIndex {
         INDEX_ATTACK_LIGHT = 0,
         INDEX_ATTACK_HEAVY = 1,

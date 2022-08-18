@@ -7,6 +7,11 @@
 namespace sdk {
 class NPC : public BehaviorAppBase {
 public:
+    static constexpr std::string_view class_name() {
+        return "class NPC";
+    }
+
+public:
     OBJECT_SCRIPT_FUNCTION(NPC, changeSetTypeFollow, void) // base + 0x7008f0
     OBJECT_SCRIPT_FUNCTION(NPC, changeSetTypeIdle, void) // base + 0x7009f0
     OBJECT_SCRIPT_FUNCTION(NPC, dieDevola, void) // base + 0x702850

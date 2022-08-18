@@ -8,6 +8,11 @@ namespace sdk {
 // cModel
 class Model : public sdk::Parts {
 public:
+    static constexpr std::string_view class_name() {
+        return "class cModel";
+    }
+
+public:
     virtual ~Model() = 0;
     virtual void model1(...) = 0;
     virtual void model2(...) = 0;

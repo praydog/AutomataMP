@@ -9,6 +9,11 @@
 namespace sdk {
 class BehaviorAppBase : public sdk::Behavior {
 public:
+    static constexpr std::string_view class_name() {
+        return "class BehaviorAppBase";
+    }
+    
+public:
     __forceinline ::regenny::BehaviorAppBase* regenny() const {
         return (::regenny::BehaviorAppBase*)this;
     }

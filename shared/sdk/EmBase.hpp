@@ -7,6 +7,11 @@
 namespace sdk {
 class EmBase : public sdk::BehaviorAppBase {
 public:
+    static constexpr std::string_view class_name() {
+        return "class EmBase";
+    }
+
+public:
     OBJECT_SCRIPT_FUNCTION(EmBase, addExpDirect, void) // base + 0x574040
     OBJECT_SCRIPT_FUNCTION(EmBase, callEnemy, void) // base + 0x537010
     OBJECT_SCRIPT_FUNCTION(EmBase, callSeM1040Guide1, void) // base + 0x5798e0

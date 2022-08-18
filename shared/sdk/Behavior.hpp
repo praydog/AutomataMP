@@ -16,6 +16,11 @@ class Entity;
 
 class Behavior : public sdk::Obj {
 public:
+    static constexpr std::string_view class_name() {
+        return "class Behavior";
+    }
+
+public:
     virtual void pad4() = 0;
     virtual void pad5() = 0;
     virtual void pad6() = 0;
