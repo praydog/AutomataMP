@@ -4,6 +4,8 @@
 
 #include "../lib/Noncopyable.hpp"
 #include "../NierRTTI.hpp"
+#include "../ScriptFunctions.hpp"
+#include "State.hpp"
 
 namespace sdk::hap {
 class StateObject : public ::sdk::lib::Noncopyable {
@@ -23,6 +25,9 @@ public:
     std::string_view state_name() const {
         return m_state_name;
     }
+
+public:
+    OBJECT_SCRIPT_FUNCTION(StateObject, signal, bool, class hap::State const &) // base + 0x3ecd00
 
 private:
     uint32_t m_unk_hash;

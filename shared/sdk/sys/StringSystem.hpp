@@ -3,8 +3,7 @@
 namespace sdk::sys {
 class StringSystem {
 public:
-    class Allocator {
-    public:
+    struct Allocator {
         // TODO!
     };
 };
