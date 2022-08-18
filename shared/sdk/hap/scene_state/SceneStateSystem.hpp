@@ -3,6 +3,7 @@
 #include "../StateObject.hpp"
 #include "../TokenCategory.hpp"
 #include "../SceneStateName.hpp"
+#include "../scene_pos/ScenePosSystem.hpp"
 #include "../../sys/StringSystem.hpp"
 #include "../../lib/HashedString.hpp"
 #include "../../ScriptFunctions.hpp"
@@ -18,5 +19,10 @@ public:
     OBJECT_SCRIPT_FUNCTION(SceneStateSystem, has, bool, struct hap::SceneStateName const &) // base + 0x33dea0
     OBJECT_SCRIPT_FUNCTION(SceneStateSystem, reset, bool, struct hap::SceneStateName const &) // base + 0x34f7e0
     OBJECT_SCRIPT_FUNCTION(SceneStateSystem, set, bool, struct hap::SceneStateName const &) // base + 0x354a20
+
+private:
+    uint8_t detail_scene_state_system[0x118 - (sizeof(::sdk::hap::StateObject) + sizeof(::sdk::hap::TokenCategory))];
 };
+
+static_assert(sizeof(SceneStateSystem) == 0x120, "Size of SceneStateSystem is not correct.");
 }

@@ -25,4 +25,6 @@ struct SceneStateName {
         char name_maybe[128]; // its either embedded or a pointer if > a certain amount of bytes, not sure yet.
     } *data;
 };
+
+static_assert(sizeof(SceneStateName) == sizeof(void*), "SceneStateName is not the correct size.");
 }
