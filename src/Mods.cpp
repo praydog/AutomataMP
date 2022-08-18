@@ -4,6 +4,7 @@
 #include "mods/AutomataMPMod.hpp"
 #include "mods/AnimTester.hpp"
 #include "mods/BuddyFeatures.hpp"
+#include "mods/Explorer.hpp"
 
 #include "Mods.hpp"
 
@@ -12,6 +13,7 @@ Mods::Mods() {
     m_mods.emplace_back(AutomataMPMod::get());
     m_mods.emplace_back(new BuddyFeatures());
     m_mods.emplace_back(new AnimTester());
+    m_mods.emplace_back(new Explorer());
 }
 
 std::optional<std::string> Mods::on_initialize() const {
