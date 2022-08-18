@@ -5,13 +5,14 @@
 #include <utility/RTTI.hpp>
 
 #include "regenny/Obj.hpp"
+#include "NierRTTI.hpp"
 #include "Model.hpp"
 
 namespace sdk {
 class Obj : public sdk::Model {
 public:
     // Vtable starts at index 3
-    virtual void obj3() = 0;
+    virtual NierRTTI2* get_rtti() = 0;
 
     __forceinline regenny::Obj* regenny() const {
         return (regenny::Obj*)this;

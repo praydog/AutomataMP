@@ -17,4 +17,10 @@ struct NierRTTI {
 
     NierRTTI* self;
 };
+
+// Used in some classes vtable index 3
+struct NierRTTI2 {
+    NierRTTI2* next;
+    NierRTTI rtti;
+};
 }
