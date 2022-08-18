@@ -4,7 +4,7 @@ NieR: Automata Multiplayer Mod
 ## Warning
 This project is a work-in-progress. While some important aspects of the game are well supported, some are not. Do not expect to do a full story playthrough with someone with this project (yet).
 
-At the moment, this project should only be used for basic world traversal and exploration with a friend, or playing in the Debug room. Quest syncing is not yet implemented. Some parts of the game will just be straight up broken.
+At the moment, this project should only be used for basic world traversal and exploration with friends, or playing in the Debug room. Quest syncing is not yet implemented. Some parts of the game will just be straight up broken.
 
 ## Features
 ### Master server
@@ -13,6 +13,7 @@ At the moment, this project should only be used for basic world traversal and ex
 ### Standalone server
 * Server coded in Go that can run on either Linux or Windows
 * MasterClient system to allow a "host" that controls the game world (enemies and other world state)
+* More than 2 players are supported, not just player + buddy
 
 ### Player Sync
 * Position
