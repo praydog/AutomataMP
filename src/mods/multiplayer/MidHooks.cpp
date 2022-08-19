@@ -182,7 +182,7 @@ MidHooks::MidHooks() {
             return;
         }
 
-        const auto& players = client->getPlayers();
+        const auto& players = client->get_players();
 
         auto it = std::find_if(players.begin(), players.end(), [&](auto& player) {
             return player.second->getEntity() == entity;
@@ -215,7 +215,7 @@ void MidHooks::on_processed_buttons(safetyhook::Context& context) {
 
         for (auto button : entity->character_controller().buttons) {
             if (button != 0) {
-                client->sendButtons(entity->character_controller().buttons);
+                client->send_buttons(entity->character_controller().buttons);
                 break;
             }
         }

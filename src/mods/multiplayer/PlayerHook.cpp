@@ -33,7 +33,7 @@ void __thiscall PlayerHook::start_animation_hook(sdk::Pl0000* ent, uint32_t anim
         auto& client = amp->get_client();
 
         if (client != nullptr) {
-            client->sendAnimationStart(anim, variant, a3, a4);
+            client->send_animation_start(anim, variant, a3, a4);
         }
     }
 

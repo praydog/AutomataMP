@@ -48,12 +48,6 @@ std::optional<std::string> AutomataMPMod::on_initialize() try {
     return "Unknown exception";
 }
 
-void AutomataMPMod::send_packet(const enet_uint8* data, size_t size) {
-    if (m_client) {
-        m_client->send_packet(0, data, size, ENET_PACKET_FLAG_RELIABLE);
-    }
-}
-
 void AutomataMPMod::display_servers() {
     const auto now = std::chrono::steady_clock::now();
 
@@ -92,7 +86,7 @@ void AutomataMPMod::display_servers() {
             m_client.reset();
             m_client = make_unique<NierClient>(server->ip.data(), m_name_input.data(), m_password_input.data());
 
-            if (!m_client->isConnected()) {
+            if (!m_client->is_connected()) {
                 m_client.reset();
             }
 
@@ -159,7 +153,7 @@ void AutomataMPMod::on_draw_ui() {
 
         m_client = make_unique<NierClient>(m_ip_connect_input.data(), m_name_input.data(), m_password_input.data());
 
-        if (!m_client->isConnected()) {
+        if (!m_client->is_connected()) {
             m_client.reset();
         }
     }
@@ -179,7 +173,7 @@ void AutomataMPMod::on_draw_ui() {
 }
 
 void AutomataMPMod::on_frame() {
-    if (m_client && m_client->isMasterClient()) {
+    if (m_client && m_client->is_master_client()) {
         // Draw "Server" at 0, 0 with red text.
         ImGui::GetBackgroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0, 0), ImGui::GetColorU32(ImGuiCol_Text), "MasterClient");
     }

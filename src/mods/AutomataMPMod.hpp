@@ -24,21 +24,19 @@ public:
     std::optional<std::string> on_initialize() override;
 
 public:
-    void send_packet(const enet_uint8* data, size_t size);
-
     bool is_server() {
-        return m_client != nullptr && m_client->isMasterClient();
+        return m_client != nullptr && m_client->is_master_client();
     }
 
     void on_entity_created(sdk::Entity* entity, sdk::EntitySpawnParams* data) {
         if (m_client != nullptr) {
-            m_client->onEntityCreated(entity, data);
+            m_client->on_entity_created(entity, data);
         }
     }
     
     void on_entity_deleted(sdk::Entity* entity) {
         if (m_client != nullptr) {
-            m_client->onEntityDeleted(entity);
+            m_client->on_entity_deleted(entity);
         }
     }
 

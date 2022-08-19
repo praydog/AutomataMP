@@ -4,6 +4,7 @@
 #include "ScriptFunctions.hpp"
 #include "Behavior.hpp"
 
+#include "app/Puid.hpp"
 #include "Hw/cVec4.hpp"
 #include "hap/VariantMap.hpp"
 #include "sys/StringSystem.hpp"
@@ -34,7 +35,7 @@ public:
     OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimOp, void, class lib::HashedString<struct sys::StringSystem::Allocator> const &, class hap::VariantMap const &) // base + 0x464378
     OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimSpdRate, void, float) // base + 0x4e62a0
     OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestAnimTable, void, class lib::HashedString<struct sys::StringSystem::Allocator> const &) // base + 0x46436c
-    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestMove, void, class Hw::cVec4 const &, int) // base + 0x464384
+    OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestMove, void, Hw::cVec4 const &, int) // base + 0x464384
     OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPath, void, int) // base + 0x464390
     OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPathBlockStop, void) // base + 0x4643a8
     OBJECT_SCRIPT_FUNCTION(BehaviorAppBase, requestPathWait, void) // base + 0x46439c

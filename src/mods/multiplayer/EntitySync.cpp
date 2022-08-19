@@ -35,7 +35,7 @@ void NetworkEntity::startAnimationHook(sdk::Behavior* behavior, uint32_t anim, u
     auto networkEntity = g_entitySync->getNetworkEntityFromHandle(behavior->get_entity()->handle);
 
     if (client != nullptr) {
-        client->sendEntityAnimationStart(networkEntity->getGuid(), anim, variant, a3, a4);
+        client->send_entity_animation_start(networkEntity->getGuid(), anim, variant, a3, a4);
     }
 
     auto original = networkEntity->m_hook->getMethod<decltype(startAnimationHook)*>(sdk::Behavior::s_start_animation_index);
@@ -55,7 +55,7 @@ void EntitySync::onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* da
 
     addEntity(entity, guid);
 
-    AutomataMPMod::get()->get_client()->sendEntityCreate(guid, data);
+    AutomataMPMod::get()->get_client()->send_entity_create(guid, data);
 
     /*nier_server::EntitySpawn packet;
     packet.guid = guid;
@@ -87,7 +87,7 @@ void EntitySync::onEntityDeleted(sdk::Entity* entity) {
     m_handleMap.erase(entity->handle);
     removeEntity(networkedEntity->getGuid());
 
-    AutomataMPMod::get()->get_client()->sendEntityDestroy(networkedEntity->getGuid());
+    AutomataMPMod::get()->get_client()->send_entity_destroy(networkedEntity->getGuid());
 }
 
 void EntitySync::onEnterServer(bool is_master_client) try {
@@ -203,7 +203,7 @@ void EntitySync::think() {
             packet.facing2 = *npc->getFacing2();
             packet.health = *npc->getHealth();*/
 
-            AutomataMPMod::get()->get_client()->sendEntityData(it.first, npc);
+            AutomataMPMod::get()->get_client()->send_entity_data(it.first, npc);
         }
         else {
             npc->position() = *(Vector3f*)&packet.position();
