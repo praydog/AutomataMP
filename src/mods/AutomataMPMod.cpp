@@ -210,15 +210,15 @@ void AutomataMPMod::on_think() {
     }
 
 
-    auto player = entityList->getByName("Player");
+    auto player = entityList->get_by_name("Player");
 
     if (!player) {
         spdlog::info("Player not found");
         return;
     }
     
-    auto partners = entityList->getAllByName("partner");
-    auto partner = entityList->getByName("partner");
+    auto partners = entityList->get_all_by_name("partner");
+    auto partner = entityList->get_by_name("partner");
 
     if (partner) {
         if (utility::was_key_down(VK_F4)) {
@@ -373,7 +373,7 @@ void AutomataMPMod::on_think() {
         spawnBuddy(player->entity);
         player->entity->setBuddyHandle(old);*/
 
-        auto ent = entityList->spawnEntity("partner", sdk::EModel::MODEL_2B, player->behavior->position());
+        auto ent = entityList->spawn_entity("partner", sdk::EModel::MODEL_2B, player->behavior->position());
 
         if (ent) {
             ent->assignAIRoutine("buddy_2B");
@@ -427,14 +427,14 @@ void AutomataMPMod::shared_think() {
     }
 
     // main player entity that game is originally controlling
-    auto player = entityList->getByName("Player");
+    auto player = entityList->get_by_name("Player");
 
     if (!player) {
         spdlog::info("Player not found");
         return;
     }
 
-    auto controlledEntity = entityList->getPossessedEntity();
+    auto controlledEntity = entityList->get_possessed_entity();
 
     if (!controlledEntity || !controlledEntity->behavior) {
         spdlog::info("Controlled entity invalid");
@@ -459,7 +459,7 @@ void AutomataMPMod::shared_think() {
         m_player_hook.re_hook(controlledEntity->behavior->as<sdk::Pl0000>());
         controlledEntity->behavior->obj_flags() = 0;
 
-        auto realBuddy = entityList->getByHandle(controlledEntity->behavior->as<sdk::Pl0000>()->buddy_handle());
+        auto realBuddy = entityList->get_by_handle(controlledEntity->behavior->as<sdk::Pl0000>()->buddy_handle());
     }
 
     if (m_client) {

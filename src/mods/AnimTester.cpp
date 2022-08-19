@@ -15,8 +15,8 @@ void AnimTester::on_draw_ui() {
             return;
         }
 
-        auto player = entityList->getByName("Player");
-        auto partner = entityList->getByName("partner");
+        auto player = entityList->get_by_name("Player");
+        auto partner = entityList->get_by_name("partner");
 
         if (player && player->behavior) {
             player->behavior->start_animation(m_anim->value(), m_variant->value(), m_a3->value(), m_a4->value());

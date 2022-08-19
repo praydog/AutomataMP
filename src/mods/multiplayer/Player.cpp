@@ -7,7 +7,7 @@ sdk::Pl0000* Player::get_entity() {
         return nullptr;
     }
 
-    auto ent = sdk::EntityList::get()->getByHandle(m_entity_handle);
+    auto ent = sdk::EntityList::get()->get_by_handle(m_entity_handle);
 
     if (!ent) {
         return nullptr;

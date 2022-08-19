@@ -24,7 +24,7 @@ public:
             return nullptr;
         }
 
-        return entity_list->getByHandle(m_entity_handle);
+        return entity_list->get_by_handle(m_entity_handle);
     }
 
     auto& get_entity_data() { return m_entity_data; }

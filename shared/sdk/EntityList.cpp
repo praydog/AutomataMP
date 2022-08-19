@@ -55,7 +55,7 @@ Entity* EntityList::get(uint32_t i)
     return m_entities[i].ent;
 }
 
-Entity* EntityList::getByName(const std::string& name) {
+Entity* EntityList::get_by_name(const std::string& name) {
     for (auto& i : *this) {
         if (!i.ent)
             continue;
@@ -67,12 +67,12 @@ Entity* EntityList::getByName(const std::string& name) {
     return nullptr;
 }
 
-Entity* EntityList::getByHandle(uint32_t handle) {
+Entity* EntityList::get_by_handle(uint32_t handle) {
     auto index = (uint16_t)(handle >> 8);
     return m_entities[index].ent;
 }
 
-Entity* EntityList::getPossessedEntity() {
+Entity* EntityList::get_possessed_entity() {
     //static uint32_t* currentHandle = Address(0x14158A6EC).as<uint32_t*>(); // old 2017
     
     /*
@@ -86,7 +86,7 @@ Entity* EntityList::getPossessedEntity() {
     7FF710F60402 + 0xE core_keyitem_get
     7FF710F923BE + 0x9 core_AccelTime_Out
     */
-    static uint32_t* currentHandle = []() -> uint32_t* {
+    static uint32_t* current_handle = []() -> uint32_t* {
         spdlog::info("[EntityList] Finding currentHandle...");
 
         const auto str = utility::scan_string(utility::get_executable(), "core_AccelTime_Out");
@@ -122,15 +122,15 @@ Entity* EntityList::getPossessedEntity() {
 
         return result;
     }();
-    
-    if (!*currentHandle) {
+
+    if (!*current_handle) {
         return nullptr;
     }
 
-    return getByHandle(*currentHandle);
+    return get_by_handle(*current_handle);
 }
 
-std::tuple<EntityList::SpawnFunction, EntityList::SpawnThis> EntityList::getSpawnEntityFn() {
+std::tuple<EntityList::SpawnFunction, EntityList::SpawnThis> EntityList::get_spawn_entity_fn() {
     // 2017 version
     /*static EntityContainer* (*spawn)(void*, const EntitySpawnParams&) = (decltype(spawn))0x1404F9AA0;
     return spawn((void*)0x14160DFE0, params);*/
@@ -204,10 +204,10 @@ std::tuple<EntityList::SpawnFunction, EntityList::SpawnThis> EntityList::getSpaw
     return out;
 }
 
-void* EntityList::getPostSpawnEntityFn() {
+void* EntityList::get_post_spawn_entity_fn() {
     static auto out = []() -> void* {
         spdlog::info("[EntityList] Finding postSpawn...");
-        const auto [spawn, thisptr] = getSpawnEntityFn();
+        const auto [spawn, thisptr] = get_spawn_entity_fn();
 
         spdlog::info("[EntityList] Scanning spawn function for ret instruction...");
 
@@ -226,12 +226,12 @@ void* EntityList::getPostSpawnEntityFn() {
     return out;
 }
 
-Entity* EntityList::spawnEntity(const EntitySpawnParams& params) {
-    auto [spawn, thisptr] = getSpawnEntityFn();
+Entity* EntityList::spawn_entity(const EntitySpawnParams& params) {
+    auto [spawn, thisptr] = get_spawn_entity_fn();
     return spawn(thisptr, params);
 }
 
-Entity* EntityList::spawnEntity(const std::string& name, uint32_t model, const Vector3f& position) {
+Entity* EntityList::spawn_entity(const std::string& name, uint32_t model, const Vector3f& position) {
     EntitySpawnParams params;
     EntitySpawnParams::PositionalData matrix;
     matrix.position = Vector4f{position, 1.0f};
@@ -239,13 +239,13 @@ Entity* EntityList::spawnEntity(const std::string& name, uint32_t model, const V
     params.matrix = &matrix;
     params.model = model;
     params.model2 = model;
-    matrix.unknown = *Address(getByName("Player")->behavior).get(0x90).as<Vector4f*>();
+    matrix.unknown = *Address(get_by_name("Player")->behavior).get(0x90).as<Vector4f*>();
 
-    auto ret = spawnEntity(params);
+    auto ret = spawn_entity(params);
     return ret;
 }
 
-std::vector<Entity*> EntityList::getAllByName(const std::string& name) {
+std::vector<Entity*> EntityList::get_all_by_name(const std::string& name) {
     std::vector<Entity*> vec;
 
     for (auto& i : *this) {

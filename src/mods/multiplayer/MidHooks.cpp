@@ -165,7 +165,7 @@ MidHooks::MidHooks() {
     add_hook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
     add_hook(0x1404F8DE0, &MidHooks::on_entity_terminate);*/
 
-    const auto [spawn_fn, spawn_this] = sdk::EntityList::getSpawnEntityFn();
+    const auto [spawn_fn, spawn_this] = sdk::EntityList::get_spawn_entity_fn();
     m_entity_spawn_hook = add_inline_hook((uintptr_t)spawn_fn, &MidHooks::entity_spawn_hook);
     add_hook(get_entity_terminate_fn(), &MidHooks::on_entity_terminate);
     // todo: hook the other version of the terminate function (the script function)
@@ -282,7 +282,7 @@ Function calls:
 
 void MidHooks::on_update(safetyhook::Context& info) {
     auto entityList = sdk::EntityList::get();
-    auto player = entityList->getByName("Player");
+    auto player = entityList->get_by_name("Player");
 
     if (!player) {
         return;
@@ -316,7 +316,7 @@ void MidHooks::on_update(safetyhook::Context& info) {
         params.model = 0x21020;
         params.model2 = 0x21020;
 
-        auto test = entityList->spawnEntity(params);
+        auto test = entityList->spawn_entity(params);
 
         if (test) {
             test->behavior->setSuspend(false);
@@ -326,7 +326,7 @@ void MidHooks::on_update(safetyhook::Context& info) {
     }
 
     if (utility::was_key_down(VK_F2)) {
-        auto enemies = entityList->getAllByName("FreeEnemy");
+        auto enemies = entityList->get_all_by_name("FreeEnemy");
 
         for (auto i : enemies) {
             if (!i->behavior) {

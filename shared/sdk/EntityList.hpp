@@ -52,19 +52,19 @@ public:
 
 public:
     Entity* get(uint32_t i);
-    Entity* getByName(const std::string& name);
-    Entity* getByHandle(uint32_t handle);
-    Entity* getPossessedEntity();
+    Entity* get_by_name(const std::string& name);
+    Entity* get_by_handle(uint32_t handle);
+    Entity* get_possessed_entity();
 
     using SpawnFunction = Entity* (*)(void*, const EntitySpawnParams&);
     using SpawnThis = void*;
-    static std::tuple<SpawnFunction, SpawnThis> getSpawnEntityFn();
-    static void* getPostSpawnEntityFn();
+    static std::tuple<SpawnFunction, SpawnThis> get_spawn_entity_fn();
+    static void* get_post_spawn_entity_fn();
 
-    Entity* spawnEntity(const EntitySpawnParams& params);
-    Entity* spawnEntity(const std::string& name, uint32_t model, const Vector3f& position);
+    Entity* spawn_entity(const EntitySpawnParams& params);
+    Entity* spawn_entity(const std::string& name, uint32_t model, const Vector3f& position);
 
-    std::vector<Entity*> getAllByName(const std::string& name);
+    std::vector<Entity*> get_all_by_name(const std::string& name);
 
 public:
     size_t size();

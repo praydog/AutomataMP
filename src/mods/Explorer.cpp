@@ -52,7 +52,7 @@ void Explorer::display_player_options() {
     }
 
     if (ImGui::TreeNode("Player")) {
-        const auto player_ent = entities->getByName("Player");
+        const auto player_ent = entities->get_by_name("Player");
         const auto player_behavior = player_ent != nullptr ? player_ent->behavior->try_cast<sdk::Pl0000>() : nullptr;
 
         if (player_behavior != nullptr) {
@@ -63,7 +63,7 @@ void Explorer::display_player_options() {
     }
 
     if (ImGui::TreeNode("Controlled Entity")) {
-        const auto controlled = entities->getPossessedEntity();
+        const auto controlled = entities->get_possessed_entity();
 
         if (controlled != nullptr) {
             display_behavior(controlled->behavior);
@@ -105,7 +105,7 @@ void Explorer::display_entities() {
         behavior_map[ti->name()].push_back(behavior);
     }
 
-    const auto player_ent = entities->getByName("Player");
+    const auto player_ent = entities->get_by_name("Player");
     const auto player_behavior = player_ent != nullptr ? player_ent->behavior->try_cast<sdk::Pl0000>() : nullptr;
 
     for (const auto& [name, behaviors] : behavior_map) {

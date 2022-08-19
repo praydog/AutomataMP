@@ -96,7 +96,7 @@ void NierClient::on_draw_ui() {
         if (ImGui::TreeNode(it.second->get_name().c_str())) {
             if (ImGui::Button("Teleport To")) {
                 auto ents = sdk::EntityList::get();
-                auto controlled = ents->getPossessedEntity();
+                auto controlled = ents->get_possessed_entity();
 
                 if (controlled != nullptr && controlled->behavior != nullptr) {
                     if (controlled->behavior->is_pl0000()) {
@@ -169,7 +169,7 @@ void NierClient::on_frame() {
 }
 
 void NierClient::on_connect() {
-    if (auto ents = sdk::EntityList::get(); ents == nullptr || ents->getPossessedEntity() == nullptr) {
+    if (auto ents = sdk::EntityList::get(); ents == nullptr || ents->get_possessed_entity() == nullptr) {
         AutomataMPMod::get()->signal_destroy_client();
         spdlog::error("Please spawn a player before connecting to the server.");
         return;
@@ -494,7 +494,7 @@ void NierClient::on_entity_deleted(sdk::Entity* entity) {
 
 void NierClient::send_hello() {
     auto ents = sdk::EntityList::get();
-    auto possessed = ents->getPossessedEntity();
+    auto possessed = ents->get_possessed_entity();
 
     if (possessed == nullptr || possessed->behavior == nullptr) {
         spdlog::error("No possessed entity");
@@ -538,7 +538,7 @@ void NierClient::update_local_player_data() {
         return;
     }
 
-    auto player = entity_list->getPossessedEntity();
+    auto player = entity_list->get_possessed_entity();
 
     if (player == nullptr) {
         return;
@@ -612,14 +612,14 @@ bool NierClient::handle_create_player(const nier::Packet* packet) {
         return false;
     }
 
-    auto possessed = entity_list->getPossessedEntity();
+    auto possessed = entity_list->get_possessed_entity();
 
     if (possessed == nullptr) {
         spdlog::error("Possessed entity not found while handling create player packet");
         return false;
     }
 
-    auto localplayer = entity_list->getByName("Player");
+    auto localplayer = entity_list->get_by_name("Player");
 
     if (localplayer == nullptr || localplayer->behavior == nullptr) {
         spdlog::info("Player not found while handling create player packet");
@@ -649,7 +649,7 @@ bool NierClient::handle_create_player(const nier::Packet* packet) {
         spdlog::info("Spawning player {}, {}", create_player->guid(), create_player->name()->c_str());
 
         MidHooks::s_ignore_spawn = true;
-        auto ent = entity_list->spawnEntity("partner", create_player->model(), possessed->behavior->position());
+        auto ent = entity_list->spawn_entity("partner", create_player->model(), possessed->behavior->position());
         MidHooks::s_ignore_spawn = false;
 
         if (ent != nullptr) {
@@ -701,8 +701,8 @@ bool NierClient::handle_destroy_player(const nier::Packet* packet) {
             // not an error, we just won't actually delete any entity from the entity list
             spdlog::info("Entity list not found while handling destroy player packet");
         } else {
-            auto localplayer = entity_list->getByName("Player");
-            auto ent = entity_list->getByHandle(m_players[destroy_player->guid()]->get_handle());
+            auto localplayer = entity_list->get_by_name("Player");
+            auto ent = entity_list->get_by_handle(m_players[destroy_player->guid()]->get_handle());
             if (ent != nullptr && ent != localplayer) {
                 ent->behavior->terminate();
             }
@@ -743,7 +743,7 @@ bool NierClient::handle_create_entity(const nier::EntityPacket* packet) {
 
         // Allows the client to spawn an entity.
         MidHooks::s_ignore_spawn = true;
-        auto ent = entity_list->spawnEntity(params);
+        auto ent = entity_list->spawn_entity(params);
         MidHooks::s_ignore_spawn = false;
 
         if (ent != nullptr) {

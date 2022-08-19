@@ -22,7 +22,7 @@ private:
     void hook_monitor();
 
 public:
-    AutomataMP(HMODULE AutomataMP_module);
+    AutomataMP(HMODULE automata_mp_module);
     virtual ~AutomataMP();
 
     auto get_automatamp_module() const { return m_automatamp_module; }
@@ -91,9 +91,9 @@ public:
     ImFont* get_font(int index) const {
         if (index >= 0 && index < m_additional_fonts.size()) {
             return m_additional_fonts[index].font;
-        } else {
-            return nullptr;
         }
+        
+        return nullptr;
     }
 
     Vector2f get_d3d11_rt_size() const {
