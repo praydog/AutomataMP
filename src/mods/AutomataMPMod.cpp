@@ -48,7 +48,7 @@ std::optional<std::string> AutomataMPMod::on_initialize() try {
     return "Unknown exception";
 }
 
-void AutomataMPMod::sendPacket(const enet_uint8* data, size_t size) {
+void AutomataMPMod::send_packet(const enet_uint8* data, size_t size) {
     if (m_client) {
         m_client->send_packet(0, data, size, ENET_PACKET_FLAG_RELIABLE);
     }
@@ -58,10 +58,10 @@ void AutomataMPMod::display_servers() {
     const auto now = std::chrono::steady_clock::now();
 
     // Check if server future is ready and parse it into our internal server list.
-    if (m_serverFuture.valid() && m_serverFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+    if (m_server_future.valid() && m_server_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
         m_servers.clear();
 
-        const auto response = m_serverFuture.get();
+        const auto response = m_server_future.get();
         spdlog::info("Got response: {}", response);
         const auto response_json = nlohmann::json::parse(response);
 
@@ -73,7 +73,7 @@ void AutomataMPMod::display_servers() {
 
                 new_server_data->ip = ip;
                 new_server_data->name = data["Name"];
-                new_server_data->numPlayers = data["NumPlayers"];
+                new_server_data->num_players = data["num_players"];
 
                 m_servers.push_back(std::move(new_server_data));
             }
@@ -101,31 +101,31 @@ void AutomataMPMod::display_servers() {
 
         ImGui::SameLine();
 
-        const auto made = ImGui::TreeNode((server->name + " (" + std::to_string(server->numPlayers) + " players)").c_str());
+        const auto made = ImGui::TreeNode((server->name + " (" + std::to_string(server->num_players) + " players)").c_str());
 
         if (made) {
             ImGui::Text("IP: %s", server->ip.c_str());
             ImGui::Text("Name: %s", server->name.c_str());
-            ImGui::Text("Players: %s", std::to_string(server->numPlayers).c_str());
+            ImGui::Text("Players: %s", std::to_string(server->num_players).c_str());
             ImGui::TreePop();
         }
 
         ImGui::PopID();
     }
 
-    if (now - m_lastServerUpdate < std::chrono::seconds(5)) {
+    if (now - m_last_server_update < std::chrono::seconds(5)) {
         return;
     }
 
-    if (m_serverFuture.valid()) {
-        if (m_serverFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+    if (m_server_future.valid()) {
+        if (m_server_future.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
             return;
         }
 
-        m_serverFuture.wait();
+        m_server_future.wait();
     }
 
-    m_serverFuture = std::async(std::launch::async, [this]() -> std::string {
+    m_server_future = std::async(std::launch::async, [this]() -> std::string {
         try {
             HttpClient http{};
 
@@ -133,11 +133,11 @@ void AutomataMPMod::display_servers() {
             http.get(servers_url, "", "");
 
             const auto response = http.response();     
-            m_lastServerUpdate = std::chrono::steady_clock::now();
+            m_last_server_update = std::chrono::steady_clock::now();
 
             return response;
         } catch (...) {
-            m_lastServerUpdate = std::chrono::steady_clock::now();
+            m_last_server_update = std::chrono::steady_clock::now();
             return "";
         }
     });
@@ -199,13 +199,13 @@ void AutomataMPMod::on_frame() {
 }
 
 void AutomataMPMod::on_think() {
-    if (nier::isLoading() || m_wantsDestroyClient) {
+    if (sdk::is_loading() || m_wants_destroy_client) {
         if (m_client != nullptr) {
             m_client->disconnect();
             m_client.reset();
         }
 
-        m_wantsDestroyClient = false;
+        m_wants_destroy_client = false;
         return;
     }
 
@@ -371,7 +371,7 @@ void AutomataMPMod::on_think() {
 
     //static uint32_t(*spawnBuddy)(Entity* player) = (decltype(spawnBuddy))0x140245C30;
 
-    sharedThink();
+    shared_think();
 
     if (utility::was_key_down(VK_F9)) {
         /*auto old = player->entity->getBuddyHandle();
@@ -421,7 +421,7 @@ void AutomataMPMod::on_think() {
     }
 }
 
-void AutomataMPMod::sharedThink() {
+void AutomataMPMod::shared_think() {
     //spdlog::info("Shared think");
 
     //static uint32_t(*changePlayer)(Entity* player) = (decltype(changePlayer))0x1401ED500;
@@ -461,8 +461,8 @@ void AutomataMPMod::sharedThink() {
     }*/
 
     if (controlledEntity->behavior->is_pl0000()) {
-        m_midHooks.addOverridenEntity(controlledEntity->behavior);
-        m_playerHook.reHook(controlledEntity->behavior->as<sdk::Pl0000>());
+        m_mid_hooks.add_overriden_entity(controlledEntity->behavior);
+        m_player_hook.re_hook(controlledEntity->behavior->as<sdk::Pl0000>());
         controlledEntity->behavior->obj_flags() = 0;
 
         auto realBuddy = entityList->getByHandle(controlledEntity->behavior->as<sdk::Pl0000>()->buddy_handle());

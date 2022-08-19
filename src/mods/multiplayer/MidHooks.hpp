@@ -29,40 +29,40 @@ class MidHooks {
 public:
     MidHooks();
 
-    void onProcessedButtons(safetyhook::Context& info);
-    void onPreEntitySpawn(safetyhook::Context& info);
-    void onPostEntitySpawn(safetyhook::Context& info);
-    sdk::Entity* onEntitySpawn(void* rcx, void* rdx);
-    void onEntityTerminate(safetyhook::Context& info);
-    void onUpdate(safetyhook::Context& info);
+    void on_processed_buttons(safetyhook::Context& info);
+    void on_pre_entity_spawn(safetyhook::Context& info);
+    void on_post_entity_spawn(safetyhook::Context& info);
+    sdk::Entity* on_entity_spawn(void* rcx, void* rdx);
+    void on_entity_terminate(safetyhook::Context& info);
+    void on_update(safetyhook::Context& info);
 
-    void addOverridenEntity(sdk::Behavior* ent);
+    void add_overriden_entity(sdk::Behavior* ent);
 
     typedef void (MidHooks::*MemberMidCallbackFn)(safetyhook::Context&);
     typedef void (MidHooks::*MemberInlineCallbackFn)(HookAndParams&);
 
-    static inline bool s_ignoreSpawn{false};
+    static inline bool s_ignore_spawn{false};
 
 private:
-    void addHook(uintptr_t address, MemberMidCallbackFn cb);
-    void addHook(uintptr_t address, safetyhook::MidHookFn cb);
-    void addHook(uintptr_t address, MemberInlineCallbackFn cb); // NOT thread safe yet!!!!
+    void add_hook(uintptr_t address, MemberMidCallbackFn cb);
+    void add_hook(uintptr_t address, safetyhook::MidHookFn cb);
+    void add_hook(uintptr_t address, MemberInlineCallbackFn cb); // NOT thread safe yet!!!!
 
-    safetyhook::InlineHook* addInlineHook(uintptr_t address, void* cb);
+    safetyhook::InlineHook* add_inline_hook(uintptr_t address, void* cb);
 
 private:
-    std::recursive_mutex m_hookMutex{};
-    
+    std::recursive_mutex m_hook_mutex{};
+
     asmjit::JitRuntime m_jit{};
-    std::vector<std::unique_ptr<safetyhook::MidHook>> m_midHooks;
-    std::vector<std::unique_ptr<HookAndParams>> m_inlineHooksWithParams;
-    std::vector<std::unique_ptr<safetyhook::InlineHook>> m_inlineHooks;
+    std::vector<std::unique_ptr<safetyhook::MidHook>> m_mid_hooks;
+    std::vector<std::unique_ptr<HookAndParams>> m_inline_hooks_with_params;
+    std::vector<std::unique_ptr<safetyhook::InlineHook>> m_inline_hooks;
 
-    static sdk::Entity* entitySpawnHook(void* rcx, void* rdx);
-    safetyhook::InlineHook* m_entitySpawnHook{};
+    static sdk::Entity* entity_spawn_hook(void* rcx, void* rdx);
+    safetyhook::InlineHook* m_entity_spawn_hook{};
 
-    std::unordered_set<sdk::Behavior*> m_overridenEntities;
+    std::unordered_set<sdk::Behavior*> m_overriden_entities;
 
-    std::recursive_mutex m_spawnMutex;
-    std::unordered_map<uint32_t, sdk::EntitySpawnParams*> m_threadIdToSpawnParams;
+    std::recursive_mutex m_spawn_mutex;
+    std::unordered_map<uint32_t, sdk::EntitySpawnParams*> m_thread_id_to_spawn_params;
 };

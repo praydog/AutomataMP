@@ -10,14 +10,14 @@ class PlayerHook {
 public:
     PlayerHook();
 
-    void reHook(sdk::Pl0000* player);
+    void re_hook(sdk::Pl0000* player);
 
-    auto& getHook() {
+    auto& get_hook() {
         return m_hook;
     }
 
 public:
-    static void __thiscall startAnimationHook(sdk::Pl0000* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
+    static void __thiscall start_animation_hook(sdk::Pl0000* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
 
 private:
     VtableHook m_hook;

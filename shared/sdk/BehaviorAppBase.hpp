@@ -4,6 +4,9 @@
 #include "ScriptFunctions.hpp"
 #include "Behavior.hpp"
 
+#include "Hw/cVec4.hpp"
+#include "hap/VariantMap.hpp"
+#include "sys/StringSystem.hpp"
 #include "lib/HashedString.hpp"
 
 namespace sdk {

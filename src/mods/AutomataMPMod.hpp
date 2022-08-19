@@ -16,27 +16,27 @@
 class AutomataMPMod : public Mod {
 public:
     static std::shared_ptr<AutomataMPMod> get();
-
 public:
+
     ~AutomataMPMod();
 
     std::string_view get_name() const override { return "AutomataMPMod"; }
     std::optional<std::string> on_initialize() override;
 
 public:
-    void sendPacket(const enet_uint8* data, size_t size);
+    void send_packet(const enet_uint8* data, size_t size);
 
-    bool isServer() {
+    bool is_server() {
         return m_client != nullptr && m_client->isMasterClient();
     }
 
-    void onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data) {
+    void on_entity_created(sdk::Entity* entity, sdk::EntitySpawnParams* data) {
         if (m_client != nullptr) {
             m_client->onEntityCreated(entity, data);
         }
     }
     
-    void onEntityDeleted(sdk::Entity* entity) {
+    void on_entity_deleted(sdk::Entity* entity) {
         if (m_client != nullptr) {
             m_client->onEntityDeleted(entity);
         }
@@ -45,25 +45,25 @@ public:
     void on_draw_ui() override;
     void on_frame() override;
     void on_think() override;
-    void sharedThink();
-    void signalDestroyClient() {
-        m_wantsDestroyClient = true;
+    void shared_think();
+    void signal_destroy_client() {
+        m_wants_destroy_client = true;
     }
 
-    auto& getClient() const {
+    auto& get_client() const {
         return m_client;
     }
 
 private:
-    std::chrono::high_resolution_clock::time_point m_nextThink;
+    std::chrono::high_resolution_clock::time_point m_next_think;
 
-    bool m_isServer{ false };
-    bool m_wantsDestroyClient{false};
+    bool m_is_server{ false };
+    bool m_wants_destroy_client{false};
     
-    std::mutex m_hookGuard;
+    std::mutex m_hook_guard;
 
-    MidHooks m_midHooks;
-    PlayerHook m_playerHook;
+    MidHooks m_mid_hooks;
+    PlayerHook m_player_hook;
 
     std::unique_ptr<NierClient> m_client;
 
@@ -72,12 +72,12 @@ private:
     struct ServerData {
         std::string ip;
         std::string name;
-        uint32_t numPlayers;
+        uint32_t num_players;
     };
 
     std::vector<std::unique_ptr<ServerData>> m_servers;
-    std::chrono::steady_clock::time_point m_lastServerUpdate{};
-    std::future<std::string> m_serverFuture;
+    std::chrono::steady_clock::time_point m_last_server_update{};
+    std::future<std::string> m_server_future;
 
     // imgui stuff
     std::array<char, 256> m_ip_connect_input{};

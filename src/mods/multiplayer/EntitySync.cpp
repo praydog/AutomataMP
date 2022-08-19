@@ -30,7 +30,7 @@ void NetworkEntity::startAnimationHook(sdk::Behavior* behavior, uint32_t anim, u
     spdlog::info("NETWORKENTITY anim: {}, variant: {}, a3: {}, return: {:x}", anim, variant, a3, (uintptr_t)_ReturnAddress());
 
     auto amp = AutomataMPMod::get();
-    auto& client = amp->getClient();
+    auto& client = amp->get_client();
 
     auto networkEntity = g_entitySync->getNetworkEntityFromHandle(behavior->get_entity()->handle);
 
@@ -55,7 +55,7 @@ void EntitySync::onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* da
 
     addEntity(entity, guid);
 
-    AutomataMPMod::get()->getClient()->sendEntityCreate(guid, data);
+    AutomataMPMod::get()->get_client()->sendEntityCreate(guid, data);
 
     /*nier_server::EntitySpawn packet;
     packet.guid = guid;
@@ -87,13 +87,13 @@ void EntitySync::onEntityDeleted(sdk::Entity* entity) {
     m_handleMap.erase(entity->handle);
     removeEntity(networkedEntity->getGuid());
 
-    AutomataMPMod::get()->getClient()->sendEntityDestroy(networkedEntity->getGuid());
+    AutomataMPMod::get()->get_client()->sendEntityDestroy(networkedEntity->getGuid());
 }
 
-void EntitySync::onEnterServer(bool isMasterClient) try {
+void EntitySync::onEnterServer(bool is_master_client) try {
     scoped_lock _(m_mapMutex);
 
-    if (isMasterClient) {
+    if (is_master_client) {
         auto entityList = sdk::EntityList::get();
 
         if (entityList == nullptr) {
@@ -197,13 +197,13 @@ void EntitySync::think() {
             continue;
         }
 
-        if (AutomataMPMod::get()->isServer()) {
+        if (AutomataMPMod::get()->is_server()) {
             /*packet.position = *npc->getPosition();
             packet.facing = *npc->getFacing();
             packet.facing2 = *npc->getFacing2();
             packet.health = *npc->getHealth();*/
 
-            AutomataMPMod::get()->getClient()->sendEntityData(it.first, npc);
+            AutomataMPMod::get()->get_client()->sendEntityData(it.first, npc);
         }
         else {
             npc->position() = *(Vector3f*)&packet.position();
@@ -217,10 +217,10 @@ void EntitySync::think() {
 
     // genius moment
     try {
-        const auto isMasterClient = AutomataMPMod::get()->isServer();
+        const auto is_master_client = AutomataMPMod::get()->is_server();
 
         // Delete any entities that are not supposed to be networked.
-        if (!isMasterClient) {
+        if (!is_master_client) {
             auto entityList = sdk::EntityList::get();
 
             if (entityList == nullptr) {

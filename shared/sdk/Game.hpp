@@ -2,6 +2,6 @@
 
 #include <cstdint>
 
-namespace nier {
-    bool isLoading();
+namespace sdk {
+bool is_loading();
 }

@@ -9,31 +9,28 @@
 
 using namespace std;
 
-unordered_set<uint32_t> g_unreplicatedAnims {
-    sdk::EAnimation::Light_Attack,
-    sdk::EAnimation::Dash
-};
+unordered_set<uint32_t> g_unreplicated_anims{sdk::EAnimation::Light_Attack, sdk::EAnimation::Dash};
 
-PlayerHook* g_playerHook = nullptr;
+PlayerHook* g_player_hook = nullptr;
 
 PlayerHook::PlayerHook() {
-    g_playerHook = this;
+    g_player_hook = this;
 }
 
-void PlayerHook::reHook(sdk::Pl0000* player) {
+void PlayerHook::re_hook(sdk::Pl0000* player) {
     if (m_hook.getInstance().as<sdk::Pl0000*>() == player) {
         return;
     }
 
     if (m_hook.create(player)) {
-        m_hook.hookMethod(sdk::Behavior::s_start_animation_index, &startAnimationHook);
+        m_hook.hookMethod(sdk::Behavior::s_start_animation_index, &start_animation_hook);
     }
 }
 
-void __thiscall PlayerHook::startAnimationHook(sdk::Pl0000* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
-    if (g_unreplicatedAnims.count(anim) == 0) {
+void __thiscall PlayerHook::start_animation_hook(sdk::Pl0000* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4) {
+    if (g_unreplicated_anims.count(anim) == 0) {
         auto amp = AutomataMPMod::get();
-        auto& client = amp->getClient();
+        auto& client = amp->get_client();
 
         if (client != nullptr) {
             client->sendAnimationStart(anim, variant, a3, a4);
@@ -42,6 +39,6 @@ void __thiscall PlayerHook::startAnimationHook(sdk::Pl0000* ent, uint32_t anim, 
 
     spdlog::info("anim: {}, variant: {}, a3: {}, return: {:x}", anim, variant, a3, (uintptr_t)_ReturnAddress());
 
-    auto original = g_playerHook->getHook().getMethod<decltype(startAnimationHook)*>(sdk::Behavior::s_start_animation_index);
+    auto original = g_player_hook->get_hook().getMethod<decltype(start_animation_hook)*>(sdk::Behavior::s_start_animation_index);
     original(ent, anim, variant, a3, a4);
 }

@@ -53,23 +53,23 @@ void NierClient::think() {
 
         // Synchronize the players.
         for (auto& it : m_players) {
-            const auto& networkedPlayer = it.second;
+            const auto& networked_player = it.second;
 
             // Do not update the local player here.
-            if (networkedPlayer == nullptr || networkedPlayer->getGuid() == m_guid) {
+            if (networked_player == nullptr || networked_player->getGuid() == m_guid) {
                 continue;
             }
 
-            auto npc = networkedPlayer->getEntity();
+            auto npc = networked_player->getEntity();
 
             if (npc == nullptr) {
-                spdlog::error("NPC for player {} not found", networkedPlayer->getGuid());
+                spdlog::error("NPC for player {} not found", networked_player->getGuid());
                 continue;
             } 
 
             //spdlog::info("Synchronizing player {}", networkedPlayer->getGuid());
 
-            auto& data = networkedPlayer->getPlayerData();
+            auto& data = networked_player->getPlayerData();
             npc->run_speed_type() = regenny::ERunSpeedType::SPEED_PLAYER;
             npc->flashlight() = data.flashlight();
             npc->speed() = data.speed();
@@ -170,7 +170,7 @@ void NierClient::on_frame() {
 
 void NierClient::onConnect() {
     if (auto ents = sdk::EntityList::get(); ents == nullptr || ents->getPossessedEntity() == nullptr) {
-        AutomataMPMod::get()->signalDestroyClient();
+        AutomataMPMod::get()->signal_destroy_client();
         spdlog::error("Please spawn a player before connecting to the server.");
         return;
     }
@@ -211,19 +211,19 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
         return;
     }
 
-    const nier::PlayerPacket* playerPacket = nullptr;
+    const nier::PlayerPacket* player_packet = nullptr;
 
     // Bounced player packets.
     if (packet->id() > nier::PacketType_ID_CLIENT_START && packet->id() < nier::PacketType_ID_CLIENT_END) {
-        playerPacket = flatbuffers::GetRoot<nier::PlayerPacket>(packet->data()->data());
-        flatbuffers::Verifier playerVerif(packet->data()->data(), packet->data()->size());
+        player_packet = flatbuffers::GetRoot<nier::PlayerPacket>(packet->data()->data());
+        flatbuffers::Verifier player_verif(packet->data()->data(), packet->data()->size());
 
-        if (!playerPacket->Verify(playerVerif)) {
+        if (!player_packet->Verify(player_verif)) {
             spdlog::error("Invalid player packet {} ({})", packet->id(), nier::EnumNamePacketType(packet->id()));
             return;
         }
 
-        onPlayerPacketReceived(packet->id(), playerPacket);
+        onPlayerPacketReceived(packet->id(), player_packet);
         return;
     }
 
@@ -262,15 +262,15 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
         case nier::PacketType_ID_DESTROY_ENTITY: [[fallthrough]];
         case nier::PacketType_ID_ENTITY_DATA: [[fallthrough]];
         case nier::PacketType_ID_ENTITY_ANIMATION_START: {
-            const auto entityPacket = flatbuffers::GetRoot<nier::EntityPacket>(packet->data()->data());
-            flatbuffers::Verifier entityVerif(packet->data()->data(), packet->data()->size());
+            const auto entity_packet = flatbuffers::GetRoot<nier::EntityPacket>(packet->data()->data());
+            flatbuffers::Verifier entity_verif(packet->data()->data(), packet->data()->size());
 
-            if (!entityPacket->Verify(entityVerif)) {
+            if (!entity_packet->Verify(entity_verif)) {
                 spdlog::error("Invalid entity packet {} ({})", packet->id(), nier::EnumNamePacketType(packet->id()));
                 return;
             }
 
-            onEntityPacketReceived(packet->id(), entityPacket);
+            onEntityPacketReceived(packet->id(), entity_packet);
             break;
         }
 
@@ -287,72 +287,72 @@ void NierClient::onPacketReceived(const nier::Packet* packet) {
     }*/
 }
 
-void NierClient::onPlayerPacketReceived(nier::PacketType packetType, const nier::PlayerPacket* packet) {
-    spdlog::info("Player packet {} received from {}", nier::EnumNamePacketType(packetType), packet->guid());
+void NierClient::onPlayerPacketReceived(nier::PacketType packet_type, const nier::PlayerPacket* packet) {
+    spdlog::info("Player packet {} received from {}", nier::EnumNamePacketType(packet_type), packet->guid());
 
-    switch (packetType) {
-        case nier::PacketType_ID_PLAYER_DATA: {
-            if (!handlePlayerData(packet)) {
-                spdlog::error("Failed to handle player data");
-            }
-
-            break;
+    switch (packet_type) {
+    case nier::PacketType_ID_PLAYER_DATA: {
+        if (!handlePlayerData(packet)) {
+            spdlog::error("Failed to handle player data");
         }
-        case nier::PacketType_ID_ANIMATION_START: {
-            if (!handleAnimationStart(packet)) {
-                spdlog::error("Failed to handle animation start");
-            }
 
-            break;
+        break;
+    }
+    case nier::PacketType_ID_ANIMATION_START: {
+        if (!handleAnimationStart(packet)) {
+            spdlog::error("Failed to handle animation start");
         }
-        case nier::PacketType_ID_BUTTONS: {
-            if (!handleButtons(packet)) {
-                spdlog::error("Failed to handle buttons");
-            }
 
-            break;
+        break;
+    }
+    case nier::PacketType_ID_BUTTONS: {
+        if (!handleButtons(packet)) {
+            spdlog::error("Failed to handle buttons");
         }
-        default:
-            spdlog::error("Unknown player packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
-            break;
+
+        break;
+    }
+    default:
+        spdlog::error("Unknown player packet type {} ({})", packet_type, nier::EnumNamePacketType(packet_type));
+        break;
     }
 }
 
-void NierClient::onEntityPacketReceived(nier::PacketType packetType, const nier::EntityPacket* packet) {
-    spdlog::info("Entity packet {} received from {}", nier::EnumNamePacketType(packetType), packet->guid());
+void NierClient::onEntityPacketReceived(nier::PacketType packet_type, const nier::EntityPacket* packet) {
+    spdlog::info("Entity packet {} received from {}", nier::EnumNamePacketType(packet_type), packet->guid());
 
-    switch (packetType) {
-        case nier::PacketType_ID_SPAWN_ENTITY: {
-            if (!handleCreateEntity(packet)) {
-                spdlog::error("Failed to handle spawn entity");
-            }
-
-            break;
+    switch (packet_type) {
+    case nier::PacketType_ID_SPAWN_ENTITY: {
+        if (!handleCreateEntity(packet)) {
+            spdlog::error("Failed to handle spawn entity");
         }
-        case nier::PacketType_ID_DESTROY_ENTITY: {
-            if (!handleDestroyEntity(packet)) {
-                spdlog::error("Failed to handle destroy entity");
-            }
 
-            break;
+        break;
+    }
+    case nier::PacketType_ID_DESTROY_ENTITY: {
+        if (!handleDestroyEntity(packet)) {
+            spdlog::error("Failed to handle destroy entity");
         }
-        case nier::PacketType_ID_ENTITY_DATA: {
-            if (!handleEntityData(packet)) {
-                spdlog::error("Failed to handle entity data");
-            }
 
-            break;
+        break;
+    }
+    case nier::PacketType_ID_ENTITY_DATA: {
+        if (!handleEntityData(packet)) {
+            spdlog::error("Failed to handle entity data");
         }
-        case nier::PacketType_ID_ENTITY_ANIMATION_START: {
-            if (!handleEntityAnimationStart(packet)) {
-                spdlog::error("Failed to handle entity animation start");
-            }
 
-            break;
+        break;
+    }
+    case nier::PacketType_ID_ENTITY_ANIMATION_START: {
+        if (!handleEntityAnimationStart(packet)) {
+            spdlog::error("Failed to handle entity animation start");
         }
-        default:
-            spdlog::error("Unknown entity packet type {} ({})", packetType, nier::EnumNamePacketType(packetType));
-            break;
+
+        break;
+    }
+    default:
+        spdlog::error("Unknown entity packet type {} ({})", packet_type, nier::EnumNamePacketType(packet_type));
+        break;
     }
 }
 
@@ -369,16 +369,16 @@ void NierClient::sendPacket(nier::PacketType id, const uint8_t* data, size_t siz
         dataoffs = builder.EndVector(size);
     }
 
-    auto packetBuilder = nier::PacketBuilder(builder);
+    auto packet_builder = nier::PacketBuilder(builder);
 
-    packetBuilder.add_magic(1347240270);
-    packetBuilder.add_id(id);
+    packet_builder.add_magic(1347240270);
+    packet_builder.add_id(id);
 
     if (data != nullptr && size > 0) {
-        packetBuilder.add_data(dataoffs);
+        packet_builder.add_data(dataoffs);
     }
 
-    builder.Finish(packetBuilder.Finish());
+    builder.Finish(packet_builder.Finish());
 
     this->send_packet(0, builder.GetBufferPointer(), builder.GetSize(), ENET_PACKET_FLAG_RELIABLE);
 }
@@ -397,9 +397,9 @@ void NierClient::sendButtons(const uint32_t* buttons) {
     flatbuffers::FlatBufferBuilder builder(0);
     const auto dataoffs = builder.CreateVector(buttons, sdk::Pl0000::EButtonIndex::INDEX_MAX);
 
-    nier::Buttons::Builder dataBuilder(builder);
-    dataBuilder.add_buttons(dataoffs);
-    builder.Finish(dataBuilder.Finish());
+    nier::Buttons::Builder data_builder(builder);
+    data_builder.add_buttons(dataoffs);
+    builder.Finish(data_builder.Finish());
 
     sendPacket(nier::PacketType_ID_BUTTONS, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -408,10 +408,10 @@ void NierClient::sendEntityPacket(nier::PacketType id, uint32_t guid, const uint
     flatbuffers::FlatBufferBuilder builder(0);
     const auto dataoffs = builder.CreateVector(data, size);
 
-    nier::EntityPacket::Builder dataBuilder(builder);
-    dataBuilder.add_guid(guid);
-    dataBuilder.add_data(dataoffs);
-    builder.Finish(dataBuilder.Finish());
+    nier::EntityPacket::Builder data_builder(builder);
+    data_builder.add_guid(guid);
+    data_builder.add_data(dataoffs);
+    builder.Finish(data_builder.Finish());
 
     sendPacket(id, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -426,16 +426,16 @@ void NierClient::sendEntityCreate(uint32_t guid, sdk::EntitySpawnParams* data) {
     flatbuffers::FlatBufferBuilder builder(0);
     const auto name = builder.CreateString(data->name);
 
-    nier::EntitySpawnParams::Builder dataBuilder(builder);
-    dataBuilder.add_name(name);
-    dataBuilder.add_model(data->model);
-    dataBuilder.add_model2(data->model2);
+    nier::EntitySpawnParams::Builder data_builder(builder);
+    data_builder.add_name(name);
+    data_builder.add_model(data->model);
+    data_builder.add_model2(data->model2);
 
     if (data->matrix != nullptr) {
-        dataBuilder.add_positional((nier::EntitySpawnPositionalData*)data->matrix);
+        data_builder.add_positional((nier::EntitySpawnPositionalData*)data->matrix);
     }
 
-    builder.Finish(dataBuilder.Finish());
+    builder.Finish(data_builder.Finish());
 
     sendEntityPacket(nier::PacketType_ID_SPAWN_ENTITY, guid, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -456,16 +456,13 @@ void NierClient::sendEntityData(uint32_t guid, sdk::BehaviorAppBase* entity) {
     }
 
     flatbuffers::FlatBufferBuilder builder(0);
-    nier::EntityData newData(
-        entity->facing(),
+    nier::EntityData new_data(entity->facing(),
         0.0f, // entity is not a player.
-        entity->health(),
-        *(nier::Vector3f*)&entity->position()
-    );
+        entity->health(), *(nier::Vector3f*)&entity->position());
 
-    builder.Finish(builder.CreateStruct(newData));
+    builder.Finish(builder.CreateStruct(new_data));
 
-    m_networkEntities->processEntityData(guid, &newData);
+    m_networkEntities->processEntityData(guid, &new_data);
     sendEntityPacket(nier::PacketType_ID_ENTITY_DATA, guid, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -509,15 +506,15 @@ void NierClient::sendHello() {
     const auto name_pkt = builder.CreateString(m_helloName);
     const auto pwd_pkt = builder.CreateString(m_password);
 
-    nier::HelloBuilder helloBuilder(builder);
-    helloBuilder.add_major(nier::VersionMajor_Value);
-    helloBuilder.add_minor(nier::VersionMinor_Value);
-    helloBuilder.add_patch(nier::VersionPatch_Value);
-    helloBuilder.add_name(name_pkt);
-    helloBuilder.add_password(pwd_pkt);
-    helloBuilder.add_model(possessed->behavior->model_index());
+    nier::HelloBuilder hello_builder(builder);
+    hello_builder.add_major(nier::VersionMajor_Value);
+    hello_builder.add_minor(nier::VersionMinor_Value);
+    hello_builder.add_patch(nier::VersionPatch_Value);
+    hello_builder.add_name(name_pkt);
+    hello_builder.add_password(pwd_pkt);
+    hello_builder.add_model(possessed->behavior->model_index());
 
-    builder.Finish(helloBuilder.Finish());
+    builder.Finish(hello_builder.Finish());
 
     sendPacket(nier::PacketType_ID_HELLO, builder.GetBufferPointer(), builder.GetSize());
     m_helloSent = true;
@@ -535,13 +532,13 @@ void NierClient::updateLocalPlayerData() {
         return;
     }
 
-    auto entityList = sdk::EntityList::get();
+    auto entity_list = sdk::EntityList::get();
 
-    if (entityList == nullptr) {
+    if (entity_list == nullptr) {
         return;
     }
 
-    auto player = entityList->getPossessedEntity();
+    auto player = entity_list->getPossessedEntity();
 
     if (player == nullptr) {
         return;
@@ -572,19 +569,11 @@ void NierClient::sendPlayerData() {
         return;
     }
 
-    nier::PlayerData playerData(
-        entity->flashlight(),
-        entity->speed(),
-        entity->facing(),
-        entity->facing2(),
-        entity->weapon_index(),
-        entity->pod_index(),
-        entity->character_controller().held_flags,
-        *(nier::Vector3f*)&entity->position()
-    );
+    nier::PlayerData player_data(entity->flashlight(), entity->speed(), entity->facing(), entity->facing2(), entity->weapon_index(),
+        entity->pod_index(), entity->character_controller().held_flags, *(nier::Vector3f*)&entity->position());
 
     flatbuffers::FlatBufferBuilder builder{};
-    const auto offs = builder.CreateStruct(playerData);
+    const auto offs = builder.CreateStruct(player_data);
     builder.Finish(offs);
 
     sendPacket(nier::PacketType_ID_PLAYER_DATA, builder.GetBufferPointer(), builder.GetSize());
@@ -603,11 +592,11 @@ bool NierClient::handleWelcome(const nier::Packet* packet) {
 
     m_isMasterClient = welcome->isMasterClient();
     m_guid = welcome->guid();
-    const auto highestGuid = welcome->highestEntityGuid();
+    const auto highest_guid = welcome->highestEntityGuid();
 
     spdlog::info("Welcome packet received, isMasterClient: {}, guid: {}", m_isMasterClient, m_guid);
 
-    m_networkEntities = std::make_unique<EntitySync>(highestGuid);
+    m_networkEntities = std::make_unique<EntitySync>(highest_guid);
     m_networkEntities->onEnterServer(m_isMasterClient);
 
     return true;
@@ -616,31 +605,31 @@ bool NierClient::handleWelcome(const nier::Packet* packet) {
 bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
     spdlog::info("Create player packet received");
 
-    auto entityList = sdk::EntityList::get();
+    auto entity_list = sdk::EntityList::get();
 
-    if (entityList == nullptr) {
+    if (entity_list == nullptr) {
         spdlog::error("Entity list not found while handling create player packet");
         return false;
     }
 
-    auto possessed = entityList->getPossessedEntity();
+    auto possessed = entity_list->getPossessedEntity();
 
     if (possessed == nullptr) {
         spdlog::error("Possessed entity not found while handling create player packet");
         return false;
     }
 
-    auto localplayer = entityList->getByName("Player");
+    auto localplayer = entity_list->getByName("Player");
 
     if (localplayer == nullptr || localplayer->behavior == nullptr) {
         spdlog::info("Player not found while handling create player packet");
         return false;
     }
 
-    const auto createPlayer = flatbuffers::GetRoot<nier::CreatePlayer>(packet->data()->data());
+    const auto create_player = flatbuffers::GetRoot<nier::CreatePlayer>(packet->data()->data());
     auto verif = flatbuffers::Verifier(packet->data()->data(), packet->data()->size());
 
-    if (!createPlayer->Verify(verif)) {
+    if (!create_player->Verify(verif)) {
         spdlog::error("Invalid create player packet");
         return false;
     }
@@ -648,20 +637,20 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
     {
         std::scoped_lock _{m_playersMtx};
 
-        auto newPlayer = std::make_unique<Player>();
-        newPlayer->setGuid(createPlayer->guid());
-        newPlayer->setName(createPlayer->name()->c_str());
+        auto new_player = std::make_unique<Player>();
+        new_player->setGuid(create_player->guid());
+        new_player->setName(create_player->name()->c_str());
 
-        m_players[createPlayer->guid()] = std::move(newPlayer);
+        m_players[create_player->guid()] = std::move(new_player);
     }
 
     // we don't want to spawn ourselves
-    if (createPlayer->guid() != m_guid) {
-        spdlog::info("Spawning player {}, {}", createPlayer->guid(), createPlayer->name()->c_str());
+    if (create_player->guid() != m_guid) {
+        spdlog::info("Spawning player {}, {}", create_player->guid(), create_player->name()->c_str());
 
-        MidHooks::s_ignoreSpawn = true;
-        auto ent = entityList->spawnEntity("partner", createPlayer->model(), possessed->behavior->position());
-        MidHooks::s_ignoreSpawn = false;
+        MidHooks::s_ignore_spawn = true;
+        auto ent = entity_list->spawnEntity("partner", create_player->model(), possessed->behavior->position());
+        MidHooks::s_ignore_spawn = false;
 
         if (ent != nullptr) {
             std::scoped_lock _{m_playersMtx};
@@ -684,8 +673,8 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
             ent->behavior->as<sdk::Pl0000>()->setBuddyFromNpc();
             ent->behavior->obj_flags() = 0;
 
-            m_players[createPlayer->guid()]->setStartTick(ent->behavior->tick_count());
-            m_players[createPlayer->guid()]->setHandle(ent->handle);
+            m_players[create_player->guid()]->setStartTick(ent->behavior->tick_count());
+            m_players[create_player->guid()]->setHandle(ent->handle);
 
             spdlog::info(" player assigned handle {:x}", ent->handle);
         } else {
@@ -701,27 +690,27 @@ bool NierClient::handleCreatePlayer(const nier::Packet* packet) {
 bool NierClient::handleDestroyPlayer(const nier::Packet* packet) {
     spdlog::info("Destroy player packet received");
 
-    const auto destroyPlayer = flatbuffers::GetRoot<nier::DestroyPlayer>(packet->data()->data());
+    const auto destroy_player = flatbuffers::GetRoot<nier::DestroyPlayer>(packet->data()->data());
 
     std::scoped_lock _{m_playersMtx};
 
-    if (m_players.contains(destroyPlayer->guid()) && m_players[destroyPlayer->guid()] != nullptr) {
-        auto entityList = sdk::EntityList::get();
+    if (m_players.contains(destroy_player->guid()) && m_players[destroy_player->guid()] != nullptr) {
+        auto entity_list = sdk::EntityList::get();
 
-        if (entityList == nullptr) {
+        if (entity_list == nullptr) {
             // not an error, we just won't actually delete any entity from the entity list
             spdlog::info("Entity list not found while handling destroy player packet");
         } else {
-            auto localplayer = entityList->getByName("Player");
-            auto ent = entityList->getByHandle(m_players[destroyPlayer->guid()]->getHandle());
+            auto localplayer = entity_list->getByName("Player");
+            auto ent = entity_list->getByHandle(m_players[destroy_player->guid()]->getHandle());
             if (ent != nullptr && ent != localplayer) {
                 ent->behavior->terminate();
             }
         }
     }
 
-    m_players[destroyPlayer->guid()].reset();
-    m_players.erase(destroyPlayer->guid());
+    m_players[destroy_player->guid()].reset();
+    m_players.erase(destroy_player->guid());
 
     return true;
 }
@@ -737,9 +726,9 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
         return false;
     }
 
-    auto entityList = sdk::EntityList::get();
+    auto entity_list = sdk::EntityList::get();
 
-    if (entityList != nullptr) {
+    if (entity_list != nullptr) {
         sdk::EntitySpawnParams params{};
         auto matrix = spawn->positional() != nullptr ? *(sdk::EntitySpawnParams::PositionalData*)spawn->positional() : sdk::EntitySpawnParams::PositionalData{};
         params.matrix = &matrix;
@@ -753,17 +742,17 @@ bool NierClient::handleCreateEntity(const nier::EntityPacket* packet) {
         //auto ent = entityList->spawnEntity(spawn->name()->c_str(), spawn->model(), pos);
 
         // Allows the client to spawn an entity.
-        MidHooks::s_ignoreSpawn = true;
-        auto ent = entityList->spawnEntity(params);
-        MidHooks::s_ignoreSpawn = false;
+        MidHooks::s_ignore_spawn = true;
+        auto ent = entity_list->spawnEntity(params);
+        MidHooks::s_ignore_spawn = false;
 
         if (ent != nullptr) {
             //ent->entity->setSuspend(false);
 
             spdlog::info(" Entity spawned @ {:x}", (uintptr_t)ent);
-            auto newNetworkEnt = m_networkEntities->addEntity(ent, packet->guid());
+            auto new_network_ent = m_networkEntities->addEntity(ent, packet->guid());
 
-            if (newNetworkEnt != nullptr) {
+            if (new_network_ent != nullptr) {
                 spdlog::info(" Network entity created");
             }
         } else {
@@ -785,8 +774,8 @@ bool NierClient::handleDestroyEntity(const nier::EntityPacket* packet) {
 bool NierClient::handleEntityData(const nier::EntityPacket* packet) {
     spdlog::info("Entity data packet received");
 
-    const auto entityData = flatbuffers::GetRoot<nier::EntityData>(packet->data()->data());
-    m_networkEntities->processEntityData(packet->guid(), entityData);
+    const auto entity_data = flatbuffers::GetRoot<nier::EntityData>(packet->data()->data());
+    m_networkEntities->processEntityData(packet->guid(), entity_data);
 
     return true;
 }
@@ -795,18 +784,18 @@ bool NierClient::handleEntityAnimationStart(const nier::EntityPacket* packet) {
     spdlog::info("Entity animation start packet received");
 
     const auto guid = packet->guid();
-    auto entityNetworked = m_networkEntities->getNetworkEntityFromGuid(guid);
+    auto entity_networked = m_networkEntities->getNetworkEntityFromGuid(guid);
 
-    if (entityNetworked == nullptr) {
+    if (entity_networked == nullptr) {
         spdlog::error(" (nullptr) Entity data packet received for unknown entity {}", guid);
         return false;
     }
 
-    auto animationData = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
-    auto npc = entityNetworked->getEntity() != nullptr ? entityNetworked->getEntity()->behavior : nullptr;
+    auto animation_data = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
+    auto npc = entity_networked->getEntity() != nullptr ? entity_networked->getEntity()->behavior : nullptr;
 
     if (npc != nullptr) {
-        switch (animationData->anim()) {
+        switch (animation_data->anim()) {
         case sdk::EAnimation::INVALID_CRASHES_GAME:
         case sdk::EAnimation::INVALID_CRASHES_GAME2:
         case sdk::EAnimation::INVALID_CRASHES_GAME3:
@@ -814,7 +803,7 @@ bool NierClient::handleEntityAnimationStart(const nier::EntityPacket* packet) {
             return true;
         default:
             if (npc) {
-                npc->start_animation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
+                npc->start_animation(animation_data->anim(), animation_data->variant(), animation_data->a3(), animation_data->a4());
             } else {
                 spdlog::error(" Cannot start animation, npc is null");
             }
@@ -837,21 +826,21 @@ bool NierClient::handlePlayerData(const nier::PlayerPacket* packet) {
         return false;
     }
 
-    const auto& playerNetworked = m_players[guid];
+    const auto& player_networked = m_players[guid];
 
-    if (playerNetworked == nullptr) {
+    if (player_networked == nullptr) {
         spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
         return false;
     }
 
-    auto playerData = flatbuffers::GetRoot<nier::PlayerData>(packet->data()->data());
-    auto npc = playerNetworked->getEntity();
-    
+    auto player_data = flatbuffers::GetRoot<nier::PlayerData>(packet->data()->data());
+    auto npc = player_networked->getEntity();
+
     if (npc != nullptr) {
-        npc->position() = *(Vector3f*)&playerData->position();
+        npc->position() = *(Vector3f*)&player_data->position();
     }
 
-    playerNetworked->setPlayerData(*playerData);
+    player_networked->setPlayerData(*player_data);
 
     return true;
 }
@@ -869,18 +858,18 @@ bool NierClient::handleAnimationStart(const nier::PlayerPacket* packet) {
         return false;
     }
 
-    const auto& playerNetworked = m_players[guid];
+    const auto& player_networked = m_players[guid];
 
-    if (playerNetworked == nullptr) {
+    if (player_networked == nullptr) {
         spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
         return false;
     }
 
-    auto animationData = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
-    auto npc = playerNetworked->getEntity();
+    auto animation_data = flatbuffers::GetRoot<nier::AnimationStart>(packet->data()->data());
+    auto npc = player_networked->getEntity();
 
     if (npc != nullptr) {
-        switch (animationData->anim()) {
+        switch (animation_data->anim()) {
         case sdk::EAnimation::INVALID_CRASHES_GAME:
         case sdk::EAnimation::INVALID_CRASHES_GAME2:
         case sdk::EAnimation::INVALID_CRASHES_GAME3:
@@ -889,7 +878,7 @@ bool NierClient::handleAnimationStart(const nier::PlayerPacket* packet) {
             return true;
         default:
             if (npc) {
-                npc->start_animation(animationData->anim(), animationData->variant(), animationData->a3(), animationData->a4());
+                npc->start_animation(animation_data->anim(), animation_data->variant(), animation_data->a3(), animation_data->a4());
             } else {
                 spdlog::error("Cannot start animation, npc is null");
             }
@@ -912,25 +901,25 @@ bool NierClient::handleButtons(const nier::PlayerPacket* packet) {
         return false;
     }
 
-    const auto& playerNetworked = m_players[guid];
+    const auto& player_networked = m_players[guid];
 
-    if (playerNetworked == nullptr) {
+    if (player_networked == nullptr) {
         spdlog::error("(nullptr) Player data packet received for unknown player {}", guid);
         return false;
     }
 
     auto buttons = flatbuffers::GetRoot<nier::Buttons>(packet->data()->data());
-    auto npc = playerNetworked->getEntity();
+    auto npc = player_networked->getEntity();
 
     if (npc != nullptr) {
-        const auto buttonsData = buttons->buttons()->data();
-        const auto sizeButtons = sizeof(regenny::CharacterController::buttons);
-        memcpy(&npc->character_controller().buttons, buttonsData, sizeButtons);
+        const auto buttons_data = buttons->buttons()->data();
+        const auto size_buttons = sizeof(regenny::CharacterController::buttons);
+        memcpy(&npc->character_controller().buttons, buttons_data, size_buttons);
 
         for (uint32_t i = 0; i < sdk::Pl0000::EButtonIndex::INDEX_MAX; ++i) {
             auto& controller = npc->character_controller();
 
-            if (buttonsData[i] > 0) {
+            if (buttons_data[i] > 0) {
                 controller.held_flags |= (1 << i);
             }
         }

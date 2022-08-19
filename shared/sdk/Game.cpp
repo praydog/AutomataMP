@@ -5,9 +5,9 @@
 
 #include "Game.hpp"
 
-namespace nier {
+namespace sdk {
 // not loading
-bool isLoading() {
+bool is_loading() {
     //return *(uint8_t*)0x1414838E8 != 1; // 2017 version
     static bool* is_loading_ptr = []() ->bool* {
         spdlog::info("Searching for isLoading...");

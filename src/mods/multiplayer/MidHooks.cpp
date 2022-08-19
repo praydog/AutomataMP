@@ -21,7 +21,7 @@
 
 using namespace std;
 
-MidHooks* g_MidHooks = nullptr;
+MidHooks* g_mid_hooks = nullptr;
 
 uintptr_t get_on_update_function() {
     static uintptr_t on_update_function = []() -> uintptr_t {
@@ -140,7 +140,7 @@ uintptr_t get_entity_terminate_fn() {
 MidHooks::MidHooks() {
     spdlog::info("[MidHooks] Initializing...");
 
-    g_MidHooks = this;
+    g_mid_hooks = this;
 
     // required to allow button to be held down without resetting
     /*m_hook.hook(0x140262B22, [=](const VehHook::RuntimeInfo& info) {
@@ -154,29 +154,29 @@ MidHooks::MidHooks() {
     });*/
 
     // Early version hooks
-    /*addHook(0x140263006, &MidHooks::onProcessedButtons);
-    addHook(0x1404F9AA0, &MidHooks::onPreEntitySpawn);
-    addHook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
-    addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);
-    addHook(0x140519460, &MidHooks::onUpdate);*/
+    /*add_hook(0x140263006, &MidHooks::on_processed_buttons);
+    add_hook(0x1404F9AA0, &MidHooks::onPreEntitySpawn);
+    add_hook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
+    add_hook(0x1404F8DE0, &MidHooks::on_entity_terminate);
+    add_hook(0x140519460, &MidHooks::on_update);*/
 
-    /*addHook(0x140263006, &MidHooks::onProcessedButtons);
-    addHook(0x1404F9AA0, &MidHooks::onPreEntitySpawn);
-    addHook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
-    addHook(0x1404F8DE0, &MidHooks::onEntityTerminate);*/
+    /*add_hook(0x140263006, &MidHooks::on_processed_buttons);
+    add_hook(0x1404F9AA0, &MidHooks::onPreEntitySpawn);
+    add_hook(0x1404F9BE9, &MidHooks::onPostEntitySpawn);
+    add_hook(0x1404F8DE0, &MidHooks::on_entity_terminate);*/
 
     const auto [spawn_fn, spawn_this] = sdk::EntityList::getSpawnEntityFn();
-    m_entitySpawnHook = addInlineHook((uintptr_t)spawn_fn, &MidHooks::entitySpawnHook);
-    addHook(get_entity_terminate_fn(), &MidHooks::onEntityTerminate);
+    m_entity_spawn_hook = add_inline_hook((uintptr_t)spawn_fn, &MidHooks::entity_spawn_hook);
+    add_hook(get_entity_terminate_fn(), &MidHooks::on_entity_terminate);
     // todo: hook the other version of the terminate function (the script function)
-    addHook(get_on_update_function(), &MidHooks::onUpdate);
-    addHook(get_on_processed_buttons(), &MidHooks::onProcessedButtons);
+    add_hook(get_on_update_function(), &MidHooks::on_update);
+    add_hook(get_on_processed_buttons(), &MidHooks::on_processed_buttons);
 
-    addHook(get_on_set_held_flags(), [](safetyhook::Context& context) {
+    add_hook(get_on_set_held_flags(), [](safetyhook::Context& context) {
         auto entity = Address(context.rcx).get(-0xCA0).as<sdk::Pl0000*>();
 
         const auto& amp = AutomataMPMod::get();
-        const auto& client = amp->getClient();
+        const auto& client = amp->get_client();
 
         if (client == nullptr) {
             return;
@@ -200,14 +200,14 @@ MidHooks::MidHooks() {
     spdlog::info("[MidHooks] Initialized.");
 }
 
-void MidHooks::onProcessedButtons(safetyhook::Context& context) {   
+void MidHooks::on_processed_buttons(safetyhook::Context& context) {   
     // OLD VERSION USES R8. THE REGISTER IS THE CHARACTER CONTROLLER OF THE ENTITY.
     //auto entity = Address(info.context->R8).get(-0xCA0).as<Entity*>();
     auto entity = Address(context.rbx).get(-0xCA0).as<sdk::Pl0000*>();
 
-    if (m_overridenEntities.count(entity) != 0) {
+    if (m_overriden_entities.count(entity) != 0) {
         const auto amp = AutomataMPMod::get();
-        auto& client = amp->getClient();
+        auto& client = amp->get_client();
 
         if (client == nullptr) {
             return;
@@ -222,14 +222,14 @@ void MidHooks::onProcessedButtons(safetyhook::Context& context) {
     }
 }
 
-sdk::Entity* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
-    scoped_lock _(m_spawnMutex);
+sdk::Entity* MidHooks::on_entity_spawn(void* rcx, void* rdx) {
+    scoped_lock _(m_spawn_mutex);
 
     auto spawnParams = (sdk::EntitySpawnParams*)rdx;
-    auto entity = m_entitySpawnHook->call<sdk::Entity*, void*, void*>(rcx, rdx);
+    auto entity = m_entity_spawn_hook->call<sdk::Entity*, void*, void*>(rcx, rdx);
 
     if (entity) {
-        if (s_ignoreSpawn) {
+        if (s_ignore_spawn) {
             return entity;
         }
 
@@ -239,22 +239,22 @@ sdk::Entity* MidHooks::onEntitySpawn(void* rcx, void* rdx) {
         // spawned client-side.
         if (entity->behavior->is_networkable()) {
             spdlog::info("[MidHooks] Spawned enemy: {}", spawnParams->name);
-            AutomataMPMod::get()->onEntityCreated(entity, spawnParams);
+            AutomataMPMod::get()->on_entity_created(entity, spawnParams);
         }
     }
 
     return entity;
 }
 
-void MidHooks::onEntityTerminate(safetyhook::Context& context) {
-    scoped_lock _(m_spawnMutex);
+void MidHooks::on_entity_terminate(safetyhook::Context& context) {
+    scoped_lock _(m_spawn_mutex);
 
     auto ent = (sdk::Entity*)context.rcx;
 
-    AutomataMPMod::get()->onEntityDeleted(ent);
+    AutomataMPMod::get()->on_entity_deleted(ent);
 }
 
-// Potential OnUpdate candidates
+// Potential on_update candidates
 /*
 Function calls:
 0x0000000140519460: 1
@@ -280,7 +280,7 @@ Function calls:
 0x0000000140938030: 5
 */
 
-void MidHooks::onUpdate(safetyhook::Context& info) {
+void MidHooks::on_update(safetyhook::Context& info) {
     auto entityList = sdk::EntityList::get();
     auto player = entityList->getByName("Player");
 
@@ -294,7 +294,7 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
         mod->on_think();
     }
 
-    if (utility::was_key_down(VK_F1) && AutomataMPMod::get()->isServer()) {
+    if (utility::was_key_down(VK_F1) && AutomataMPMod::get()->is_server()) {
         /*static std::unordered_map<uint32_t, uint32_t> models{ { EModel::MODEL_2B, EModel::MODEL_9S }, 
                                                               { EModel::MODEL_9S, EModel::MODEL_A2 }, 
                                                               { EModel::MODEL_A2, EModel::MODEL_2B }};
@@ -338,12 +338,12 @@ void MidHooks::onUpdate(safetyhook::Context& info) {
     }
 }
 
-void MidHooks::addOverridenEntity(sdk::Behavior* ent) {
-    m_overridenEntities.insert(ent);
+void MidHooks::add_overriden_entity(sdk::Behavior* ent) {
+    m_overriden_entities.insert(ent);
 }
 
-void MidHooks::addHook(uintptr_t address, MemberMidCallbackFn cb) {
-    std::scoped_lock _{m_hookMutex};
+void MidHooks::add_hook(uintptr_t address, MemberMidCallbackFn cb) {
+    std::scoped_lock _{m_hook_mutex};
 
     auto factory = SafetyHookFactory::init();
     auto builder = factory->acquire();
@@ -367,20 +367,20 @@ void MidHooks::addHook(uintptr_t address, MemberMidCallbackFn cb) {
     uintptr_t code_addr{};
     m_jit.add(&code_addr, &code);
 
-    m_midHooks.emplace_back(builder.create_mid((void*)address, (safetyhook::MidHookFn)code_addr));
+    m_mid_hooks.emplace_back(builder.create_mid((void*)address, (safetyhook::MidHookFn)code_addr));
 }
 
-void MidHooks::addHook(uintptr_t address, safetyhook::MidHookFn cb) {
-    std::scoped_lock _{m_hookMutex};
+void MidHooks::add_hook(uintptr_t address, safetyhook::MidHookFn cb) {
+    std::scoped_lock _{m_hook_mutex};
 
     auto factory = SafetyHookFactory::init();
     auto builder = factory->acquire();
 
-    m_midHooks.emplace_back(builder.create_mid((void*)address, cb));
+    m_mid_hooks.emplace_back(builder.create_mid((void*)address, cb));
 }
 
-void MidHooks::addHook(uintptr_t address, MemberInlineCallbackFn cb) {
-    std::scoped_lock _{m_hookMutex};
+void MidHooks::add_hook(uintptr_t address, MemberInlineCallbackFn cb) {
+    std::scoped_lock _{m_hook_mutex};
 
     auto factory = SafetyHookFactory::init();
     auto builder = factory->acquire();
@@ -412,19 +412,19 @@ void MidHooks::addHook(uintptr_t address, MemberInlineCallbackFn cb) {
     m_jit.add(&code_addr, &code);
 
     result->hook = builder.create_inline((void*)address, (void*)code_addr);
-    m_inlineHooksWithParams.emplace_back(std::move(result));
+    m_inline_hooks_with_params.emplace_back(std::move(result));
 }
 
-safetyhook::InlineHook* MidHooks::addInlineHook(uintptr_t address, void* cb) {
-    std::scoped_lock _{m_hookMutex};
+safetyhook::InlineHook* MidHooks::add_inline_hook(uintptr_t address, void* cb) {
+    std::scoped_lock _{m_hook_mutex};
 
     auto factory = SafetyHookFactory::init();
     auto builder = factory->acquire();
 
-    m_inlineHooks.emplace_back(builder.create_inline((void*)address, cb));
-    return m_inlineHooks.back().get();
+    m_inline_hooks.emplace_back(builder.create_inline((void*)address, cb));
+    return m_inline_hooks.back().get();
 }
 
-sdk::Entity* MidHooks::entitySpawnHook(void* rcx, void* rdx) {
-    return g_MidHooks->onEntitySpawn(rcx, rdx);
+sdk::Entity* MidHooks::entity_spawn_hook(void* rcx, void* rdx) {
+    return g_mid_hooks->on_entity_spawn(rcx, rdx);
 }
