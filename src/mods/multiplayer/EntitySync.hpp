@@ -15,80 +15,70 @@ class NetworkEntity {
 public:
     NetworkEntity(sdk::Entity* entity, uint32_t guid);
 
-    void setEntity(sdk::Entity* entity) {
-        m_entityHandle = entity->handle;
-    }
+    void set_entity(sdk::Entity* entity) { m_entity_handle = entity->handle; }
 
-    sdk::Entity* getEntity() {
-        auto entityList = sdk::EntityList::get();
+    sdk::Entity* get_entity() {
+        auto entity_list = sdk::EntityList::get();
 
-        if (entityList == nullptr) {
+        if (entity_list == nullptr) {
             return nullptr;
         }
 
-        return entityList->getByHandle(m_entityHandle);
+        return entity_list->getByHandle(m_entity_handle);
     }
 
-    auto& getEntityData() {
-        return m_entityData;
-    }
+    auto& get_entity_data() { return m_entity_data; }
 
-    void setEntityData(const nier::EntityData& data) {
-        m_entityData = data;
-    }
+    void set_entity_data(const nier::EntityData& data) { m_entity_data = data; }
 
-    auto getGuid() const {
-        return m_guid;
-    }
+    auto get_guid() const { return m_guid; }
 
-    void setGuid(uint32_t guid) {
-        m_guid = guid;
-    }
+    void set_guid(uint32_t guid) { m_guid = guid; }
 
 private:
     friend class EntitySync;
-    static void startAnimationHook(sdk::Behavior* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
+    static void start_animation_hook(sdk::Behavior* ent, uint32_t anim, uint32_t variant, uint32_t a3, uint32_t a4);
 
     std::unique_ptr<VtableHook> m_hook{};
     uint32_t m_guid{};
-    uint32_t m_entityHandle{};
-    nier::EntityData m_entityData;
+    uint32_t m_entity_handle{};
+    nier::EntityData m_entity_data;
 };
 
 class EntitySync {
 public:
-    EntitySync(uint32_t highestGuid = 0);
+    EntitySync(uint32_t highest_guid = 0);
 
-    void onEntityCreated(sdk::Entity* entity, sdk::EntitySpawnParams* data);
-    void onEntityDeleted(sdk::Entity* entity);
-    void onEnterServer(bool isMasterClient); // Gather existing entities (if master client) and send them to server
+    void on_entity_created(sdk::Entity* entity, sdk::EntitySpawnParams* data);
+    void on_entity_deleted(sdk::Entity* entity);
+    void on_enter_server(bool is_master_client); // Gather existing entities (if master client) and send them to server
 
-    std::shared_ptr<NetworkEntity> addEntity(sdk::Entity* entity, uint32_t guid);
-    void removeEntity(uint32_t identifier);
+    std::shared_ptr<NetworkEntity> add_entity(sdk::Entity* entity, uint32_t guid);
+    void remove_entity(uint32_t identifier);
 
     void think();
-    void processEntityData(uint32_t guid, const nier::EntityData* data);
+    void process_entity_data(uint32_t guid, const nier::EntityData* data);
 
-    std::shared_ptr<NetworkEntity> getNetworkEntityFromHandle(uint32_t handle) {
-        auto it = m_handleMap.find(handle);
+    std::shared_ptr<NetworkEntity> get_network_entity_from_handle(uint32_t handle) {
+        auto it = m_handle_map.find(handle);
 
-        if (it == m_handleMap.end()) {
+        if (it == m_handle_map.end()) {
             return nullptr;
         }
 
-        auto it2 = m_networkEntities.find(it->second);
+        auto it2 = m_network_entities.find(it->second);
 
-        if (it2 == m_networkEntities.end()) {
+        if (it2 == m_network_entities.end()) {
             return nullptr;
         }
 
         return it2->second;
     }
 
-    std::shared_ptr<NetworkEntity> getNetworkEntityFromGuid(uint32_t guid) {
-        auto it = m_networkEntities.find(guid);
+    std::shared_ptr<NetworkEntity> get_network_entity_from_guid(uint32_t guid) {
+        auto it = m_network_entities.find(guid);
 
-        if (it == m_networkEntities.end()) {
+        if (it == m_network_entities.end()) {
             return nullptr;
         }
 
@@ -97,8 +87,8 @@ public:
 
 private:
     friend class NetworkEntity;
-    uint32_t m_maxGuid{ 0 };
-    std::unordered_map<uint32_t, std::shared_ptr<NetworkEntity>> m_networkEntities;
-    std::unordered_map<uint32_t, uint32_t> m_handleMap;
-    std::recursive_mutex m_mapMutex;
+    uint32_t m_max_guid{0};
+    std::unordered_map<uint32_t, std::shared_ptr<NetworkEntity>> m_network_entities;
+    std::unordered_map<uint32_t, uint32_t> m_handle_map;
+    std::recursive_mutex m_map_mutex;
 };

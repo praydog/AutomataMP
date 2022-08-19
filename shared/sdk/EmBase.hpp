@@ -72,7 +72,7 @@ public:
     OBJECT_SCRIPT_FUNCTION(EmBase, setEmb000PowerUp, void) // base + 0x626ec0
     OBJECT_SCRIPT_FUNCTION(EmBase, setFlagWave, void) // base + 0x629090
     OBJECT_SCRIPT_FUNCTION(EmBase, setForceWalk, void, float) // base + 0x629550
-    OBJECT_SCRIPT_FUNCTION(EmBase, setGoPoint, void, class Hw::cVec4 const &) // base + 0x6299f0
+    OBJECT_SCRIPT_FUNCTION(EmBase, setGoPoint, void, Hw::cVec4 const &) // base + 0x6299f0
     OBJECT_SCRIPT_FUNCTION(EmBase, setHackingStageLabelByHap, void, class lib::HashedString<struct sys::StringSystem::Allocator> const &) // base + 0x4eedb0
     OBJECT_SCRIPT_FUNCTION(EmBase, setHapAttackTarget, void, class app::EntityGet::ProxyT<class app::Puid> const &) // base + 0x62e640
     OBJECT_SCRIPT_FUNCTION(EmBase, setHpFromRate, void, float) // base + 0x62f200
@@ -84,7 +84,7 @@ public:
     OBJECT_SCRIPT_FUNCTION(EmBase, setRtnDmageElectricEscape, void) // base + 0x637d40
     OBJECT_SCRIPT_FUNCTION(EmBase, setSandAppearWaitClear, void) // base + 0x637e40
     OBJECT_SCRIPT_FUNCTION(EmBase, setSandDiveEscape, void) // base + 0x637e70
-    OBJECT_SCRIPT_FUNCTION(EmBase, setSlideEndPos, void, class Hw::cVec4 const &) // base + 0x63dae0
+    OBJECT_SCRIPT_FUNCTION(EmBase, setSlideEndPos, void, Hw::cVec4 const &) // base + 0x63dae0
     OBJECT_SCRIPT_FUNCTION(EmBase, setSuicideDrop, void) // base + 0x63e2d0
     OBJECT_SCRIPT_FUNCTION(EmBase, setSurpriseA, void) // base + 0x63e310
     OBJECT_SCRIPT_FUNCTION(EmBase, setSurpriseB, void) // base + 0x63e340

@@ -8,52 +8,32 @@ class Pl0000;
 
 class Player {
 public:
-    void setGuid(uint64_t guid) {
-        m_guid = guid;
-    }
+    void set_guid(uint64_t guid) { m_guid = guid; }
 
-    uint64_t getGuid() const {
-        return m_guid;
-    }
-    
-    void setName(const std::string& name) {
-        m_name = name;
-    }
+    uint64_t get_guid() const { return m_guid; }
 
-    const std::string& getName() const {
-        return m_name;
-    }
+    void set_name(const std::string& name) { m_name = name; }
 
-    void setPlayerData(const nier::PlayerData& movement) {
-        m_playerData = movement;
-    }
+    const std::string& get_name() const { return m_name; }
 
-    auto& getPlayerData() {
-        return m_playerData;
-    }
+    void set_player_data(const nier::PlayerData& movement) { m_player_data = movement; }
 
-    uint32_t getHandle() {
-        return m_entityHandle;
-    }
-    
-    void setHandle(uint32_t handle) {
-        m_entityHandle = handle;
-    }
+    auto& get_player_data() { return m_player_data; }
 
-    float getStartTick() {
-        return m_startTick;
-    }
+    uint32_t get_handle() { return m_entity_handle; }
 
-    void setStartTick(float tick) {
-        m_startTick = tick;
-    }
+    void set_handle(uint32_t handle) { m_entity_handle = handle; }
 
-    sdk::Pl0000* getEntity();
+    float get_start_tick() { return m_start_tick; }
+
+    void set_start_tick(float tick) { m_start_tick = tick; }
+
+    sdk::Pl0000* get_entity();
 
 private:
     std::string m_name{};
     uint64_t m_guid{};
-    uint32_t m_entityHandle{ 0 };
-    float m_startTick{ 0.0f };
-    nier::PlayerData m_playerData;
+    uint32_t m_entity_handle{0};
+    float m_start_tick{0.0f};
+    nier::PlayerData m_player_data;
 };

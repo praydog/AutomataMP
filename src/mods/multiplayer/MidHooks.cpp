@@ -148,8 +148,8 @@ MidHooks::MidHooks() {
 
         auto& player = AutomataMPMod::get()->getPlayers()[1];
 
-        if (entity == player.getEntity()) {
-            entity->getCharacterController()->heldFlags = player.getPlayerData().heldButtonFlags;
+        if (entity == player.get_entity()) {
+            entity->getCharacterController()->heldFlags = player.get_player_data().heldButtonFlags;
         }
     });*/
 
@@ -185,15 +185,15 @@ MidHooks::MidHooks() {
         const auto& players = client->get_players();
 
         auto it = std::find_if(players.begin(), players.end(), [&](auto& player) {
-            return player.second->getEntity() == entity;
+            return player.second->get_entity() == entity;
         });
 
         if (it == players.end() || it->second == nullptr) {
             return;
         }
 
-        if (entity == it->second->getEntity()) {
-            entity->character_controller().held_flags = it->second->getPlayerData().held_button_flags();
+        if (entity == it->second->get_entity()) {
+            entity->character_controller().held_flags = it->second->get_player_data().held_button_flags();
         }
     });
 
