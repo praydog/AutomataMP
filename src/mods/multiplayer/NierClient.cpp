@@ -175,7 +175,7 @@ void NierClient::onConnect() {
         return;
     }
 
-    spdlog::set_default_logger(spdlog::basic_logger_mt("AutomataMPClient", "automatamp_clientlog.txt", true));
+    //spdlog::set_default_logger(spdlog::basic_logger_mt("AutomataMPClient", "automatamp_clientlog.txt", true));
     spdlog::info("Connected");
 
     if (!m_welcomeReceived && !m_helloSent) {
