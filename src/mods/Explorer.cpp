@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <map>
+#include <functional>
 
 #include <imgui.h>
 #include <utility/RTTI.hpp>
@@ -7,16 +8,69 @@
 #include <sdk/Behavior.hpp>
 #include <sdk/EntityList.hpp>
 #include <sdk/Entity.hpp>
+#include <sdk/NPC.hpp>
+#include <sdk/EmBase.hpp>
+#include <sdk/Pl0000.hpp>
+
 #include "Explorer.hpp"
+
+struct Method {
+    std::function<void ()> method;
+    const char* name;
+};
+
+auto disp_same_line_noargs = [](const std::vector<Method>& methods) {
+    for (auto it = methods.begin(); it != methods.end(); ++it) {
+        if (ImGui::Button(it->name)) {
+            it->method();
+        }
+
+        if (it + 1 != methods.end()) {
+            ImGui::SameLine();
+        }
+    }
+};
 
 void Explorer::on_draw_ui() {
     if (!ImGui::CollapsingHeader(get_name().data())) {
         return;
     }
 
+    display_player_options();
+
     if (ImGui::TreeNode("Entities")) {
         display_entities();
         ImGui::TreePop();
+    }
+}
+
+void Explorer::display_player_options() {
+    const auto entities = sdk::EntityList::get();
+
+    if (entities == nullptr) {
+        return;
+    }
+
+    if (ImGui::TreeNode("Player")) {
+        const auto player_ent = entities->getByName("Player");
+        const auto player_behavior = player_ent != nullptr ? player_ent->behavior->try_cast<sdk::Pl0000>() : nullptr;
+
+        if (player_behavior != nullptr) {
+            display_pl0000(player_behavior);
+        }
+
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNode("Controlled Entity")) {
+        const auto controlled = entities->getPossessedEntity();
+
+        if (controlled != nullptr) {
+            display_behavior(controlled->behavior);
+        }
+        else {
+            ImGui::Text("No controlled entity.");
+        }
     }
 }
 
@@ -51,6 +105,9 @@ void Explorer::display_entities() {
         behavior_map[ti->name()].push_back(behavior);
     }
 
+    const auto player_ent = entities->getByName("Player");
+    const auto player_behavior = player_ent != nullptr ? player_ent->behavior->try_cast<sdk::Pl0000>() : nullptr;
+
     for (const auto& [name, behaviors] : behavior_map) {
         if (ImGui::TreeNode(name.data())) {
             for (const auto& behavior : behaviors) {
@@ -63,30 +120,7 @@ void Explorer::display_entities() {
                 ImGui::PushID(entity);
 
                 if (ImGui::TreeNode(entity->name)) {
-                    ImGui::Text("0x%p", (uintptr_t)behavior);
-                    ImGui::Text("Handle: 0x%X", entity->handle);
-
-                    if (behavior->is_behavior_appbase()) {
-                        const auto appbase = behavior->as<sdk::BehaviorAppBase>();
-
-                        ImGui::Text("HP: %i/%i", appbase->getHp(), appbase->getHpMax());
-                    }
-
-                    if (ImGui::Button("terminate")) {
-                        behavior->terminate();
-                    }
-
-                    if (behavior->isSuspend() ? ImGui::Button("resume") : ImGui::Button("suspend")) {
-                        behavior->setSuspend((int)!behavior->isSuspend());
-                    }
-
-                    if (behavior->isTrans() ? ImGui::Button("set invis") : ImGui::Button("set visible")) {
-                        if (behavior->isTrans()) {
-                            behavior->offTrans();
-                        } else {
-                            behavior->onTrans();
-                        }
-                    }
+                    display_behavior(behavior, player_behavior);
 
                     ImGui::TreePop();
                 }
@@ -97,4 +131,142 @@ void Explorer::display_entities() {
             ImGui::TreePop();
         }
     }
+}
+
+void Explorer::display_behavior(sdk::Behavior* behavior, sdk::Behavior* player_behavior) {
+    const auto entity = behavior->get_entity();
+
+    if (entity == nullptr) {
+        return;
+    }
+
+    ImGui::PushID(entity);
+
+    ImGui::Text("0x%p", (uintptr_t)behavior);
+    ImGui::Text("Handle: 0x%X", entity->handle);
+
+    if (const auto appbase = behavior->try_cast<sdk::BehaviorAppBase>(); appbase != nullptr) {
+        ImGui::Text("HP: %i/%i", appbase->getHp(), appbase->getHpMax());
+    }
+
+    if (const auto pl0000 = behavior->try_cast<sdk::Pl0000>(); pl0000 != nullptr) {
+        display_pl0000(pl0000);
+    }
+
+    if (const auto em = behavior->try_cast<sdk::EmBase>(); em != nullptr) {
+        display_em_base(em, player_behavior);
+    }
+
+    if (ImGui::Button("terminate")) {
+        behavior->terminate();
+    }
+
+    if (behavior->isSuspend() ? ImGui::Button("resume") : ImGui::Button("suspend")) {
+        behavior->setSuspend((int)!behavior->isSuspend());
+    }
+
+    if (behavior->isTrans() ? ImGui::Button("set invis") : ImGui::Button("set visible")) {
+        if (behavior->isTrans()) {
+            behavior->offTrans();
+        } else {
+            behavior->onTrans();
+        }
+    }
+
+    ImGui::PopID();
+}
+
+void Explorer::display_em_base(sdk::EmBase* em, sdk::Behavior* player_behavior) {
+    disp_same_line_noargs({
+        { [&]() { em->callEnemy(); }, "call enemy" }
+    });
+
+    disp_same_line_noargs({
+        { [&]() { em->changeEnemy(); }, "change enemy" },
+        { [&]() { em->changeNPC(); }, "change NPC" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { em->setNpcScare(); }, "set scared" },
+    });
+
+
+    if (player_behavior != nullptr) {
+        if (ImGui::Button("move to player")) {
+            em->setGoPoint(Vector4f{player_behavior->position(), 1.0f});
+        }
+    }
+}
+
+void Explorer::display_pl0000(sdk::Pl0000* pl0000) {
+    if (ImGui::Button("destroy buddy")) {
+        pl0000->destroyBuddy();
+    }
+
+    auto disp_same_line_noargs = [&](const std::vector<Method>& methods) {
+        for (auto it = methods.begin(); it != methods.end(); ++it) {
+            if (ImGui::Button(it->name)) {
+                it->method();
+            }
+
+            if (it + 1 != methods.end()) {
+                ImGui::SameLine();
+            }
+        }
+    };
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->enableFriendlyFire(); }, "enable friendly fire" },
+        { [&]() { pl0000->disableFriendlyFire(); }, "disable friendly fire" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->enableFriendlyFireYorha(); }, "enable friendly fire yorha" },
+        { [&]() { pl0000->disableFriendlyFireYorha(); }, "disable friendly fire yorha" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->changePlayer(); }, "change player" },
+        { [&]() { pl0000->changePlayerFinal(); }, "change player final" },
+        { [&]() { pl0000->changePlayerFinalA2(); }, "change player final A2" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->addRedGirl(); }, "add red girl" },
+        { [&]() { pl0000->lostRedGirl(); }, "lost red girl" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->set2BBreak(); }, "2B break" },
+        { [&]() { pl0000->set9sBreak(); }, "9S break" },
+        { [&]() { pl0000->setA2Break(); }, "A2 break" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->set2BBreakWeak(); }, "2B break weak" },
+        { [&]() { pl0000->set9sBreakWeak(); }, "9S break weak" },
+        { [&]() { pl0000->setA2BreakWeak(); }, "A2 break weak" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->end2BBreak(); }, "end 2B break" },
+        { [&]() { pl0000->end9sBreak(); }, "end 9S break" },
+        { [&]() { pl0000->endA2Break(); }, "end A2 break" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->setBedSit(); }, "bed sit" },
+        { [&]() { pl0000->setBedStandup(); }, "bed standup" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->start2BMoveTo9S(); }, "2B move to 9S" },
+        { [&]() { pl0000->start9sMoveTo2B(); }, "9S move to 2B" },
+    });
+
+    disp_same_line_noargs({
+        { [&]() { pl0000->setPlayerFromNPC(); }, "set player from NPC" },
+        { [&]() { pl0000->setBuddyFromNpc(); }, "set buddy from NPC" },
+        { [&]() { pl0000->setNpcFromBuddy(); }, "set NPC from buddy" },
+    });
 }
