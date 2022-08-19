@@ -71,7 +71,7 @@ CameraGame* CameraGame::get() {
     return instance;
 }
 
-std::optional<Vector2f> CameraGame::worldToScreen(const Vector2f& screenSize, const Vector3f& pos) const {
+std::optional<Vector2f> CameraGame::world_to_screen(const Vector2f& screen_size, const Vector3f& pos) const {
     if (this->data == nullptr) {
         return std::nullopt;
     }
@@ -89,8 +89,8 @@ std::optional<Vector2f> CameraGame::worldToScreen(const Vector2f& screenSize, co
     }
 
     // get the width height here
-    const auto width = screenSize.x;
-    const auto height = screenSize.y;
+    const auto width = screen_size.x;
+    const auto height = screen_size.y;
 
     const auto aspect_ratio = width / height;
     //const auto fov = 2 * glm::atan(glm::tan(this->fov / 2.0f) * (height / width));

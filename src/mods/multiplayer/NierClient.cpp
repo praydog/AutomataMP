@@ -127,7 +127,7 @@ void NierClient::on_frame() {
             continue;
         }
 
-        const auto s = camera->worldToScreen(size, it.second->get_entity()->position());
+        const auto s = camera->world_to_screen(size, it.second->get_entity()->position());
 
         if (s) {
             ImGui::GetBackgroundDrawList()->AddText(

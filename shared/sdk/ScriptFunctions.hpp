@@ -24,7 +24,7 @@ public:
     ScriptFunction* find(const std::string& name);
 
 private:
-    ScriptFunction** m_scriptFunctions;
+    ScriptFunction** m_script_functions;
 };
 }
 
