@@ -1,14 +1,21 @@
 #pragma once
 #include "Behavior.hpp"
+#include "ExActionState.hpp"
+#include "ExNpc.hpp"
+#include "ExWaypoint.hpp"
 namespace regenny {
 struct Vector4f;
 }
 namespace regenny {
 #pragma pack(push, 1)
 struct BehaviorAppBase : public Behavior {
-    char pad_830[0x28];
+    regenny::ExActionState ex_action_state; // 0x830
     uint32_t health; // 0x858
-    char pad_85c[0x364];
+    char pad_85c[0x84];
+    regenny::ExWaypoint ex_waypoint; // 0x8e0
+    char pad_990[0x108];
+    regenny::ExNpc ex_npc; // 0xa98
+    char pad_ad0[0xf0];
     uint32_t wait_flags; // 0xbc0
     char pad_bc4[0x8];
     uint32_t talk_flags; // 0xbcc

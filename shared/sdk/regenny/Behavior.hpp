@@ -3,7 +3,9 @@
 namespace regenny {
 #pragma pack(push, 1)
 struct Behavior : public Obj {
-    char pad_670[0x1c0];
+    char pad_670[0x40];
+    void* behavior_extension_array; // 0x6b0
+    char pad_6b8[0x178];
     virtual ~Behavior() = default;
     virtual void virtual_function_1() = 0;
     virtual void virtual_function_2() = 0;
