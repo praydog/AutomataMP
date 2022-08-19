@@ -20,16 +20,16 @@ public:
     bool recreate();
     bool remove();
 
-    bool hookMethod(uint32_t index, Address newMethod);
+    bool hook_method(uint32_t index, Address newMethod);
 
-    auto getInstance() {
-        return m_vtablePtr;
+    auto get_instance() {
+        return m_vtable_ptr;
     }
 
     // Access to original methods.
-    Address getMethod(uint32_t index) {
-        if (index < m_vtableSize && m_oldVtable && m_newVtable) {
-            return m_oldVtable.as<Address*>()[index];
+    Address get_method(uint32_t index) {
+        if (index < m_vtable_size && m_old_vtable && m_new_vtable) {
+            return m_old_vtable.as<Address*>()[index];
         }
         else {
             return nullptr;
@@ -37,16 +37,16 @@ public:
     }
 
     template <typename T>
-    T getMethod(uint32_t index) {
-        return (T)getMethod(index).ptr();
+    T get_method(uint32_t index) {
+        return (T)get_method(index).ptr();
     }
 
 private:
-    std::vector<Address> m_rawData;
-    Address m_vtablePtr;
-    Address* m_newVtable;
-    Address m_oldVtable;
-    size_t m_vtableSize;
+    std::vector<Address> m_raw_data;
+    Address m_vtable_ptr;
+    Address* m_new_vtable;
+    Address m_old_vtable;
+    size_t m_vtable_size;
 
-    size_t getVtableSize(Address vtable);
+    size_t get_vtable_size(Address vtable);
 };

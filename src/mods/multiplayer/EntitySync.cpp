@@ -18,7 +18,7 @@ NetworkEntity::NetworkEntity(sdk::Entity* entity, uint32_t guid)
     m_hook = std::make_unique<VtableHook>();
     
     if (m_hook->create(entity->behavior)) {
-        m_hook->hookMethod(sdk::Behavior::s_start_animation_index, &start_animation_hook);
+        m_hook->hook_method(sdk::Behavior::s_start_animation_index, &start_animation_hook);
         spdlog::info("Hooked entity {}", guid);
     }
 }
@@ -37,7 +37,7 @@ void NetworkEntity::start_animation_hook(sdk::Behavior* behavior, uint32_t anim,
         client->send_entity_animation_start(network_entity->get_guid(), anim, variant, a3, a4);
     }
 
-    auto original = network_entity->m_hook->getMethod<decltype(start_animation_hook)*>(sdk::Behavior::s_start_animation_index);
+    auto original = network_entity->m_hook->get_method<decltype(start_animation_hook)*>(sdk::Behavior::s_start_animation_index);
     original(behavior, anim, variant, a3, a4);
 }
 

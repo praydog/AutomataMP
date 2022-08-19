@@ -233,81 +233,6 @@ void AutomataMPMod::on_think() {
             }
         }
     }
-    else {
-        /*spdlog::info("Spawning partner");
-
-        auto ent = entityList->spawnEntity("partner", EModel::MODEL_2B, *player->entity->getPosition());
-
-        if (ent) {
-            ent->entity->setBuddyHandle(player->handle);
-            player->entity->setBuddyHandle(ent->handle);
-
-            ent->entity->setSuspend(false);
-
-            ent->assignAIRoutine("PLAYER");
-            ent->assignAIRoutine("player");
-
-            // alternate way of assigning AI/control to the entity easily.
-            player->entity->changePlayer();
-            player->entity->changePlayer();
-
-            const auto old_flags = ent->entity->getBuddyFlags();
-            ent->entity->setBuddyFlags(8);
-            ent->entity->setBuddyFromNpc();
-            ent->entity->setBuddyFlags(old_flags);
-
-            m_players[1].setStartTick(*ent->entity->getTickCount());
-        }*/
-    }
-
-    //spdlog::info("Player: 0x%p, handle: 0x%X", player, player->handle);
-    //spdlog::info("Partner: 0x%p, handle: 0x%X", partner, partner->handle);
-    //spdlog::info(" partner real ent: 0x%p", partner->entity);
-
-    //static uint32_t(*possessEntity)(Entity* player, uint32_t* handle, bool a3) = (decltype(possessEntity))0x1402118D0;
-    //static uint32_t(*unpossessEntity)(Entity* player, bool a2) = (decltype(unpossessEntity))0x140211AE0;
-
-    /*if (utility::was_key_down(VK_F5)) {
-        auto curHandle = Address(0x1416053E0).as<uint32_t*>();
-        auto curEnt = entityList->getByHandle(*curHandle);
-
-        if (!curEnt)
-            return;
-
-        auto pl = entityList->getAllByName("Player");
-        auto players = entityList->getAllByName("partner");
-        players.insert(players.end(), pl.begin(), pl.end());
-
-        auto curPlayer = players.begin();
-
-        for (auto& i : *entityList) {
-            if (!i.ent || !i.handle || i.handle == player->handle || i.handle == *curHandle || std::find(players.begin(), players.end(), i.ent) != players.end())
-                continue;
-
-            if (!i.ent->entity || i.ent->handle == *curHandle)
-                continue;
-
-            if (i.ent->entity->getHealth() == 0)
-                continue;
-
-            if ((*curPlayer)->entity->getBuddyThing() == 0x10200) {
-                if ((*curPlayer)->entity->getPossessedHandle() != 0) {
-                    unpossessEntity((*curPlayer)->entity, true);
-                }
-
-                possessEntity((*curPlayer)->entity, &i.handle, true);
-
-                if ((*curPlayer)->entity->getPossessedHandle() != 0) {
-                    curPlayer++;
-                }
-            }
-            else
-                curPlayer++;
-
-            if (curPlayer == players.end())
-                break;
-        }
-    }*/
 
     if (utility::was_key_down(VK_F6)) {
         player->behavior->as<sdk::Pl0000>()->changePlayer();
@@ -337,41 +262,9 @@ void AutomataMPMod::on_think() {
         }
     }
 
-    /*auto prevPlayer = player;
-
-    // generates a linked list of players pretty much
-    // so we can swap between all of them instead of just two.
-    for (uint32_t index = 0; index < entityList->size(); ++index) {
-        auto ent = entityList->get(index);
-
-        if (!ent || !ent->behavior) {
-            continue;
-        }
-        
-        if (ent->name != string("Player") && ent->name != string("partner"))
-            continue;
-
-        if (prevPlayer == ent)
-            continue;
-
-        prevPlayer->behavior->as<sdk::Pl0000>()->setBuddyHandle(ent->handle);
-        prevPlayer = ent;
-    }
-
-    if (prevPlayer != player) {
-        prevPlayer->behavior->as<sdk::Pl0000>()->setBuddyHandle(player->handle);
-    }*/
-
-    //static uint32_t(*spawnBuddy)(Entity* player) = (decltype(spawnBuddy))0x140245C30;
-
     shared_think();
 
     if (utility::was_key_down(VK_F9)) {
-        /*auto old = player->entity->getBuddyHandle();
-        player->entity->setBuddyHandle(0);
-        spawnBuddy(player->entity);
-        player->entity->setBuddyHandle(old);*/
-
         auto ent = entity_list->spawn_entity("partner", sdk::EModel::MODEL_2B, player->behavior->position());
 
         if (ent) {
