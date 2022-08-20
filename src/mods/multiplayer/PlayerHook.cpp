@@ -4,6 +4,7 @@
 
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
+#include <sdk/Enums.hpp>
 #include "mods/AutomataMPMod.hpp"
 #include "PlayerHook.hpp"
 

@@ -4,6 +4,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include <sdk/CameraGame.hpp>
+#include <sdk/Enums.hpp>
 
 #include "AutomataMP.hpp"
 
@@ -662,8 +663,8 @@ bool NierClient::handle_create_player(const nier::Packet* packet) {
 
             ent->behavior->setSuspend(false);
 
-            ent->assignAIRoutine("PLAYER");
-            ent->assignAIRoutine("player");
+            ent->assign_ai_routine("PLAYER");
+            ent->assign_ai_routine("player");
 
             // alternate way of assigning AI/control to the entity easily.
             localplayer->behavior->as<sdk::Pl0000>()->changePlayer();

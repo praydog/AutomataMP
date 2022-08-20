@@ -7,7 +7,7 @@
 #include <sdk/Entity.hpp>
 
 namespace sdk {
-void Entity::assignAIRoutine(const std::string& name) {
+void Entity::assign_ai_routine(const std::string& name) {
     //auto realName = findExactString(GetModuleHandle(0), name);
 
     //if (realName) {

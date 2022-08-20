@@ -355,6 +355,7 @@ list(APPEND sdk_SOURCES
 	"shared/sdk/EmBase.hpp"
 	"shared/sdk/Entity.hpp"
 	"shared/sdk/EntityList.hpp"
+	"shared/sdk/Enums.hpp"
 	"shared/sdk/Game.hpp"
 	"shared/sdk/Hw/cVec4.hpp"
 	"shared/sdk/Math.hpp"

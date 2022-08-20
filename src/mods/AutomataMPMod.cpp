@@ -10,6 +10,7 @@
 
 #include <sdk/Entity.hpp>
 #include <sdk/EntityList.hpp>
+#include <sdk/Enums.hpp>
 
 #include <sdk/Game.hpp>
 #include <sdk/ScriptFunctions.hpp>
@@ -268,8 +269,8 @@ void AutomataMPMod::on_think() {
         auto ent = entity_list->spawn_entity("partner", sdk::EModel::MODEL_2B, player->behavior->position());
 
         if (ent) {
-            ent->assignAIRoutine("buddy_2B");
-            ent->assignAIRoutine("buddy");
+            ent->assign_ai_routine("buddy_2B");
+            ent->assign_ai_routine("buddy");
 
             ent->behavior->as<sdk::Pl0000>()->buddy_handle() = player->handle;
             player->behavior->as<sdk::Pl0000>()->buddy_handle() = ent->handle;
