@@ -68,7 +68,7 @@ void AutomataMPMod::display_servers() {
 
                 new_server_data->ip = ip;
                 new_server_data->name = data["Name"];
-                new_server_data->num_players = data["num_players"];
+                new_server_data->num_players = data["NumPlayers"];
 
                 m_servers.push_back(std::move(new_server_data));
             }
@@ -163,6 +163,7 @@ void AutomataMPMod::on_draw_ui() {
     ImGui::InputText("Password", m_password_input.data(), m_password_input.size());
 
     ImGui::InputText("Master Server", m_master_server_input.data(), m_master_server_input.size());
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Servers")) {
         display_servers();
         ImGui::TreePop();
