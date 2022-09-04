@@ -20,7 +20,7 @@
 using namespace std;
 
 // define default values
-#define DEFAULT_MASTER "http://localhost"
+#define DEFAULT_MASTER "https://niermaster.praydog.com"
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "6969"
 #define DEFAULT_NAME "Client"
