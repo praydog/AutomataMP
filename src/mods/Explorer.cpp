@@ -11,6 +11,8 @@
 #include <sdk/NPC.hpp>
 #include <sdk/EmBase.hpp>
 #include <sdk/Pl0000.hpp>
+#include <sdk/hap/TokenCategory.hpp>
+#include <sdk/hap/scene_state/SceneStateSystem.hpp>
 
 #include "Explorer.hpp"
 
@@ -35,6 +37,9 @@ void Explorer::on_draw_ui() {
     if (!ImGui::CollapsingHeader(get_name().data())) {
         return;
     }
+
+    ImGui::Text("first token: %p", (void*)sdk::hap::TokenCategory::get_first());
+    ImGui::Text("Scene state: %p", (void*)sdk::hap::scene_state::SceneStateSystem::get());
 
     display_player_options();
 

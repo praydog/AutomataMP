@@ -152,11 +152,14 @@ namespace utility {
     }
 
     std::optional<uintptr_t> scan_disasm(uintptr_t ip, size_t num_instructions, const string& pattern) {
+        auto pat = utility::Pattern{ pattern };
+        const auto pat_len = pat.pattern_len();
+
         for (size_t i = 0; i < num_instructions; ++i) {
             hde64s hde{};
             auto len = hde64_disasm((void*)ip, &hde);
 
-            if (auto result = scan(ip, len, pattern); result && *result == ip) {
+            if (auto result = scan(ip, pat_len, pattern); result && *result == ip) {
                 return ip;
             }
 
