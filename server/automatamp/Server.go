@@ -510,6 +510,7 @@ func (server *Server) sendHeartbeatToMasterServer() {
 	server.lastHeartbeat = time.Now()
 
 	jsonValues := make(map[string]interface{})
+	jsonValues["Port"] = server.config["port"].(string)
 	jsonValues["Name"] = server.config["name"].(string)
 	jsonValues["NumPlayers"] = len(server.clients)
 
@@ -578,8 +579,16 @@ func (server *Server) Run() {
 
 	defer server.cleanup()
 
+	// Convert port to int
+	port, err := strconv.Atoi(server.config["port"].(string))
+
+	if err != nil {
+		log.Info("Error reading port: %s, using default (6969).", err)
+		port = 6969
+	}
+
 	// Create a host listening on 0.0.0.0:6969
-	host, err := enet.NewHost(enet.NewListenAddress(6969), 32, 1, 0, 0)
+	host, err := enet.NewHost(enet.NewListenAddress(uint16(port)), 32, 1, 0, 0)
 	if err != nil {
 		log.Error("Couldn't create host: %s", err.Error())
 		panic(err)
@@ -612,9 +621,10 @@ func CreateServer() *Server {
 	server.connectionCount = 0
 	server.highestEntityGuid = 0
 	server.config["password"] = ""
-	server.config["masterServer"] = "https://niermaster.praydog.com"
+	server.config["masterServer"] = "http://localhost"
 	server.config["masterServerNotify"] = true
 	server.config["name"] = "AutomataMP Server"
+	server.config["port"] = "6969"
 
 	json.Unmarshal(serverJson, &server.config)
 	log.Info("Server password: %s", server.config["password"].(string))

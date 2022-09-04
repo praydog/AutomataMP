@@ -1,20 +1,20 @@
 # AutomataMP Server
 
 ## Command line options
-* `--mode` - The mode of the server. Can be `server`, `masterserver`, or `client`. Defaults to `server`.
+* `-mode` - The mode of the server. Can be `server`, `masterserver`, or `client`. Defaults is `server`.
 
 ## JSON Configuration
-The server's configuration is stored in `./server.json`.
+The server configuration files are `./server.json` and `./masterserver.json`.
 
 `server.json` contains the following fields:
-* `password` - The password required to connect to the server.
-* `masterServer` - The address of the master server. Defaults to `https://niermaster.praydog.com`
-* `name` - The name of the server. Defaults to `AutomataMP Server`
+* `password` - The password required to connect to the server. Default empty
+* `masterServer` - The address of the master server. Default `http://localhost`
+* `name` - The name of the server. Default `AutomataMP Server`
+* `port` - Port to host the listen server on. Default `6969`
 
-## Ports
-The ports used by the server are:
-* `6969` for the server
-* `80` for the master server (web server)
+`masterserver.json`:
+* `address` - Address to host the master listen server on. Default `localhost`
+* `port` - Port to host the master listen server on. Default `80`
 
 ## Installation
 
@@ -34,4 +34,4 @@ The ports used by the server are:
 * `chmod +x server`
 
 ### Docker
-Untested.
+WIP - Requires secure hosting (https)
