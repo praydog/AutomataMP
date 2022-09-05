@@ -1,4 +1,5 @@
 #include <mutex>
+#include <regex>
 
 #include <windows.h>
 
@@ -18,6 +19,13 @@
 
 using namespace std;
 
+// define default values
+#define DEFAULT_MASTER "https://niermaster.praydog.com"
+#define DEFAULT_IP "127.0.0.1"
+#define DEFAULT_PORT "6969"
+#define DEFAULT_NAME "Client"
+
+
 std::shared_ptr<AutomataMPMod> AutomataMPMod::get() {
     static std::shared_ptr<AutomataMPMod> instance = std::make_shared<AutomataMPMod>();
 
@@ -33,7 +41,10 @@ AutomataMPMod::~AutomataMPMod() {
 std::optional<std::string> AutomataMPMod::on_initialize() try {
     spdlog::info("Entering AutomataMPMod.");
 
-    std::strcpy(m_master_server_input.data(), "https://niermaster.praydog.com");
+    std::strcpy(m_ip_connect_input.data(), DEFAULT_IP);
+    std::strcpy(m_port_connect_input.data(), DEFAULT_PORT);
+    std::strcpy(m_name_input.data(), DEFAULT_NAME);
+    std::strcpy(m_master_server_input.data(), DEFAULT_MASTER);
 
     // Do it later.
     enetpp::global_state::get().initialize();
@@ -58,15 +69,22 @@ void AutomataMPMod::display_servers() {
 
         const auto response = m_server_future.get();
         spdlog::info("Got response: {}", response);
+
+        if (response.empty()) {
+            spdlog::info("Empty master server response.");
+            strcpy(m_master_server_input.data(), DEFAULT_MASTER);
+            return;
+        }
+
         const auto response_json = nlohmann::json::parse(response);
 
         try {
             for (const auto& [ip, jsondata] : response_json.items()) {
                 auto new_server_data = std::make_unique<AutomataMPMod::ServerData>();
-
                 const auto data = jsondata["Data"];
 
                 new_server_data->ip = ip;
+                new_server_data->port = data["Port"];
                 new_server_data->name = data["Name"];
                 new_server_data->num_players = data["NumPlayers"];
 
@@ -84,8 +102,20 @@ void AutomataMPMod::display_servers() {
         ImGui::PushID(server->ip.c_str());
 
         if (ImGui::Button("Connect")) {
+            // if any fields are empty, don't connect.
+            if (server->ip.empty() || server->port.empty()) {
+                spdlog::error("Empty IP or port.");
+                return;
+            }
+
+            spdlog::info("Connecting to {}:{}", server->ip, server->port);
+
+			strcpy(m_ip_connect_input.data(), server->ip.c_str());
+            strcpy(m_port_connect_input.data(), server->port.c_str());
+
             m_client.reset();
-            m_client = make_unique<NierClient>(server->ip.data(), m_name_input.data(), m_password_input.data());
+            
+            m_client = make_unique<NierClient>(server->ip.data(), server->port.data(), m_name_input.data(), m_password_input.data());
 
             if (!m_client->is_connected()) {
                 m_client.reset();
@@ -100,6 +130,7 @@ void AutomataMPMod::display_servers() {
 
         if (made) {
             ImGui::Text("IP: %s", server->ip.c_str());
+            ImGui::Text("Port: %s", server->port.c_str());
             ImGui::Text("Name: %s", server->name.c_str());
             ImGui::Text("Players: %s", std::to_string(server->num_players).c_str());
             ImGui::TreePop();
@@ -127,7 +158,7 @@ void AutomataMPMod::display_servers() {
             const auto servers_url = std::string{m_master_server_input.data()} + "/servers";
             http.get(servers_url, "", "");
 
-            const auto response = http.response();     
+            const auto response = http.response();
             m_last_server_update = std::chrono::steady_clock::now();
 
             return response;
@@ -138,34 +169,59 @@ void AutomataMPMod::display_servers() {
     });
 }
 
-void AutomataMPMod::on_draw_ui() {
-    if (!ImGui::CollapsingHeader("AutomataMPMod")) {
-        return;
-    }
-
-    if (m_client) {
-        ImGui::Text("State: Client");
-    } else {
-        ImGui::Text("State: Disconnected");
-    }
-
-    if (ImGui::InputText("Connect IP", m_ip_connect_input.data(), m_ip_connect_input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+void AutomataMPMod::display_manual_connect() {
+    if (ImGui::Button("Connect") || ImGui::InputText("Connect IP", m_ip_connect_input.data(), m_ip_connect_input.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+        
         m_client.reset();
 
-        m_client = make_unique<NierClient>(m_ip_connect_input.data(), m_name_input.data(), m_password_input.data());
+        // validate against master server
+        const auto connection_info = validate_connection(m_ip_connect_input.data(), m_port_connect_input.data());
+        const auto val_ip = std::get<0>(connection_info);
+        const auto val_port = std::get<1>(connection_info);
+
+        if (val_ip != m_ip_connect_input.data() || val_port != m_port_connect_input.data()) {
+            spdlog::error("Invalid IP or port.");
+            strcpy(m_ip_connect_input.data(), val_ip.c_str());
+            strcpy(m_port_connect_input.data(), val_port.c_str());
+            return;
+        }
+
+        m_client = make_unique<NierClient>(val_ip, val_port, m_name_input.data(), m_password_input.data());
 
         if (!m_client->is_connected()) {
             m_client.reset();
         }
     }
 
+    ImGui::InputText("Connect Port", m_port_connect_input.data(), m_port_connect_input.size());
     ImGui::InputText("Name", m_name_input.data(), m_name_input.size());
     ImGui::InputText("Password", m_password_input.data(), m_password_input.size());
+}
 
-    ImGui::InputText("Master Server", m_master_server_input.data(), m_master_server_input.size());
+void AutomataMPMod::on_draw_ui() {
+    if (!ImGui::CollapsingHeader("AutomataMPMod")) {
+        return;
+    }
+
+    if (m_client) {
+        if (ImGui::Button("Disconnect")) {
+            m_client.reset();
+            return;
+        }
+        ImGui::Text("State: Client");
+    } else {
+        ImGui::Text("State: Disconnected");
+    }
+
+	ImGui::InputText("Master Server", m_master_server_input.data(), m_master_server_input.size());
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Servers")) {
         display_servers();
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNode("Manual Connection")) {
+        display_manual_connect();
         ImGui::TreePop();
     }
     
@@ -359,4 +415,23 @@ void AutomataMPMod::shared_think() {
     if (m_client) {
         m_client->think();
     }
+}
+
+std::tuple<std::string, std::string> AutomataMPMod::validate_connection(std::string ip, std::string port) {
+    std::string valid_ip = DEFAULT_IP;
+    std::string valid_port = DEFAULT_PORT;
+    bool is_port_valid = false;
+
+    if (!std::regex_match(ip, std::regex("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"))) {
+        return { valid_ip, valid_port };
+    }
+
+    for (auto& server : m_servers) {
+        valid_port = server->port;
+        if (server->ip == ip && valid_port == port) {
+            is_port_valid = true;
+        }
+    }
+
+    return { ip, is_port_valid ? port : valid_port };
 }

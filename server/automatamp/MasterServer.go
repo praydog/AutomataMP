@@ -3,15 +3,19 @@
 package automatamp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/codecat/go-libs/log"
 	gin "github.com/gin-gonic/gin"
 )
 
 type ServerData struct {
+	Port       string `json:"Port" binding:"required"`
 	Name       string `json:"Name" binding:"required"`
 	NumPlayers *int   `json:"NumPlayers" binding:"required"`
 }
@@ -25,6 +29,7 @@ type ActiveServer struct {
 type MasterServer struct {
 	mtx           sync.Mutex
 	servers       map[string]*ActiveServer // ip -> server
+	config        map[string]interface{}
 	lastCleanTime time.Time
 }
 
@@ -70,6 +75,7 @@ func (server *MasterServer) listen() {
 			json.Name = json.Name[:64]
 		}
 
+		server.servers[ip].Data.Port = json.Port
 		server.servers[ip].Data.Name = json.Name
 		server.servers[ip].Data.NumPlayers = json.NumPlayers
 		server.servers[ip].lastBeat = time.Now()
@@ -88,10 +94,10 @@ func (server *MasterServer) listen() {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "https://github.com/praydog/AutomataMP")
+		c.Redirect(http.StatusMovedPermanently, server.config["address"].(string))
 	})
 
-	r.Run(":80")
+	r.Run(":" + server.config["port"].(string))
 }
 
 func (server *MasterServer) Run() {
@@ -99,7 +105,19 @@ func (server *MasterServer) Run() {
 }
 
 func CreateMasterServer() *MasterServer {
+	masterConfig, err := os.ReadFile("masterserver.json")
+	if err != nil {
+		log.Error("Master Server config file not present, using defaults")
+		//panic(err)
+	}
+
 	server := &MasterServer{}
 	server.servers = make(map[string]*ActiveServer)
+	server.config = make(map[string]interface{})
+	server.config["address"] = "localhost"
+	server.config["port"] = "80"
+
+	json.Unmarshal(masterConfig, &server.config)
+
 	return server
 }

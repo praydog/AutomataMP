@@ -44,6 +44,7 @@ public:
     void on_frame() override;
     void on_think() override;
     void shared_think();
+    std::tuple<std::string, std::string> validate_connection(std::string ip, std::string port);
     void signal_destroy_client() {
         m_wants_destroy_client = true;
     }
@@ -67,8 +68,10 @@ private:
 
 private:
     void display_servers();
+    void display_manual_connect();
     struct ServerData {
         std::string ip;
+        std::string port;
         std::string name;
         uint32_t num_players;
     };
@@ -79,6 +82,7 @@ private:
 
     // imgui stuff
     std::array<char, 256> m_ip_connect_input{};
+    std::array<char, 256> m_port_connect_input{};
     std::array<char, 256> m_password_input{};
     std::array<char, 256> m_name_input{};
     std::array<char, 256> m_master_server_input{};

@@ -13,7 +13,8 @@ struct Packet;
 class NierClient : public enetpp::client {
 public:
     NierClient(
-        const std::string& host, 
+        const std::string& host,
+        const std::string& port = "6969",
         const std::string& name = "Client",
         const std::string& password = "");
     virtual ~NierClient();

@@ -14,7 +14,7 @@
 
 using namespace std;
 
-NierClient::NierClient(const std::string& host, const std::string& name, const std::string& password)
+NierClient::NierClient(const std::string& host, const std::string& port, const std::string& name, const std::string& password)
     : m_hello_name{ name },
     m_password{ password }
 {
@@ -24,7 +24,9 @@ NierClient::NierClient(const std::string& host, const std::string& name, const s
     enetpp::global_state::get().initialize();
 
     set_trace_handler([](const std::string& s) { spdlog::info("{}", s); });
-    connect(enetpp::client_connect_params().set_channel_count(1).set_server_host_name_and_port(host.c_str(), 6969).set_timeout(chrono::seconds(1)));
+    
+    enet_uint16 port_num = static_cast<enet_uint16>(std::stoi(port));
+    connect(enetpp::client_connect_params().set_channel_count(1).set_server_host_name_and_port(host.c_str(), port_num).set_timeout(chrono::seconds(1)));
 
     while (get_connection_state() == enetpp::CONNECT_CONNECTING) {
         think();

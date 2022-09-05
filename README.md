@@ -69,3 +69,5 @@ Because this is fairly old code originally not meant to be released publicly, th
 * New system uses MidHook from [safetyhook](https://github.com/cursey/safetyhook) to perform mid function hooks and retrieve the context
   * This is much faster and doesn't have the drawbacks of not being thread safe
 * Client code refactor started to hold up to current standards and better reflect the actual game structure
+* Lizardy:
+  * Bugfixes to connection and slight remodel
