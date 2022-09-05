@@ -1,9 +1,9 @@
 #include <string_view>
 #include <windows.h>
 
-#include <MinHook.h>
+#include <SafetyHook.hpp>
 
-decltype(CreateProcessW)* g_original_cpw{nullptr};
+std::unique_ptr<safetyhook::InlineHook> g_cpwhook{};
 
 BOOL WINAPI cpwhook(
   LPCWSTR               lpApplicationName,
@@ -19,7 +19,7 @@ BOOL WINAPI cpwhook(
 )
 {
     auto launch = [&](const wchar_t* custom_command_line = nullptr) {
-        const auto result =  g_original_cpw(lpApplicationName, 
+        const auto result =  g_cpwhook->call<BOOL>(lpApplicationName, 
                     custom_command_line != nullptr ? (LPWSTR)custom_command_line : lpCommandLine, 
                     lpProcessAttributes, 
                     lpThreadAttributes, 
@@ -56,28 +56,18 @@ BOOL WINAPI cpwhook(
 }
 
 void startup_thread() {
-    MH_Initialize();
+    auto factory = SafetyHookFactory::init();
+    auto builder = factory->acquire(); 
 
     const auto target = GetProcAddress(GetModuleHandleA("kernel32.dll"), "CreateProcessW");
 
-    MH_CreateHook(
-        target,
-        cpwhook,
-        (LPVOID*)&g_original_cpw
-    );
-
-    MH_EnableHook(target);
+    g_cpwhook = builder.create_inline(target, cpwhook);
 }
 
-// dllmain
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    switch (fdwReason)
-    {
-    case DLL_PROCESS_ATTACH:
+    if (fdwReason == DLL_PROCESS_ATTACH) {
         CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)startup_thread, nullptr, 0, nullptr);
-        break;
-    case DLL_PROCESS_DETACH:
-        break;
     }
+
     return TRUE;
 }

@@ -1,0 +1,45 @@
+# Reference: https://build-cpp.github.io/cmkr/cmake-toml
+# to build:
+# > cmake -B build
+# > cmake --build build --config Release
+[project]
+name = "steamtwice-proj"
+cmake-after = """
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+
+set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
+
+if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+
+    # Statically compile runtime
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    message(NOTICE "Building in Release mode")
+endif()
+"""
+
+[fetch-content.bddisasm]
+git = "https://github.com/bitdefender/bddisasm"
+tag = "v1.34.10"
+
+[fetch-content.safetyhook]
+git = "https://github.com/cursey/safetyhook"
+tag = "e175896c67abf49360acafe8879205a138fe6b2b"
+
+# THIS MUST BE COMPILED IN 32-BIT, STEAM IS 32-BIT.
+[target.steamtwice]
+type = "shared"
+sources = ["steamtwice.cpp"]
+compile-options = ["/MP"]
+compile-features = ["cxx_std_20"]
+compile-definitions = ["_WINSOCKAPI_"]
+link-libraries = [
+    "safetyhook",
+]
