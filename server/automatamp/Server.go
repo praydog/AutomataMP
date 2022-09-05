@@ -23,11 +23,13 @@ type ActiveEntity struct {
 	//lastEntityData *nier.EntityData // to be seen if it needs to be used.
 }
 
+type EntityList map[uint32]*ActiveEntity
+
 type Server struct {
 	host              enet.Host
 	connections       map[enet.Peer]*Connection
 	clients           map[*Connection]*Client
-	entities          map[uint32]*ActiveEntity
+	entities          EntityList
 	connectionCount   uint64
 	highestEntityGuid uint32
 	config            map[string]interface{}
@@ -393,6 +395,13 @@ func (server *Server) handleEvent(ev enet.Event) {
 					break
 				}
 			}
+
+			// We need to delete all existing entities now.
+			// They will grow to a crazy amount over time otherwise.
+			if len(server.clients) == 0 {
+				server.entities = make(EntityList)
+				server.highestEntityGuid = 0
+			}
 		}
 
 		delete(server.connections, ev.GetPeer())
@@ -616,7 +625,7 @@ func CreateServer() *Server {
 	server := &Server{}
 	server.connections = make(map[enet.Peer]*Connection)
 	server.clients = make(map[*Connection]*Client)
-	server.entities = make(map[uint32]*ActiveEntity)
+	server.entities = make(EntityList)
 	server.config = make(map[string]interface{})
 	server.connectionCount = 0
 	server.highestEntityGuid = 0
