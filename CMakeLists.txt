@@ -336,6 +336,67 @@ target_include_directories(minhook PUBLIC
 unset(CMKR_TARGET)
 unset(CMKR_SOURCES)
 
+# Target mruby
+set(CMKR_TARGET mruby)
+set(mruby_SOURCES "")
+
+list(APPEND mruby_SOURCES
+	"dependencies/submodules/mruby/src/array.c"
+	"dependencies/submodules/mruby/src/backtrace.c"
+	"dependencies/submodules/mruby/src/class.c"
+	"dependencies/submodules/mruby/src/codedump.c"
+	"dependencies/submodules/mruby/src/compar.c"
+	"dependencies/submodules/mruby/src/crc.c"
+	"dependencies/submodules/mruby/src/debug.c"
+	"dependencies/submodules/mruby/src/dump.c"
+	"dependencies/submodules/mruby/src/enum.c"
+	"dependencies/submodules/mruby/src/error.c"
+	"dependencies/submodules/mruby/src/etc.c"
+	"dependencies/submodules/mruby/src/fmt_fp.c"
+	"dependencies/submodules/mruby/src/gc.c"
+	"dependencies/submodules/mruby/src/hash.c"
+	"dependencies/submodules/mruby/src/init.c"
+	"dependencies/submodules/mruby/src/kernel.c"
+	"dependencies/submodules/mruby/src/load.c"
+	"dependencies/submodules/mruby/src/numeric.c"
+	"dependencies/submodules/mruby/src/object.c"
+	"dependencies/submodules/mruby/src/pool.c"
+	"dependencies/submodules/mruby/src/print.c"
+	"dependencies/submodules/mruby/src/proc.c"
+	"dependencies/submodules/mruby/src/range.c"
+	"dependencies/submodules/mruby/src/state.c"
+	"dependencies/submodules/mruby/src/string.c"
+	"dependencies/submodules/mruby/src/symbol.c"
+	"dependencies/submodules/mruby/src/variable.c"
+	"dependencies/submodules/mruby/src/version.c"
+	"dependencies/submodules/mruby/src/vm.c"
+	"dependencies/submodules/mruby/mrblib/init_mrblib.c"
+)
+
+list(APPEND mruby_SOURCES
+	cmake.toml
+)
+
+set(CMKR_SOURCES ${mruby_SOURCES})
+add_library(mruby STATIC)
+
+if(mruby_SOURCES)
+	target_sources(mruby PRIVATE ${mruby_SOURCES})
+endif()
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${mruby_SOURCES})
+
+target_compile_definitions(mruby PUBLIC
+	DISABLE_GEMS
+)
+
+target_include_directories(mruby PUBLIC
+	"dependencies/submodules/mruby/include"
+)
+
+unset(CMKR_TARGET)
+unset(CMKR_SOURCES)
+
 # Target sdk
 set(CMKR_TARGET sdk)
 set(sdk_SOURCES "")
@@ -349,6 +410,7 @@ list(APPEND sdk_SOURCES
 	"shared/sdk/hap/StateObject.cpp"
 	"shared/sdk/hap/TokenCategory.cpp"
 	"shared/sdk/hap/scene_state/SceneStateSystem.cpp"
+	"shared/sdk/mruby.cpp"
 	"shared/sdk/Behavior.hpp"
 	"shared/sdk/BehaviorAppBase.hpp"
 	"shared/sdk/CameraGame.hpp"
@@ -381,6 +443,7 @@ list(APPEND sdk_SOURCES
 	"shared/sdk/lib/Downcastable.hpp"
 	"shared/sdk/lib/HashedString.hpp"
 	"shared/sdk/lib/Noncopyable.hpp"
+	"shared/sdk/mruby.hpp"
 	"shared/sdk/regenny/Behavior.hpp"
 	"shared/sdk/regenny/BehaviorAppBase.hpp"
 	"shared/sdk/regenny/BehaviorExtension.hpp"
@@ -455,6 +518,7 @@ target_include_directories(sdk PUBLIC
 target_link_libraries(sdk PUBLIC
 	glm_static
 	spdlog
+	mruby
 )
 
 target_link_libraries(sdk PRIVATE

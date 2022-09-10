@@ -88,6 +88,18 @@ include-directories = [
     "dependencies/submodules/minhook/src/hde",
 ]
 
+[target.mruby]
+type = "static"
+sources = [
+    "dependencies/submodules/mruby/src/**.c",
+    "dependencies/submodules/mruby/src/**.cpp",
+    "dependencies/submodules/mruby/mrblib/**.c",
+]
+include-directories = [
+    "dependencies/submodules/mruby/include"
+]
+compile-definitions = ["DISABLE_GEMS"]
+
 [target.sdk]
 type = "static"
 sources = ["shared/sdk/**.cpp", "shared/sdk/**.c"]
@@ -97,7 +109,8 @@ compile-options = ["/EHa", "/MP"]
 compile-features = ["cxx_std_20"]
 link-libraries = [
     "glm_static",
-    "spdlog"
+    "spdlog",
+    "mruby"
 ]
 private-link-libraries = [
     "utility"

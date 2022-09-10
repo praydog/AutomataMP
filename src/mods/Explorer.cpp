@@ -1,6 +1,8 @@
 #include <unordered_map>
 #include <map>
 #include <functional>
+#include <fstream>
+#include <filesystem>
 
 #include <imgui.h>
 #include <utility/RTTI.hpp>
@@ -13,6 +15,7 @@
 #include <sdk/Pl0000.hpp>
 #include <sdk/hap/TokenCategory.hpp>
 #include <sdk/hap/scene_state/SceneStateSystem.hpp>
+#include <sdk/mruby.hpp>
 
 #include "Explorer.hpp"
 
@@ -36,6 +39,44 @@ auto disp_same_line_noargs = [](const std::vector<Method>& methods) {
 void Explorer::on_draw_ui() {
     if (!ImGui::CollapsingHeader(get_name().data())) {
         return;
+    }
+
+    auto mrb = sdk::mruby::get_state();
+    ImGui::Text("mruby state: %p", (void*)mrb);
+
+    if (mrb != nullptr) {
+        if (ImGui::Button("Inject custom methods")) {
+            mrb_define_method(mrb, mrb->object_class, "really_cool_method", [](mrb_state* mrb, mrb_value self) {
+                MessageBox(nullptr, "Hello from mruby!", "Hello", MB_OK);
+                return mrb_nil_value();
+            }, MRB_ARGS_NONE());
+
+            // dump a string to disk
+            mrb_define_method(mrb, mrb->object_class, "dump_to_disk", [](mrb_state* mrb, mrb_value self) {
+                mrb_value str;
+                mrb_get_args(mrb, "S", &str);
+
+                auto path = std::filesystem::current_path() / "dump.txt";
+                std::ofstream ofs(path);
+                ofs << mrb_str_to_cstr(mrb, str);
+                ofs.close();
+
+                return mrb_nil_value();
+            }, MRB_ARGS_REQ(1));
+        }
+
+        char eval_buffer[256] = { 0 };
+        static mrb_value last_result{};
+
+        if (ImGui::InputTextMultiline("eval", eval_buffer, sizeof(eval_buffer), ImVec2{}, ImGuiInputTextFlags_EnterReturnsTrue)) {
+            last_result = mrb_obj_as_string(sdk::mruby::get_state(), sdk::mruby::eval(eval_buffer));
+        }
+
+        if (last_result.tt == MRB_TT_STRING) {
+            ImGui::TextWrapped("result: %s", mrb_string_value_cstr(mrb, &last_result));
+        } else {
+            ImGui::TextWrapped("result: %p", last_result.value.p);
+        }
     }
 
     ImGui::Text("first token: %p", (void*)sdk::hap::TokenCategory::get_first());

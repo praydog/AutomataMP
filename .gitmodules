@@ -16,3 +16,6 @@
 [submodule "dependencies/submodules/enet"]
 	path = dependencies/submodules/enet
 	url = https://github.com/lsalzman/enet
+[submodule "dependencies/submodules/mruby"]
+	path = dependencies/submodules/mruby
+	url = https://github.com/mruby/mruby/
