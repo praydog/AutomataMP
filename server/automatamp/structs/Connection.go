@@ -1,10 +1,10 @@
-package automatamp
+package structs
 
 import (
 	"github.com/codecat/go-enet"
 )
 
 type Connection struct {
-	peer   enet.Peer
-	client *Client
+	Peer   enet.Peer
+	Client *Client
 }

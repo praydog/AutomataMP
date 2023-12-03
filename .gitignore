@@ -32,3 +32,5 @@ build/*
 out/*
 .vs/*
 tools/steamtwice/build/*
+tools/steamtwice/CMakeFiles
+tools/steamtwice/CMakeCache*

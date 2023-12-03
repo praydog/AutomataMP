@@ -1,4 +1,4 @@
-package automatamp
+package structs
 
 type Room struct {
 	name    string

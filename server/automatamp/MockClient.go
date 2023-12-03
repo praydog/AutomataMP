@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"time"
 
+	core "github.com/praydog/AutomataMP/server/automatamp/core"
 	nier "github.com/praydog/AutomataMP/server/automatamp/nier"
 
 	"github.com/codecat/go-enet"
@@ -30,11 +31,11 @@ type MockClient struct {
 }
 
 func (mock *MockClient) sendPing(peer enet.Peer) {
-	peer.SendBytes(makeEmptyPacketBytes(nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
+	peer.SendBytes(core.MakeEmptyPacketBytes(nier.PacketTypeID_PING), 0, enet.PacketFlagReliable)
 }
 
 func (mock *MockClient) sendHello(peer enet.Peer, name string, password string) {
-	helloBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	helloBytes := core.BuilderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		name_pkt := builder.CreateString(name)
 		pwd_pkt := builder.CreateString(password)
 		nier.HelloStart(builder)
@@ -48,7 +49,7 @@ func (mock *MockClient) sendHello(peer enet.Peer, name string, password string) 
 		return nier.HelloEnd(builder)
 	})
 
-	pkt := makePacketBytes(nier.PacketTypeID_HELLO, helloBytes)
+	pkt := core.MakePacketBytes(nier.PacketTypeID_HELLO, helloBytes)
 	peer.SendBytes(pkt, 0, enet.PacketFlagReliable)
 }
 
@@ -64,7 +65,7 @@ func (mock *MockClient) getNextPacket(ev enet.Event) *nier.Packet {
 
 		data := nier.GetRootAsPacket(packetBytes, 0)
 
-		if !checkValidPacket(data) {
+		if !core.CheckValidPacket(data) {
 			return nil
 		}
 
@@ -190,11 +191,11 @@ func (mock *MockClient) Run() {
 		if ev.GetType() == enet.EventNone {
 			if once_test {
 				log.Info("Sending animation start")
-				animationStartBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+				animationStartBytes := core.BuilderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 					return nier.CreateAnimationStart(builder, 1, 2, 3, 4)
 				})
 
-				animationData := makePacketBytes(nier.PacketTypeID_ANIMATION_START, animationStartBytes)
+				animationData := core.MakePacketBytes(nier.PacketTypeID_ANIMATION_START, animationStartBytes)
 				peer.SendBytes(animationData, 0, enet.PacketFlagReliable)
 
 				once_test = false
@@ -211,11 +212,11 @@ func (mock *MockClient) Run() {
 			if now.Sub(sendUpdateTime) >= (time.Second / 60) {
 				//log.Info("Sending update")
 
-				playerDataBytes := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+				playerDataBytes := core.BuilderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 					return nier.CreatePlayerData(builder, true, 0.1, 0.5, 0.25, 1, 0, 0, rand.Float32(), rand.Float32(), 250.0)
 				})
 
-				packetData := makePacketBytes(nier.PacketTypeID_PLAYER_DATA, playerDataBytes)
+				packetData := core.MakePacketBytes(nier.PacketTypeID_PLAYER_DATA, playerDataBytes)
 				peer.SendBytes(packetData, 0, enet.PacketFlagReliable)
 				sendUpdateTime = now
 				continue
@@ -240,7 +241,7 @@ func (mock *MockClient) Run() {
 
 			data := nier.GetRootAsPacket(packetBytes, 0)
 
-			if !checkValidPacket(data) {
+			if !core.CheckValidPacket(data) {
 				continue
 			}
 
