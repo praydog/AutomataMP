@@ -1,4 +1,4 @@
-package automatamp
+package core
 
 import (
 	nier "github.com/praydog/AutomataMP/server/automatamp/nier"
@@ -7,7 +7,7 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-func checkValidPacket(data *nier.Packet) bool {
+func CheckValidPacket(data *nier.Packet) bool {
 	// recovering from the panic will return false
 	// so this should be fine
 	// the reason for the panic handler is so some client
@@ -27,7 +27,7 @@ func checkValidPacket(data *nier.Packet) bool {
 	return true
 }
 
-func packetStart(id nier.PacketType) *flatbuffers.Builder {
+func PacketStart(id nier.PacketType) *flatbuffers.Builder {
 	builder := flatbuffers.NewBuilder(0)
 	nier.PacketStart(builder)
 	nier.PacketAddMagic(builder, 1347240270)
@@ -37,21 +37,7 @@ func packetStart(id nier.PacketType) *flatbuffers.Builder {
 	return builder
 }
 
-func makeVectorData(builder *flatbuffers.Builder, data []uint8) flatbuffers.UOffsetT {
-	dataoffs := flatbuffers.UOffsetT(0)
-
-	if len(data) > 0 {
-		nier.PacketStartDataVector(builder, len(data))
-		for i := len(data) - 1; i >= 0; i-- {
-			builder.PrependUint8(data[i])
-		}
-		dataoffs = builder.EndVector(len(data))
-	}
-
-	return dataoffs
-}
-
-func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder {
+func PacketStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder {
 	builder := flatbuffers.NewBuilder(0)
 
 	dataoffs := makeVectorData(builder, data)
@@ -68,40 +54,40 @@ func packetStartWithData(id nier.PacketType, data []uint8) *flatbuffers.Builder 
 	return builder
 }
 
-func makePacketBytes(id nier.PacketType, data []uint8) []uint8 {
-	builder := packetStartWithData(id, data)
+func MakePacketBytes(id nier.PacketType, data []uint8) []uint8 {
+	builder := PacketStartWithData(id, data)
 	builder.Finish(nier.PacketEnd(builder))
 	return builder.FinishedBytes()
 }
 
-func makeEmptyPacketBytes(id nier.PacketType) []uint8 {
-	builder := packetStart(id)
+func MakeEmptyPacketBytes(id nier.PacketType) []uint8 {
+	builder := PacketStart(id)
 	builder.Finish(nier.PacketEnd(builder))
 	return builder.FinishedBytes()
 }
 
-func builderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8 {
+func BuilderSurround(cb func(*flatbuffers.Builder) flatbuffers.UOffsetT) []uint8 {
 	builder := flatbuffers.NewBuilder(0)
 	offs := cb(builder)
 	builder.Finish(offs)
 	return builder.FinishedBytes()
 }
 
-func makePlayerPacketBytes(connection *Connection, id nier.PacketType, data []uint8) []uint8 {
-	playerPacketData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func MakePlayerPacketBytes(guid uint64, id nier.PacketType, data []uint8) []uint8 {
+	playerPacketData := BuilderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		dataoffs := makeVectorData(builder, data)
 
 		nier.PlayerPacketStart(builder)
-		nier.PlayerPacketAddGuid(builder, connection.client.guid)
+		nier.PlayerPacketAddGuid(builder, guid)
 		nier.PlayerPacketAddData(builder, dataoffs)
 		return nier.PlayerPacketEnd(builder)
 	})
 
-	return makePacketBytes(id, playerPacketData)
+	return MakePacketBytes(id, playerPacketData)
 }
 
-func makeEntityPacketBytes(guid uint32, id nier.PacketType, data []uint8) []uint8 {
-	entityPacketData := builderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func MakeEntityPacketBytes(guid uint32, id nier.PacketType, data []uint8) []uint8 {
+	entityPacketData := BuilderSurround(func(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 		dataoffs := makeVectorData(builder, data)
 
 		nier.EntityPacketStart(builder)
@@ -110,5 +96,5 @@ func makeEntityPacketBytes(guid uint32, id nier.PacketType, data []uint8) []uint
 		return nier.EntityPacketEnd(builder)
 	})
 
-	return makePacketBytes(id, entityPacketData)
+	return MakePacketBytes(id, entityPacketData)
 }

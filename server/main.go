@@ -11,8 +11,7 @@ func main() {
 	flag.Parse()
 
 	if *mode == "server" {
-		server := automatamp.CreateServer()
-		server.Run()
+		automatamp.CreateServer()
 	} else if *mode == "masterserver" {
 		server := automatamp.CreateMasterServer()
 		server.Run()

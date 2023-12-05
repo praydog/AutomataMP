@@ -1,4 +1,4 @@
-package automatamp
+package core
 
 import "github.com/codecat/go-libs/log"
 
