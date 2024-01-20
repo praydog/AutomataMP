@@ -15,6 +15,11 @@ At the moment, this project should only be used for basic world traversal and ex
 * MasterClient system to allow a "host" that controls the game world (enemies and other world state)
 * More than 2 players are supported, not just player + buddy
 
+#### Linux Packages
+##### Arch Linux (AUR)
+- [Tagged Version](https://aur.archlinux.org/packages/automatamp)
+- [Git Version](https://aur.archlinux.org/packages/automatamp-git)
+
 ### Player Sync
 * Position
 * Rotation
